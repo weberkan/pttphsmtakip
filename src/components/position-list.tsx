@@ -71,23 +71,29 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
             const assignedPerson = allPersonnel.find(p => p.id === position.assignedPersonnelId);
             return (
               <TableRow key={position.id}>
-                <TableCell className="font-medium flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  {position.name}
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span>{position.name}</span>
+                  </div>
                 </TableCell>
-                <TableCell className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  {position.department}
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span>{position.department}</span>
+                  </div>
                 </TableCell>
-                <TableCell className="flex items-center gap-2">
-                  {assignedPerson ? (
-                    <>
-                      <UserCircle className="h-4 w-4 text-muted-foreground" />
-                      {assignedPerson.firstName} {assignedPerson.lastName} (Sicil: {assignedPerson.registryNumber})
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground italic">Atanmamış</span>
-                  )}
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {assignedPerson ? (
+                      <>
+                        <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span>{assignedPerson.firstName} {assignedPerson.lastName} (Sicil: {assignedPerson.registryNumber})</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground italic">Atanmamış</span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(position.status)}
