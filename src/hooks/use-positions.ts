@@ -7,23 +7,9 @@ import type { Position, Personnel } from '@/lib/types';
 const LOCAL_STORAGE_POSITIONS_KEY = 'positionTrackerApp_positions';
 const LOCAL_STORAGE_PERSONNEL_KEY = 'positionTrackerApp_personnel';
 
-const initialPersonnelData: Personnel[] = [
-  { id: 'p1', firstName: 'Ali', lastName: 'Veli', registryNumber: 'SN1001' },
-  { id: 'p2', firstName: 'Ayşe', lastName: 'Yılmaz', registryNumber: 'SN1002' },
-  { id: 'p3', firstName: 'Mehmet', lastName: 'Kaya', registryNumber: 'SN1003' },
-  { id: 'p4', firstName: 'Fatma', lastName: 'Demir', registryNumber: 'SN1004' },
-  { id: 'p5', firstName: 'Can', lastName: 'Öztürk', registryNumber: 'SN1005' },
-  { id: 'p6', firstName: 'Elif', lastName: 'Şahin', registryNumber: 'SN1006' },
-];
+const initialPersonnelData: Personnel[] = [];
 
-const initialPositionsData: Position[] = [
-  { id: '1', name: 'CEO', department: 'Yönetim', status: 'Asıl', reportsTo: null, assignedPersonnelId: 'p1' },
-  { id: '2', name: 'CTO', department: 'Teknoloji', status: 'Asıl', reportsTo: '1', assignedPersonnelId: 'p2' },
-  { id: '3', name: 'Pazarlama Direktörü', department: 'Pazarlama', status: 'Asıl', reportsTo: '1', assignedPersonnelId: 'p3' },
-  { id: '4', name: 'Lider Yazılım Mühendisi', department: 'Mühendislik', status: 'Asıl', reportsTo: '2', assignedPersonnelId: 'p4' },
-  { id: '5', name: 'Junior Yazılım Mühendisi', department: 'Mühendislik', status: 'Vekalet', reportsTo: '4', assignedPersonnelId: 'p5' },
-  { id: '6', name: 'Pazarlama Müdürü', department: 'Pazarlama', status: 'Asıl', reportsTo: '3', assignedPersonnelId: 'p6' },
-];
+const initialPositionsData: Position[] = [];
 
 export function usePositions() {
   const [positions, setPositions] = useState<Position[]>([]);
