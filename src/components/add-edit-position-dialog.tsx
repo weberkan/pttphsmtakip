@@ -52,6 +52,8 @@ interface AddEditPositionDialogProps {
   onSave: (positionData: Omit<Position, 'id'> | Position) => void;
 }
 
+const PLACEHOLDER_FOR_NULL_VALUE = "__PLACEHOLDER_FOR_NULL__";
+
 export function AddEditPositionDialog({
   isOpen,
   onOpenChange,
@@ -97,8 +99,8 @@ export function AddEditPositionDialog({
   const onSubmit = (data: PositionFormData) => {
     const dataToSave = {
       ...data,
-      reportsTo: data.reportsTo === "" ? null : data.reportsTo,
-      assignedPersonnelId: data.assignedPersonnelId === "" ? null : data.assignedPersonnelId,
+      reportsTo: data.reportsTo === PLACEHOLDER_FOR_NULL_VALUE ? null : data.reportsTo,
+      assignedPersonnelId: data.assignedPersonnelId === PLACEHOLDER_FOR_NULL_VALUE ? null : data.assignedPersonnelId,
     };
 
     if (positionToEdit) {
@@ -183,14 +185,17 @@ export function AddEditPositionDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Bağlı Olduğu Pozisyon (Opsiyonel)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""} >
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value || ""}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Raporlayacağı yöneticiyi seçin" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Yok (En üst düzey pozisyon)</SelectItem>
+                      <SelectItem value={PLACEHOLDER_FOR_NULL_VALUE}>Yok (En üst düzey pozisyon)</SelectItem>
                       {allPositions
                         .filter(p => p.id !== positionToEdit?.id) 
                         .map(p => {
@@ -214,14 +219,17 @@ export function AddEditPositionDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Atanan Personel (Opsiyonel)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value || ""}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Personel seçin" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Boş (Atanmamış)</SelectItem>
+                      <SelectItem value={PLACEHOLDER_FOR_NULL_VALUE}>Boş (Atanmamış)</SelectItem>
                       {allPersonnel.map(p => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.firstName} {p.lastName} (Sicil: {p.registryNumber})
@@ -247,3 +255,4 @@ export function AddEditPositionDialog({
     </Dialog>
   );
 }
+
