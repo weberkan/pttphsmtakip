@@ -36,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 const positionSchema = z.object({
   name: z.string().min(2, "Pozisyon adı en az 2 karakter olmalıdır."),
   department: z.string().min(2, "Departman adı en az 2 karakter olmalıdır."),
-  status: z.enum(["permanent", "acting"]),
+  status: z.enum(["Asıl", "Vekalet", "Yürütme"]),
   reportsTo: z.string().nullable(),
   assignedPersonnelId: z.string().nullable(),
 });
@@ -68,7 +68,7 @@ export function AddEditPositionDialog({
     defaultValues: {
       name: "",
       department: "",
-      status: "permanent",
+      status: "Asıl",
       reportsTo: null,
       assignedPersonnelId: null,
     },
@@ -88,7 +88,7 @@ export function AddEditPositionDialog({
         form.reset({
           name: "",
           department: "",
-          status: "permanent",
+          status: "Asıl",
           reportsTo: null,
           assignedPersonnelId: null,
         });
@@ -171,8 +171,9 @@ export function AddEditPositionDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="permanent">Kalıcı</SelectItem>
-                      <SelectItem value="acting">Vekaleten</SelectItem>
+                      <SelectItem value="Asıl">Asıl</SelectItem>
+                      <SelectItem value="Vekalet">Vekalet</SelectItem>
+                      <SelectItem value="Yürütme">Yürütme</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -187,7 +188,7 @@ export function AddEditPositionDialog({
                   <FormLabel>Bağlı Olduğu Pozisyon (Opsiyonel)</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    value={field.value || ""}
+                    value={field.value || PLACEHOLDER_FOR_NULL_VALUE}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -221,7 +222,7 @@ export function AddEditPositionDialog({
                   <FormLabel>Atanan Personel (Opsiyonel)</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    value={field.value || ""}
+                    value={field.value || PLACEHOLDER_FOR_NULL_VALUE}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -255,4 +256,3 @@ export function AddEditPositionDialog({
     </Dialog>
   );
 }
-

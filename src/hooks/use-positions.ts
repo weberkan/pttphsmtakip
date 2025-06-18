@@ -17,12 +17,12 @@ const initialPersonnelData: Personnel[] = [
 ];
 
 const initialPositionsData: Position[] = [
-  { id: '1', name: 'CEO', department: 'Yönetim', status: 'permanent', reportsTo: null, assignedPersonnelId: 'p1' },
-  { id: '2', name: 'CTO', department: 'Teknoloji', status: 'permanent', reportsTo: '1', assignedPersonnelId: 'p2' },
-  { id: '3', name: 'Pazarlama Direktörü', department: 'Pazarlama', status: 'permanent', reportsTo: '1', assignedPersonnelId: 'p3' },
-  { id: '4', name: 'Lider Yazılım Mühendisi', department: 'Mühendislik', status: 'permanent', reportsTo: '2', assignedPersonnelId: 'p4' },
-  { id: '5', name: 'Junior Yazılım Mühendisi', department: 'Mühendislik', status: 'acting', reportsTo: '4', assignedPersonnelId: 'p5' },
-  { id: '6', name: 'Pazarlama Müdürü', department: 'Pazarlama', status: 'permanent', reportsTo: '3', assignedPersonnelId: 'p6' },
+  { id: '1', name: 'CEO', department: 'Yönetim', status: 'Asıl', reportsTo: null, assignedPersonnelId: 'p1' },
+  { id: '2', name: 'CTO', department: 'Teknoloji', status: 'Asıl', reportsTo: '1', assignedPersonnelId: 'p2' },
+  { id: '3', name: 'Pazarlama Direktörü', department: 'Pazarlama', status: 'Asıl', reportsTo: '1', assignedPersonnelId: 'p3' },
+  { id: '4', name: 'Lider Yazılım Mühendisi', department: 'Mühendislik', status: 'Asıl', reportsTo: '2', assignedPersonnelId: 'p4' },
+  { id: '5', name: 'Junior Yazılım Mühendisi', department: 'Mühendislik', status: 'Vekalet', reportsTo: '4', assignedPersonnelId: 'p5' },
+  { id: '6', name: 'Pazarlama Müdürü', department: 'Pazarlama', status: 'Asıl', reportsTo: '3', assignedPersonnelId: 'p6' },
 ];
 
 export function usePositions() {

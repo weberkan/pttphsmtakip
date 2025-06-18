@@ -4,7 +4,7 @@
 import type { Position, Personnel } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, User, BadgeCheck, BadgeAlert, Building2 } from "lucide-react";
+import { Briefcase, User, BadgeCheck, BadgeAlert, Building2, Info } from "lucide-react";
 
 interface OrgChartNodeProps {
   position: Position;
@@ -16,6 +16,34 @@ interface OrgChartNodeProps {
 export function OrgChartNode({ position, allPositions, allPersonnel, level }: OrgChartNodeProps) {
   const children = allPositions.filter(p => p.reportsTo === position.id);
   const assignedPerson = allPersonnel.find(p => p.id === position.assignedPersonnelId);
+
+  const getStatusBadge = (status: Position['status']) => {
+    switch (status) {
+      case 'Asıl':
+        return (
+          <Badge variant="default" className="capitalize text-xs px-1.5 py-0.5">
+            <BadgeCheck className="mr-1 h-3 w-3" />
+            Asıl
+          </Badge>
+        );
+      case 'Vekalet':
+        return (
+          <Badge variant="secondary" className="capitalize text-xs px-1.5 py-0.5">
+            <BadgeAlert className="mr-1 h-3 w-3" />
+            Vekalet
+          </Badge>
+        );
+      case 'Yürütme':
+        return (
+          <Badge variant="outline" className="capitalize text-xs px-1.5 py-0.5">
+            <Info className="mr-1 h-3 w-3" />
+            Yürütme
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary" className="text-xs px-1.5 py-0.5">{status}</Badge>;
+    }
+  };
 
   return (
     <li style={{ marginLeft: `${level * 20}px` }} className="mt-2">
@@ -35,14 +63,7 @@ export function OrgChartNode({ position, allPositions, allPersonnel, level }: Or
                 <Building2 className="h-3 w-3 text-muted-foreground"/>
                 <span>{position.department}</span>
             </div>
-             <Badge variant={position.status === 'permanent' ? 'default' : 'secondary'} className="capitalize text-xs px-1.5 py-0.5">
-              {position.status === 'permanent' ? (
-                <BadgeCheck className="mr-1 h-3 w-3" />
-              ) : (
-                <BadgeAlert className="mr-1 h-3 w-3" />
-              )}
-              {position.status === 'permanent' ? 'Kalıcı' : 'Vekaleten'}
-            </Badge>
+            {getStatusBadge(position.status)}
         </CardContent>
       </Card>
       {children.length > 0 && (

@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BadgeCheck, BadgeAlert, Briefcase, Building2, UserCircle } from "lucide-react";
+import { BadgeCheck, BadgeAlert, Briefcase, Building2, UserCircle, Info } from "lucide-react";
 import type { Position, Personnel } from "@/lib/types";
 import { PositionListItemActions } from "./position-list-item-actions";
 
@@ -25,6 +25,34 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
   if (positions.length === 0) {
     return <p className="text-muted-foreground text-center py-4">Pozisyon bulunamadı. Eklemeyi deneyin!</p>;
   }
+
+  const getStatusBadge = (status: Position['status']) => {
+    switch (status) {
+      case 'Asıl':
+        return (
+          <Badge variant="default" className="capitalize">
+            <BadgeCheck className="mr-1 h-3.5 w-3.5" />
+            Asıl
+          </Badge>
+        );
+      case 'Vekalet':
+        return (
+          <Badge variant="secondary" className="capitalize">
+            <BadgeAlert className="mr-1 h-3.5 w-3.5" />
+            Vekalet
+          </Badge>
+        );
+      case 'Yürütme':
+        return (
+          <Badge variant="outline" className="capitalize">
+            <Info className="mr-1 h-3.5 w-3.5" />
+            Yürütme
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="rounded-md border overflow-x-auto">
@@ -62,14 +90,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   )}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={position.status === 'permanent' ? 'default' : 'secondary'} className="capitalize">
-                    {position.status === 'permanent' ? (
-                      <BadgeCheck className="mr-1 h-3.5 w-3.5" />
-                    ) : (
-                      <BadgeAlert className="mr-1 h-3.5 w-3.5" />
-                    )}
-                    {position.status === 'permanent' ? 'Kalıcı' : 'Vekaleten'}
-                  </Badge>
+                  {getStatusBadge(position.status)}
                 </TableCell>
                 <TableCell className="text-right">
                   <PositionListItemActions position={position} onEdit={onEdit} onDelete={onDelete} />

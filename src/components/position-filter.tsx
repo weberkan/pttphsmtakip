@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ interface PositionFilterProps {
 export function PositionFilter({ currentFilter, onFilterChange }: PositionFilterProps) {
   return (
     <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-start gap-4 sm:gap-6">
-      <Label className="text-sm font-medium">Filter by Status:</Label>
+      <Label className="text-sm font-medium">Duruma Göre Filtrele:</Label>
       <RadioGroup
         defaultValue={currentFilter}
         onValueChange={(value) => onFilterChange(value as PositionFilterType)}
@@ -22,15 +23,19 @@ export function PositionFilter({ currentFilter, onFilterChange }: PositionFilter
       >
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="all" id="filter-all" />
-          <Label htmlFor="filter-all" className="font-normal">All</Label>
+          <Label htmlFor="filter-all" className="font-normal">Tümü</Label>
         </div>
         <div className="flex items-center space-x-2">
-          <RadioGroupItem value="permanent" id="filter-permanent" />
-          <Label htmlFor="filter-permanent" className="font-normal">Permanent</Label>
+          <RadioGroupItem value="Asıl" id="filter-asil" />
+          <Label htmlFor="filter-asil" className="font-normal">Asıl</Label>
         </div>
         <div className="flex items-center space-x-2">
-          <RadioGroupItem value="acting" id="filter-acting" />
-          <Label htmlFor="filter-acting" className="font-normal">Acting</Label>
+          <RadioGroupItem value="Vekalet" id="filter-vekalet" />
+          <Label htmlFor="filter-vekalet" className="font-normal">Vekalet</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="Yürütme" id="filter-yurutme" />
+          <Label htmlFor="filter-yurutme" className="font-normal">Yürütme</Label>
         </div>
       </RadioGroup>
     </div>
