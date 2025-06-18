@@ -131,42 +131,27 @@ export default function HomePage() {
       <AppHeader onAddPosition={handleAddPositionClick} onAddPersonnel={handleAddPersonnelClick} />
       <main className="flex-grow container mx-auto p-4 md:p-6 lg:p-8">
         <Tabs defaultValue="positions" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="positions">Pozisyon Yönetimi</TabsTrigger>
             <TabsTrigger value="personnel">Personel Yönetimi</TabsTrigger>
+            <TabsTrigger value="org-chart">Organizasyon Şeması</TabsTrigger>
           </TabsList>
           <TabsContent value="positions">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-              <section aria-labelledby="positions-heading" className="lg:col-span-2 space-y-6">
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle id="positions-heading">Şirket Pozisyonları</CardTitle>
-                    <CardDescription>Şirket içindeki tüm pozisyonları yönetin ve görüntüleyin.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
-                    <PositionList 
-                      positions={filteredPositions} 
-                      allPersonnel={personnel}
-                      onEdit={handleEditPosition}
-                      onDelete={handleDeletePosition}
-                    />
-                  </CardContent>
-                </Card>
-              </section>
-              
-              <section aria-labelledby="org-chart-heading" className="lg:col-span-1 space-y-6 sticky top-36"> {/* Sticky with offset for tabs and header */}
-                <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle id="org-chart-heading">Organizasyon Şeması</CardTitle>
-                    <CardDescription>Şirketin raporlama yapısının görsel özeti.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <OrgChart positions={positions} allPersonnel={personnel} />
-                  </CardContent>
-                </Card>
-              </section>
-            </div>
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle id="positions-heading">Şirket Pozisyonları</CardTitle>
+                <CardDescription>Şirket içindeki tüm pozisyonları yönetin ve görüntüleyin.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
+                <PositionList 
+                  positions={filteredPositions} 
+                  allPersonnel={personnel}
+                  onEdit={handleEditPosition}
+                  onDelete={handleDeletePosition}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
           <TabsContent value="personnel">
             <Card className="shadow-lg">
@@ -180,6 +165,17 @@ export default function HomePage() {
                   onEdit={handleEditPersonnel}
                   onDelete={handleDeletePersonnel}
                 />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="org-chart">
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle id="org-chart-heading">Organizasyon Şeması</CardTitle>
+                <CardDescription>Şirketin raporlama yapısının görsel özeti.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <OrgChart positions={positions} allPersonnel={personnel} />
               </CardContent>
             </Card>
           </TabsContent>
