@@ -1,30 +1,48 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
 import { AppHeader } from "@/components/app-header";
 import { AddEditPositionDialog } from "@/components/add-edit-position-dialog";
+import { AddEditPersonnelDialog } from "@/components/add-edit-personnel-dialog";
 import { PositionFilter, type PositionFilterType } from "@/components/position-filter";
 import { PositionList } from "@/components/position-list";
+import { PersonnelList } from "@/components/personnel-list";
 import { OrgChart } from "@/components/org-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePositions } from "@/hooks/use-positions";
-import type { Position } from "@/lib/types";
+import type { Position, Personnel } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function HomePage() {
-  const { positions, addPosition, updatePosition, deletePosition, isInitialized } = usePositions();
+  const { 
+    positions, 
+    personnel,
+    addPosition, 
+    updatePosition, 
+    deletePosition, 
+    addPersonnel,
+    updatePersonnel,
+    deletePersonnel,
+    isInitialized 
+  } = usePositions();
+
   const [filter, setFilter] = useState<PositionFilterType>("all");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPositionDialogOpen, setIsPositionDialogOpen] = useState(false);
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
+  
+  const [isPersonnelDialogOpen, setIsPersonnelDialogOpen] = useState(false);
+  const [editingPersonnel, setEditingPersonnel] = useState<Personnel | null>(null);
 
   const handleAddPositionClick = () => {
     setEditingPosition(null);
-    setIsDialogOpen(true);
+    setIsPositionDialogOpen(true);
   };
 
   const handleEditPosition = (position: Position) => {
     setEditingPosition(position);
-    setIsDialogOpen(true);
+    setIsPositionDialogOpen(true);
   };
 
   const handleDeletePosition = (positionId: string) => {
@@ -37,9 +55,34 @@ export default function HomePage() {
     } else {
       addPosition(data as Omit<Position, 'id'>);
     }
-    setIsDialogOpen(false);
+    setIsPositionDialogOpen(false);
     setEditingPosition(null);
   };
+
+  const handleAddPersonnelClick = () => {
+    setEditingPersonnel(null);
+    setIsPersonnelDialogOpen(true);
+  };
+
+  const handleEditPersonnel = (person: Personnel) => {
+    setEditingPersonnel(person);
+    setIsPersonnelDialogOpen(true);
+  };
+
+  const handleDeletePersonnel = (personnelId: string) => {
+    deletePersonnel(personnelId);
+  };
+
+  const handleSavePersonnel = (data: Omit<Personnel, 'id'> | Personnel) => {
+    if ('id' in data) {
+      updatePersonnel(data as Personnel);
+    } else {
+      addPersonnel(data as Omit<Personnel, 'id'>);
+    }
+    setIsPersonnelDialogOpen(false);
+    setEditingPersonnel(null);
+  };
+
 
   const filteredPositions = useMemo(() => {
     if (filter === "all") {
@@ -51,7 +94,7 @@ export default function HomePage() {
   if (!isInitialized) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
-        <AppHeader onAddPosition={() => {}} /> {/* Placeholder action */}
+        <AppHeader onAddPosition={() => {}} onAddPersonnel={() => {}} />
         <main className="flex-grow container mx-auto p-4 md:p-6 lg:p-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
@@ -85,46 +128,78 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <AppHeader onAddPosition={handleAddPositionClick} />
+      <AppHeader onAddPosition={handleAddPositionClick} onAddPersonnel={handleAddPersonnelClick} />
       <main className="flex-grow container mx-auto p-4 md:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <section aria-labelledby="positions-heading" className="lg:col-span-2 space-y-6">
+        <Tabs defaultValue="positions" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="positions">Pozisyon Yönetimi</TabsTrigger>
+            <TabsTrigger value="personnel">Personel Yönetimi</TabsTrigger>
+          </TabsList>
+          <TabsContent value="positions">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              <section aria-labelledby="positions-heading" className="lg:col-span-2 space-y-6">
+                <Card className="shadow-lg">
+                  <CardHeader>
+                    <CardTitle id="positions-heading">Şirket Pozisyonları</CardTitle>
+                    <CardDescription>Şirket içindeki tüm pozisyonları yönetin ve görüntüleyin.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
+                    <PositionList 
+                      positions={filteredPositions} 
+                      allPersonnel={personnel}
+                      onEdit={handleEditPosition}
+                      onDelete={handleDeletePosition}
+                    />
+                  </CardContent>
+                </Card>
+              </section>
+              
+              <section aria-labelledby="org-chart-heading" className="lg:col-span-1 space-y-6 sticky top-36"> {/* Sticky with offset for tabs and header */}
+                <Card className="shadow-lg">
+                  <CardHeader>
+                    <CardTitle id="org-chart-heading">Organizasyon Şeması</CardTitle>
+                    <CardDescription>Şirketin raporlama yapısının görsel özeti.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <OrgChart positions={positions} allPersonnel={personnel} />
+                  </CardContent>
+                </Card>
+              </section>
+            </div>
+          </TabsContent>
+          <TabsContent value="personnel">
             <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle id="positions-heading">Company Positions</CardTitle>
-                <CardDescription>Manage and view all positions within the company.</CardDescription>
+                <CardTitle>Personel Listesi</CardTitle>
+                <CardDescription>Şirket personelini yönetin.</CardDescription>
               </CardHeader>
               <CardContent>
-                <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
-                <PositionList 
-                  positions={filteredPositions} 
-                  onEdit={handleEditPosition}
-                  onDelete={handleDeletePosition}
+                <PersonnelList
+                  personnel={personnel}
+                  onEdit={handleEditPersonnel}
+                  onDelete={handleDeletePersonnel}
                 />
               </CardContent>
             </Card>
-          </section>
-          
-          <section aria-labelledby="org-chart-heading" className="lg:col-span-1 space-y-6 sticky top-20"> {/* Sticky for large screens */}
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle id="org-chart-heading">Organizational Chart</CardTitle>
-                <CardDescription>Visual overview of the company's reporting structure.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <OrgChart positions={positions} />
-              </CardContent>
-            </Card>
-          </section>
-        </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <AddEditPositionDialog
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        isOpen={isPositionDialogOpen}
+        onOpenChange={setIsPositionDialogOpen}
         positionToEdit={editingPosition}
         allPositions={positions}
+        allPersonnel={personnel}
         onSave={handleSavePosition}
+      />
+
+      <AddEditPersonnelDialog
+        isOpen={isPersonnelDialogOpen}
+        onOpenChange={setIsPersonnelDialogOpen}
+        personnelToEdit={editingPersonnel}
+        onSave={handleSavePersonnel}
       />
     </div>
   );
