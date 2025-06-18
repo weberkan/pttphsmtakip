@@ -6,6 +6,7 @@ export interface Position {
   status: 'Asıl' | 'Vekalet' | 'Yürütme'; // Güncellenmiş durumlar
   reportsTo: string | null; // ID of the parent position
   assignedPersonnelId: string | null; // ID of the assigned personnel
+  startDate: Date | null; // Göreve başlama tarihi
 }
 
 export interface Personnel {
@@ -17,3 +18,4 @@ export interface Personnel {
   email?: string | null; // E-posta Adresi (Opsiyonel)
   phone?: string | null; // Telefon Numarası (Opsiyonel)
 }
+

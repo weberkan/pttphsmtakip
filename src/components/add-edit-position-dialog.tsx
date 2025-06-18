@@ -29,9 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import type { Position, Personnel } from "@/lib/types";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const positionSchema = z.object({
   name: z.string().min(2, "Ünvan en az 2 karakter olmalıdır."),
@@ -39,6 +44,7 @@ const positionSchema = z.object({
   status: z.enum(["Asıl", "Vekalet", "Yürütme"]),
   reportsTo: z.string().nullable(),
   assignedPersonnelId: z.string().nullable(),
+  startDate: z.date().nullable(),
 });
 
 type PositionFormData = z.infer<typeof positionSchema>;
@@ -71,8 +77,11 @@ export function AddEditPositionDialog({
       status: "Asıl",
       reportsTo: null,
       assignedPersonnelId: null,
+      startDate: null,
     },
   });
+
+  const positionStatus = form.watch("status");
 
   useEffect(() => {
     if (isOpen) {
@@ -83,6 +92,7 @@ export function AddEditPositionDialog({
           status: positionToEdit.status,
           reportsTo: positionToEdit.reportsTo,
           assignedPersonnelId: positionToEdit.assignedPersonnelId,
+          startDate: positionToEdit.startDate ? new Date(positionToEdit.startDate) : null,
         });
       } else {
         form.reset({
@@ -91,6 +101,7 @@ export function AddEditPositionDialog({
           status: "Asıl",
           reportsTo: null,
           assignedPersonnelId: null,
+          startDate: null,
         });
       }
     }
@@ -119,6 +130,19 @@ export function AddEditPositionDialog({
       form.reset(); 
     }
     onOpenChange(open);
+  };
+
+  const getStartDateLabel = (status: Position['status']) => {
+    switch (status) {
+      case 'Asıl':
+        return "Atanma Tarihi (Opsiyonel)";
+      case 'Vekalet':
+        return "Vekalet Görevine Başlama Tarihi (Opsiyonel)";
+      case 'Yürütme':
+        return "Yürütme Görevine Başlama Tarihi (Opsiyonel)";
+      default:
+        return "Başlama Tarihi (Opsiyonel)";
+    }
   };
 
   return (
@@ -176,6 +200,47 @@ export function AddEditPositionDialog({
                       <SelectItem value="Yürütme">Yürütme</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="startDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>{getStartDateLabel(positionStatus)}</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "dd/MM/yyyy")
+                          ) : (
+                            <span>Tarih seçin</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -256,4 +321,3 @@ export function AddEditPositionDialog({
     </Dialog>
   );
 }
-

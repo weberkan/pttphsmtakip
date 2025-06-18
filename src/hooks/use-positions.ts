@@ -7,7 +7,6 @@ import type { Position, Personnel } from '@/lib/types';
 const LOCAL_STORAGE_POSITIONS_KEY = 'positionTrackerApp_positions';
 const LOCAL_STORAGE_PERSONNEL_KEY = 'positionTrackerApp_personnel';
 
-// Başlangıç verileri boş, kullanıcı tarafından eklenecek
 const initialPersonnelData: Personnel[] = [];
 const initialPositionsData: Position[] = [];
 
@@ -21,9 +20,13 @@ export function usePositions() {
       try {
         const storedPositions = localStorage.getItem(LOCAL_STORAGE_POSITIONS_KEY);
         if (storedPositions) {
-          setPositions(JSON.parse(storedPositions));
+          const parsedPositions = JSON.parse(storedPositions).map((p: Position) => ({
+            ...p,
+            startDate: p.startDate ? new Date(p.startDate) : null,
+          }));
+          setPositions(parsedPositions);
         } else {
-          setPositions(initialPositionsData); // Boş dizi ile başla
+          setPositions(initialPositionsData.map(p => ({...p, startDate: p.startDate ? new Date(p.startDate) : null })));
           localStorage.setItem(LOCAL_STORAGE_POSITIONS_KEY, JSON.stringify(initialPositionsData));
         }
 
@@ -31,12 +34,12 @@ export function usePositions() {
         if (storedPersonnel) {
           setPersonnel(JSON.parse(storedPersonnel));
         } else {
-          setPersonnel(initialPersonnelData); // Boş dizi ile başla
+          setPersonnel(initialPersonnelData);
           localStorage.setItem(LOCAL_STORAGE_PERSONNEL_KEY, JSON.stringify(initialPersonnelData));
         }
       } catch (error) {
         console.error("Error accessing localStorage:", error);
-        setPositions(initialPositionsData); 
+        setPositions(initialPositionsData.map(p => ({...p, startDate: p.startDate ? new Date(p.startDate) : null }))); 
         setPersonnel(initialPersonnelData);
       }
       setIsInitialized(true);

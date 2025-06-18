@@ -10,9 +10,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BadgeCheck, BadgeAlert, Briefcase, Building2, UserCircle, Info } from "lucide-react";
+import { BadgeCheck, BadgeAlert, Briefcase, Building2, UserCircle, Info, CalendarDays } from "lucide-react";
 import type { Position, Personnel } from "@/lib/types";
 import { PositionListItemActions } from "./position-list-item-actions";
+import { format } from "date-fns";
 
 interface PositionListProps {
   positions: Position[];
@@ -63,6 +64,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
             <TableHead>Departman</TableHead>
             <TableHead>Atanan Personel</TableHead>
             <TableHead>Durum</TableHead>
+            <TableHead>Başlama Tarihi</TableHead>
             <TableHead className="text-right">Aksiyonlar</TableHead>
           </TableRow>
         </TableHeader>
@@ -98,6 +100,16 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                 <TableCell>
                   {getStatusBadge(position.status)}
                 </TableCell>
+                <TableCell>
+                  {position.startDate ? (
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span>{format(new Date(position.startDate), "dd/MM/yyyy")}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground italic">Belirtilmemiş</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-right">
                   <PositionListItemActions position={position} onEdit={onEdit} onDelete={onDelete} />
                 </TableCell>
@@ -109,4 +121,3 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
     </div>
   );
 }
-
