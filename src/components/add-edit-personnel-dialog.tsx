@@ -25,13 +25,15 @@ import { Input } from "@/components/ui/input";
 import type { Personnel } from "@/lib/types";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import Image from "next/image"; // Import next/image
+import Image from "next/image";
 
 const personnelSchema = z.object({
   firstName: z.string().min(2, "Personel adı en az 2 karakter olmalıdır."),
   lastName: z.string().min(2, "Personel soyadı en az 2 karakter olmalıdır."),
   registryNumber: z.string().min(2, "Sicil numarası en az 2 karakter olmalıdır."),
   photoUrl: z.string().url("Geçerli bir URL girin.").optional().or(z.literal('')),
+  email: z.string().email("Geçerli bir e-posta adresi girin.").optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
 });
 
 type PersonnelFormData = z.infer<typeof personnelSchema>;
@@ -57,6 +59,8 @@ export function AddEditPersonnelDialog({
       lastName: "",
       registryNumber: "",
       photoUrl: "",
+      email: "",
+      phone: "",
     },
   });
 
@@ -68,6 +72,8 @@ export function AddEditPersonnelDialog({
           lastName: personnelToEdit.lastName,
           registryNumber: personnelToEdit.registryNumber,
           photoUrl: personnelToEdit.photoUrl || "",
+          email: personnelToEdit.email || "",
+          phone: personnelToEdit.phone || "",
         });
       } else {
         form.reset({
@@ -75,6 +81,8 @@ export function AddEditPersonnelDialog({
           lastName: "",
           registryNumber: "",
           photoUrl: "",
+          email: "",
+          phone: "",
         });
       }
     }
@@ -83,7 +91,9 @@ export function AddEditPersonnelDialog({
   const onSubmit = (data: PersonnelFormData) => {
     const dataToSave = {
       ...data,
-      photoUrl: data.photoUrl || null, // Convert empty string to null
+      photoUrl: data.photoUrl || null,
+      email: data.email || null,
+      phone: data.phone || null,
     };
 
     if (personnelToEdit) {
@@ -151,6 +161,32 @@ export function AddEditPersonnelDialog({
                   <FormLabel>Sicil Numarası</FormLabel>
                   <FormControl>
                     <Input placeholder="örn: SN12345" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>E-posta Adresi (Opsiyonel)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="örn: ali.veli@example.com" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Telefon Numarası (Opsiyonel)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="örn: 0555 123 4567" {...field} value={field.value ?? ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

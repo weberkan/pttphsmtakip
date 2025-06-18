@@ -14,5 +14,6 @@ export interface Personnel {
   lastName: string; // Soyadı
   registryNumber: string; // Sicil Numarası
   photoUrl?: string | null; // Fotoğraf URL'si (Opsiyonel)
+  email?: string | null; // E-posta Adresi (Opsiyonel)
+  phone?: string | null; // Telefon Numarası (Opsiyonel)
 }
-

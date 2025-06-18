@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User } from "lucide-react"; // Changed from UserCircle
+import { User, Mail, Phone } from "lucide-react";
 import type { Personnel } from "@/lib/types";
 import { PersonnelListItemActions } from "./personnel-list-item-actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,9 +30,10 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Adı</TableHead>
-            <TableHead>Soyadı</TableHead>
+            <TableHead>Adı Soyadı</TableHead>
             <TableHead>Sicil Numarası</TableHead>
+            <TableHead>E-posta</TableHead>
+            <TableHead>Telefon</TableHead>
             <TableHead className="text-right">Aksiyonlar</TableHead>
           </TableRow>
         </TableHeader>
@@ -51,11 +52,30 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                       <User className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  {person.firstName}
+                  {person.firstName} {person.lastName}
                 </div>
               </TableCell>
-              <TableCell>{person.lastName}</TableCell>
               <TableCell>{person.registryNumber}</TableCell>
+              <TableCell>
+                {person.email ? (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <a href={`mailto:${person.email}`} className="hover:underline">{person.email}</a>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground italic">Belirtilmemiş</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {person.phone ? (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span>{person.phone}</span>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground italic">Belirtilmemiş</span>
+                )}
+              </TableCell>
               <TableCell className="text-right">
                 <PersonnelListItemActions person={person} onEdit={onEdit} onDelete={onDelete} />
               </TableCell>
