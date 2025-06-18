@@ -25,11 +25,13 @@ import { Input } from "@/components/ui/input";
 import type { Personnel } from "@/lib/types";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image"; // Import next/image
 
 const personnelSchema = z.object({
   firstName: z.string().min(2, "Personel adı en az 2 karakter olmalıdır."),
   lastName: z.string().min(2, "Personel soyadı en az 2 karakter olmalıdır."),
   registryNumber: z.string().min(2, "Sicil numarası en az 2 karakter olmalıdır."),
+  photoUrl: z.string().url("Geçerli bir URL girin.").optional().or(z.literal('')),
 });
 
 type PersonnelFormData = z.infer<typeof personnelSchema>;
@@ -54,6 +56,7 @@ export function AddEditPersonnelDialog({
       firstName: "",
       lastName: "",
       registryNumber: "",
+      photoUrl: "",
     },
   });
 
@@ -64,23 +67,30 @@ export function AddEditPersonnelDialog({
           firstName: personnelToEdit.firstName,
           lastName: personnelToEdit.lastName,
           registryNumber: personnelToEdit.registryNumber,
+          photoUrl: personnelToEdit.photoUrl || "",
         });
       } else {
         form.reset({
           firstName: "",
           lastName: "",
           registryNumber: "",
+          photoUrl: "",
         });
       }
     }
   }, [personnelToEdit, form, isOpen]);
 
   const onSubmit = (data: PersonnelFormData) => {
+    const dataToSave = {
+      ...data,
+      photoUrl: data.photoUrl || null, // Convert empty string to null
+    };
+
     if (personnelToEdit) {
-      onSave({ ...personnelToEdit, ...data });
+      onSave({ ...personnelToEdit, ...dataToSave });
       toast({ title: "Personel Güncellendi", description: `"${data.firstName} ${data.lastName}" başarıyla güncellendi.` });
     } else {
-      onSave(data as Omit<Personnel, 'id'>);
+      onSave(dataToSave as Omit<Personnel, 'id'>);
       toast({ title: "Personel Eklendi", description: `"${data.firstName} ${data.lastName}" başarıyla eklendi.` });
     }
     form.reset();
@@ -93,6 +103,8 @@ export function AddEditPersonnelDialog({
     }
     onOpenChange(open);
   };
+
+  const currentPhotoUrl = form.watch("photoUrl");
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
@@ -144,6 +156,36 @@ export function AddEditPersonnelDialog({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="photoUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fotoğraf URL (Opsiyonel)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://ornek.com/fotograf.png" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {currentPhotoUrl && (
+              <div className="mt-2 flex justify-center">
+                <Image 
+                  src={currentPhotoUrl} 
+                  alt="Personel Fotoğraf Önizleme" 
+                  width={100} 
+                  height={100} 
+                  className="rounded-full object-cover"
+                  data-ai-hint="person avatar"
+                  onError={(e) => { 
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://placehold.co/100x100.png'; 
+                    target.alt = 'Geçersiz URL veya yüklenemedi';
+                  }}
+                />
+              </div>
+            )}
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => handleDialogClose(false)}>
                 İptal

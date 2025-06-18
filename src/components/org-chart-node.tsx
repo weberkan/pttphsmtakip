@@ -5,6 +5,7 @@ import type { Position, Personnel } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, User, BadgeCheck, BadgeAlert, Building2, Info } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface OrgChartNodeProps {
   position: Position;
@@ -53,8 +54,17 @@ export function OrgChartNode({ position, allPositions, allPersonnel, level }: Or
             <Briefcase className="h-5 w-5 text-primary" />
             {position.name}
           </CardTitle>
-          <CardDescription className="text-xs flex items-center gap-1 mt-1">
-            <User className="h-3 w-3" /> 
+          <CardDescription className="text-xs flex items-center gap-2 mt-1">
+            <Avatar className="h-6 w-6">
+              <AvatarImage 
+                src={assignedPerson?.photoUrl || undefined} 
+                alt={assignedPerson ? `${assignedPerson.firstName} ${assignedPerson.lastName}` : "Atanmamış"} 
+                data-ai-hint="person avatar"
+              />
+              <AvatarFallback>
+                <User className="h-3 w-3" />
+              </AvatarFallback>
+            </Avatar>
             {assignedPerson ? `${assignedPerson.firstName} ${assignedPerson.lastName}` : <span className="italic">Atanmamış</span>}
           </CardDescription>
         </CardHeader>

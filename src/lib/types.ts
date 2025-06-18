@@ -13,4 +13,5 @@ export interface Personnel {
   firstName: string; // Adı
   lastName: string; // Soyadı
   registryNumber: string; // Sicil Numarası
+  photoUrl?: string | null; // Fotoğraf URL'si (Opsiyonel)
 }

@@ -7,8 +7,8 @@ import type { Position, Personnel } from '@/lib/types';
 const LOCAL_STORAGE_POSITIONS_KEY = 'positionTrackerApp_positions';
 const LOCAL_STORAGE_PERSONNEL_KEY = 'positionTrackerApp_personnel';
 
+// Başlangıç verileri boş, kullanıcı tarafından eklenecek
 const initialPersonnelData: Personnel[] = [];
-
 const initialPositionsData: Position[] = [];
 
 export function usePositions() {
@@ -23,7 +23,7 @@ export function usePositions() {
         if (storedPositions) {
           setPositions(JSON.parse(storedPositions));
         } else {
-          setPositions(initialPositionsData);
+          setPositions(initialPositionsData); // Boş dizi ile başla
           localStorage.setItem(LOCAL_STORAGE_POSITIONS_KEY, JSON.stringify(initialPositionsData));
         }
 
@@ -31,7 +31,7 @@ export function usePositions() {
         if (storedPersonnel) {
           setPersonnel(JSON.parse(storedPersonnel));
         } else {
-          setPersonnel(initialPersonnelData);
+          setPersonnel(initialPersonnelData); // Boş dizi ile başla
           localStorage.setItem(LOCAL_STORAGE_PERSONNEL_KEY, JSON.stringify(initialPersonnelData));
         }
       } catch (error) {

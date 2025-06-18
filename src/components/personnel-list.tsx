@@ -9,9 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCircle, Edit, Trash2 } from "lucide-react";
+import { User } from "lucide-react"; // Changed from UserCircle
 import type { Personnel } from "@/lib/types";
 import { PersonnelListItemActions } from "./personnel-list-item-actions";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface PersonnelListProps {
   personnel: Personnel[];
@@ -38,9 +39,20 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
         <TableBody>
           {personnel.map((person) => (
             <TableRow key={person.id}>
-              <TableCell className="font-medium flex items-center gap-2">
-                <UserCircle className="h-4 w-4 text-muted-foreground" />
-                {person.firstName}
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage 
+                      src={person.photoUrl || undefined} 
+                      alt={`${person.firstName} ${person.lastName}`} 
+                      data-ai-hint="person avatar"
+                    />
+                    <AvatarFallback>
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  {person.firstName}
+                </div>
               </TableCell>
               <TableCell>{person.lastName}</TableCell>
               <TableCell>{person.registryNumber}</TableCell>
