@@ -1,7 +1,7 @@
 
 export interface Position {
   id: string;
-  name: string; // Pozisyon Adı
+  name: string; // Ünvan
   department: string; // Departman
   status: 'Asıl' | 'Vekalet' | 'Yürütme'; // Güncellenmiş durumlar
   reportsTo: string | null; // ID of the parent position
@@ -15,3 +15,4 @@ export interface Personnel {
   registryNumber: string; // Sicil Numarası
   photoUrl?: string | null; // Fotoğraf URL'si (Opsiyonel)
 }
+

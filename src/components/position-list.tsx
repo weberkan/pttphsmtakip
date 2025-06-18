@@ -59,7 +59,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Pozisyon Adı</TableHead>
+            <TableHead>Ünvan</TableHead>
             <TableHead>Departman</TableHead>
             <TableHead>Atanan Personel</TableHead>
             <TableHead>Durum</TableHead>
@@ -109,3 +109,4 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
     </div>
   );
 }
+

@@ -34,7 +34,7 @@ import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const positionSchema = z.object({
-  name: z.string().min(2, "Pozisyon adı en az 2 karakter olmalıdır."),
+  name: z.string().min(2, "Ünvan en az 2 karakter olmalıdır."),
   department: z.string().min(2, "Departman adı en az 2 karakter olmalıdır."),
   status: z.enum(["Asıl", "Vekalet", "Yürütme"]),
   reportsTo: z.string().nullable(),
@@ -137,7 +137,7 @@ export function AddEditPositionDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pozisyon Adı</FormLabel>
+                  <FormLabel>Ünvan</FormLabel>
                   <FormControl>
                     <Input placeholder="örn: Yazılım Mühendisi" {...field} />
                   </FormControl>
@@ -256,3 +256,4 @@ export function AddEditPositionDialog({
     </Dialog>
   );
 }
+
