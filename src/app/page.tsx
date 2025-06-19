@@ -190,14 +190,19 @@ export default function HomePage() {
             }
           } else {
             errorCount++;
-            const flatErrors = validation.error.flatten();
-            const fieldErrorMessages = Object.values(flatErrors.fieldErrors).flat();
-            const formErrorMessages = flatErrors.formErrors;
-            let allErrorMessages = [...formErrorMessages, ...fieldErrorMessages];
-            if (allErrorMessages.length === 0) {
-                allErrorMessages.push("Bilinmeyen bir personel doğrulama hatası oluştu.");
-            }
-            const errorDescription = allErrorMessages.join('; ');
+            const personnelHeaderMappingReverse: { [key: string]: string } = {
+              'firstName': 'Adı', 'lastName': 'Soyadı', 'registryNumber': 'Sicil Numarası',
+              'status': 'Statü', 'email': 'E-posta', 'phone': 'Telefon', 'photoUrl': 'Fotoğraf URL',
+            };
+            const errorMessagesForToast = validation.error.issues.map(issue => {
+              let issuePath = issue.path.join('.');
+              if (issue.path.length === 1 && personnelHeaderMappingReverse[issue.path[0]]) {
+                issuePath = personnelHeaderMappingReverse[issue.path[0]];
+              }
+              return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
+            });
+            const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir personel doğrulama hatası oluştu.";
+            
             console.error(`Personel Satır ${rowIndex + 2} için doğrulama hatası. Zod issues:`, validation.error.issues);
             toast({
               title: `Personel Satır ${rowIndex + 2} Hatası`,
@@ -331,14 +336,20 @@ export default function HomePage() {
             }
           } else {
             errorCount++;
-            const flatErrors = validation.error.flatten();
-            const fieldErrorMessages = Object.values(flatErrors.fieldErrors).flat();
-            const formErrorMessages = flatErrors.formErrors;
-            let allErrorMessages = [...formErrorMessages, ...fieldErrorMessages];
-            if (allErrorMessages.length === 0) { 
-                allErrorMessages.push("Bilinmeyen bir pozisyon doğrulama hatası oluştu.");
-            }
-            const errorDescription = allErrorMessages.join('; ');
+            const positionHeaderMappingReverse: { [key: string]: string } = {
+              'name': 'Ünvan', 'department': 'Birim', 'dutyLocation': 'Görev Yeri',
+              'status': 'Durum', 'reportsToPersonnelRegistryNumber': 'Bağlı Olduğu Personel Sicil',
+              'assignedPersonnelRegistryNumber': 'Atanan Personel Sicil', 'startDate': 'Başlama Tarihi',
+            };
+            const errorMessagesForToast = validation.error.issues.map(issue => {
+              let issuePath = issue.path.join('.');
+              if (issue.path.length === 1 && positionHeaderMappingReverse[issue.path[0]]) {
+                issuePath = positionHeaderMappingReverse[issue.path[0]];
+              }
+              return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
+            });
+            const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir pozisyon doğrulama hatası oluştu.";
+
             console.error(`Pozisyon Satır ${rowIndex + 2} için doğrulama hatası. Zod issues:`, validation.error.issues);
             toast({
               title: `Pozisyon Satır ${rowIndex + 2} Hatası`,
@@ -513,3 +524,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
