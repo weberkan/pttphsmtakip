@@ -47,21 +47,41 @@ const styledTitles = [
 
 export function PositionList({ positions, allPersonnel, onEdit, onDelete }: PositionListProps) {
   const sortedPositions = useMemo(() => {
-    return [...positions].sort((a, b) => {
-      // 1. Birime göre alfabetik sırala
-      const deptA = a.department.toLowerCase();
-      const deptB = b.department.toLowerCase();
-      if (deptA < deptB) return -1;
-      if (deptA > deptB) return 1;
+    const getOverallOrderGroup = (p: Position): number => {
+      if (p.name === "Genel Müdür") return 1;
+      if (p.name === "Genel Müdür Yardımcısı") return 2;
+      if (p.department === "Rehberlik ve Teftiş Başkanlığı") return 3;
+      if (p.department === "Finans ve Muhasebe Başkanlığı") return 4;
+      return 5; // Diğer tüm departmanlar
+    };
 
-      // 2. Aynı birim içinde, ünvan hiyerarşisine göre sırala
-      const orderA = positionTitleOrder[a.name] ?? Infinity;
-      const orderB = positionTitleOrder[b.name] ?? Infinity;
-      if (orderA !== orderB) {
-        return orderA - orderB;
+    return [...positions].sort((a, b) => {
+      const overallGroupA = getOverallOrderGroup(a);
+      const overallGroupB = getOverallOrderGroup(b);
+
+      // 1. Ana gruplara göre sırala (GM, GM Yrd, Rehberlik, Finans, Diğerleri)
+      if (overallGroupA !== overallGroupB) {
+        return overallGroupA - overallGroupB;
       }
 
-      // 3. Aynı birim ve aynı hiyerarşi seviyesinde (veya hiyerarşide olmayanlar için) ünvana göre alfabetik sırala
+      // 2. Eğer "Diğerleri" grubundaysalar (overallGroupA === 5), departmana göre alfabetik sırala
+      if (overallGroupA === 5) {
+        const deptNameA = a.department.toLowerCase();
+        const deptNameB = b.department.toLowerCase();
+        if (deptNameA < deptNameB) return -1;
+        if (deptNameA > deptNameB) return 1;
+      }
+      // Not: GM, GM Yrd, Rehberlik, Finans grupları zaten kendi departmanları içinde olduklarından
+      // bu aşamada ayrıca departman adına göre sıralamaya gerek yok (kendi grupları zaten tanımlı).
+
+      // 3. Aynı grup ve (gerekiyorsa) aynı departman içindeyse, ünvan hiyerarşisine göre sırala
+      const titleOrderValA = positionTitleOrder[a.name] ?? Infinity;
+      const titleOrderValB = positionTitleOrder[b.name] ?? Infinity;
+      if (titleOrderValA !== titleOrderValB) {
+        return titleOrderValA - titleOrderValB;
+      }
+
+      // 4. Fallback: Aynı hiyerarşi seviyesindeyse, ünvana göre alfabetik sırala (genelde gerek kalmaz)
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
       if (nameA < nameB) return -1;
