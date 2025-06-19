@@ -33,6 +33,7 @@ const importPersonnelSchema = z.object({
 const importPositionSchema = z.object({
   name: z.string().min(1, "Ünvan boş olamaz."),
   department: z.string().min(1, "Birim boş olamaz."),
+  dutyLocation: z.string().optional().nullable().or(z.literal('')),
   status: z.enum(["Asıl", "Vekalet", "Yürütme"], { errorMap: () => ({ message: "Durum 'Asıl', 'Vekalet' veya 'Yürütme' olmalıdır." }) }),
   reportsToPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
   assignedPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
@@ -189,10 +190,18 @@ export default function HomePage() {
             }
           } else {
             errorCount++;
-            console.error(`Personel Satır ${rowIndex + 2} için doğrulama hatası:`, validation.error.flatten().fieldErrors);
+            const flatErrors = validation.error.flatten();
+            const fieldErrorMessages = Object.values(flatErrors.fieldErrors).flat();
+            const formErrorMessages = flatErrors.formErrors;
+            let allErrorMessages = [...formErrorMessages, ...fieldErrorMessages];
+            if (allErrorMessages.length === 0) {
+                allErrorMessages.push("Bilinmeyen bir personel doğrulama hatası oluştu.");
+            }
+            const errorDescription = allErrorMessages.join('; ');
+            console.error(`Personel Satır ${rowIndex + 2} için doğrulama hatası:`, flatErrors);
             toast({
               title: `Personel Satır ${rowIndex + 2} Hatası`,
-              description: Object.values(validation.error.flatten().fieldErrors).flat().join(', '),
+              description: errorDescription,
               variant: "destructive",
               duration: 5000 + rowIndex * 200 
             });
@@ -232,7 +241,6 @@ export default function HomePage() {
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        // Read with cellDates: true to attempt parsing Excel dates to JS Date objects
         const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
@@ -249,7 +257,8 @@ export default function HomePage() {
         const headerMapping: { [key: string]: keyof z.infer<typeof importPositionSchema> } = {
           'ünvan': 'name', 'unvan': 'name',
           'birim': 'department',
-          'durum': 'status', // Asıl, Vekalet, Yürütme
+          'görevyeri': 'dutyLocation', 'gorevyeri': 'dutyLocation',
+          'durum': 'status', 
           'bağlıolduğupersonelsicil': 'reportsToPersonnelRegistryNumber', 'baglioldugupersonelsicil': 'reportsToPersonnelRegistryNumber', 'raporladiğisicil': 'reportsToPersonnelRegistryNumber',
           'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber',
           'başlamatarihi': 'startDate', 'baslamatarihi': 'startDate',
@@ -268,14 +277,7 @@ export default function HomePage() {
               rawRowData[positionKey] = rowArray[index];
             }
           });
-
-          // Ensure status is one of the enum values, default if necessary or handle error
-          if (rawRowData.status && !["Asıl", "Vekalet", "Yürütme"].includes(rawRowData.status)) {
-            // console.warn(`Satır ${rowIndex + 2}: Geçersiz pozisyon durumu '${rawRowData.status}'. 'Asıl' olarak ayarlandı.`);
-            // rawRowData.status = "Asıl"; // Or skip this row
-          }
-
-
+          
           const validation = importPositionSchema.safeParse(rawRowData);
 
           if (validation.success) {
@@ -283,7 +285,6 @@ export default function HomePage() {
             let resolvedReportsToId: string | null = null;
             let resolvedAssignedPersonnelId: string | null = null;
 
-            // Resolve reportsToPersonnelRegistryNumber
             if (validatedData.reportsToPersonnelRegistryNumber) {
               const parentAssignee = personnel.find(p => p.registryNumber === validatedData.reportsToPersonnelRegistryNumber);
               if (parentAssignee) {
@@ -300,7 +301,6 @@ export default function HomePage() {
               }
             }
 
-            // Resolve assignedPersonnelRegistryNumber
             if (validatedData.assignedPersonnelRegistryNumber) {
               const assignee = personnel.find(p => p.registryNumber === validatedData.assignedPersonnelRegistryNumber);
               if (assignee) {
@@ -314,13 +314,13 @@ export default function HomePage() {
             const newPositionData: Omit<Position, 'id'> = {
               name: validatedData.name,
               department: validatedData.department,
+              dutyLocation: validatedData.dutyLocation || null,
               status: validatedData.status,
               reportsTo: resolvedReportsToId,
               assignedPersonnelId: resolvedAssignedPersonnelId,
               startDate: validatedData.startDate ? new Date(validatedData.startDate) : null,
             };
 
-            // Check for existing position (e.g., same name and department)
             if (positions.some(p => p.name === newPositionData.name && p.department === newPositionData.department)) {
               skippedCount++;
             } else {
@@ -329,10 +329,18 @@ export default function HomePage() {
             }
           } else {
             errorCount++;
-            console.error(`Pozisyon Satır ${rowIndex + 2} için doğrulama hatası:`, validation.error.flatten().fieldErrors);
+            const flatErrors = validation.error.flatten();
+            const fieldErrorMessages = Object.values(flatErrors.fieldErrors).flat();
+            const formErrorMessages = flatErrors.formErrors;
+            let allErrorMessages = [...formErrorMessages, ...fieldErrorMessages];
+            if (allErrorMessages.length === 0) { // Fallback if no specific messages from Zod
+                allErrorMessages.push("Bilinmeyen bir pozisyon doğrulama hatası oluştu.");
+            }
+            const errorDescription = allErrorMessages.join('; ');
+            console.error(`Pozisyon Satır ${rowIndex + 2} için doğrulama hatası:`, flatErrors);
             toast({
               title: `Pozisyon Satır ${rowIndex + 2} Hatası`,
-              description: Object.values(validation.error.flatten().fieldErrors).flat().join(', '),
+              description: errorDescription,
               variant: "destructive",
               duration: 5000 + rowIndex * 200
             });
@@ -503,6 +511,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-
-    
