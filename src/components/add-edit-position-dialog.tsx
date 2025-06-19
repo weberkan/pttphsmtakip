@@ -32,11 +32,12 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import type { Position, Personnel } from "@/lib/types";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
 
 const positionSchema = z.object({
   name: z.string().min(2, "Ünvan en az 2 karakter olmalıdır."),
@@ -56,6 +57,7 @@ interface AddEditPositionDialogProps {
   allPositions: Position[];
   allPersonnel: Personnel[];
   onSave: (positionData: Omit<Position, 'id'> | Position) => void;
+  updatePersonnel: (personnel: Personnel) => void;
 }
 
 const PLACEHOLDER_FOR_NULL_VALUE = "__PLACEHOLDER_FOR_NULL__";
@@ -67,6 +69,7 @@ export function AddEditPositionDialog({
   allPositions,
   allPersonnel,
   onSave,
+  updatePersonnel,
 }: AddEditPositionDialogProps) {
   const { toast } = useToast();
   const form = useForm<PositionFormData>({
@@ -82,6 +85,10 @@ export function AddEditPositionDialog({
   });
 
   const positionStatus = form.watch("status");
+  const assignedPersonnelId = form.watch("assignedPersonnelId");
+
+  const [currentAssignedPersonnel, setCurrentAssignedPersonnel] = useState<Personnel | null>(null);
+  const [selectedPersonnelStatus, setSelectedPersonnelStatus] = useState<'İHS' | '399' | undefined>(undefined);
 
   useEffect(() => {
     if (isOpen) {
@@ -94,6 +101,14 @@ export function AddEditPositionDialog({
           assignedPersonnelId: positionToEdit.assignedPersonnelId,
           startDate: positionToEdit.startDate ? new Date(positionToEdit.startDate) : null,
         });
+        if (positionToEdit.assignedPersonnelId && positionToEdit.assignedPersonnelId !== PLACEHOLDER_FOR_NULL_VALUE) {
+          const person = allPersonnel.find(p => p.id === positionToEdit.assignedPersonnelId);
+          setCurrentAssignedPersonnel(person || null);
+          setSelectedPersonnelStatus(person?.status);
+        } else {
+          setCurrentAssignedPersonnel(null);
+          setSelectedPersonnelStatus(undefined);
+        }
       } else {
         form.reset({
           name: "",
@@ -103,11 +118,36 @@ export function AddEditPositionDialog({
           assignedPersonnelId: null,
           startDate: null,
         });
+        setCurrentAssignedPersonnel(null);
+        setSelectedPersonnelStatus(undefined);
+      }
+    } else {
+        // Reset states when dialog is closed
+        setCurrentAssignedPersonnel(null);
+        setSelectedPersonnelStatus(undefined);
+    }
+  }, [positionToEdit, form, isOpen, allPersonnel]);
+
+  useEffect(() => {
+    if (isOpen) { // Only run if dialog is open
+      if (assignedPersonnelId && assignedPersonnelId !== PLACEHOLDER_FOR_NULL_VALUE) {
+        const person = allPersonnel.find(p => p.id === assignedPersonnelId);
+        setCurrentAssignedPersonnel(person || null);
+        setSelectedPersonnelStatus(person?.status);
+      } else {
+        setCurrentAssignedPersonnel(null);
+        setSelectedPersonnelStatus(undefined);
       }
     }
-  }, [positionToEdit, form, isOpen]);
+  }, [assignedPersonnelId, allPersonnel, isOpen]);
+
 
   const onSubmit = (data: PositionFormData) => {
+    if (currentAssignedPersonnel && selectedPersonnelStatus && selectedPersonnelStatus !== currentAssignedPersonnel.status) {
+      updatePersonnel({ ...currentAssignedPersonnel, status: selectedPersonnelStatus });
+      toast({ title: "Personel Statüsü Güncellendi", description: `${currentAssignedPersonnel.firstName} ${currentAssignedPersonnel.lastName}'nin statüsü ${selectedPersonnelStatus} olarak güncellendi.` });
+    }
+
     const dataToSave = {
       ...data,
       reportsTo: data.reportsTo === PLACEHOLDER_FOR_NULL_VALUE ? null : data.reportsTo,
@@ -121,7 +161,7 @@ export function AddEditPositionDialog({
       onSave(dataToSave as Omit<Position, 'id'>);
       toast({ title: "Pozisyon Eklendi", description: `"${data.name}" başarıyla eklendi.` });
     }
-    form.reset();
+    // form.reset(); // Reset is handled by handleDialogClose / isOpen effect
     onOpenChange(false);
   };
   
@@ -233,11 +273,10 @@ export function AddEditPositionDialog({
                       <Calendar
                         mode="single"
                         selected={field.value ? field.value : undefined}
-                        onSelect={(date: Date | undefined) => field.onChange(date || null)}
+                        onSelect={(date) => field.onChange(date || null)}
                         disabled={(date) =>
                           date > new Date() || date < new Date("1900-01-01")
                         }
-                        
                       />
                     </PopoverContent>
                   </Popover>
@@ -298,7 +337,7 @@ export function AddEditPositionDialog({
                       <SelectItem value={PLACEHOLDER_FOR_NULL_VALUE}>Boş (Atanmamış)</SelectItem>
                       {allPersonnel.map(p => (
                         <SelectItem key={p.id} value={p.id}>
-                          {p.firstName} {p.lastName} (Sicil: {p.registryNumber})
+                          {p.firstName} {p.lastName} ({p.registryNumber})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -307,6 +346,26 @@ export function AddEditPositionDialog({
                 </FormItem>
               )}
             />
+
+            {currentAssignedPersonnel && (
+              <div className="space-y-2">
+                <Label htmlFor="assignedPersonnelStatus">Atanmış Personelin Statüsü ({currentAssignedPersonnel.firstName} {currentAssignedPersonnel.lastName})</Label>
+                <Select
+                  value={selectedPersonnelStatus}
+                  onValueChange={(value: 'İHS' | '399') => setSelectedPersonnelStatus(value)}
+                  disabled={!currentAssignedPersonnel} 
+                >
+                  <SelectTrigger id="assignedPersonnelStatus">
+                    <SelectValue placeholder="Personel Statüsü Seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="İHS">İHS</SelectItem>
+                    <SelectItem value="399">399</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => handleDialogClose(false)}>
                 İptal

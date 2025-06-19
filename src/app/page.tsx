@@ -189,6 +189,7 @@ export default function HomePage() {
         allPositions={positions}
         allPersonnel={personnel}
         onSave={handleSavePosition}
+        updatePersonnel={updatePersonnel} 
       />
 
       <AddEditPersonnelDialog
