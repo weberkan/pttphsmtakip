@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BadgeCheck, BadgeAlert, Briefcase, Building2, UserCircle, Info, CalendarDays, MapPin } from "lucide-react";
+import { BadgeCheck, BadgeAlert, Briefcase, Building2, UserCircle, Info, CalendarDays, MapPin, CircleOff } from "lucide-react";
 import type { Position, Personnel } from "@/lib/types";
 import { PositionListItemActions } from "./position-list-item-actions";
 import { format } from "date-fns";
@@ -45,9 +45,16 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         );
       case 'Yürütme':
         return (
-          <Badge variant="outline" className="capitalize">
+          <Badge variant="outline" className="capitalize bg-accent/20 border-accent/50">
             <Info className="mr-1 h-3.5 w-3.5" />
             Yürütme
+          </Badge>
+        );
+      case 'Boş':
+        return (
+          <Badge variant="outline" className="capitalize">
+            <CircleOff className="mr-1 h-3.5 w-3.5" />
+            Boş
           </Badge>
         );
       default:
@@ -95,7 +102,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {assignedPerson ? (
+                    {assignedPerson && position.status !== 'Boş' ? (
                       <>
                         <UserCircle className="h-4 w-4 text-muted-foreground shrink-0 self-start mt-1" />
                         <div className="flex flex-col">
@@ -109,7 +116,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   </div>
                 </TableCell>
                 <TableCell>
-                  {assignedPerson ? (
+                  {assignedPerson && position.status !== 'Boş' ? (
                     assignedPerson.status
                   ) : (
                     <span className="text-muted-foreground italic">Yok</span>
@@ -119,7 +126,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   {getStatusBadge(position.status)}
                 </TableCell>
                 <TableCell>
-                  {position.startDate ? (
+                  {position.startDate && position.status !== 'Boş' ? (
                     <div className="flex items-center gap-2">
                       <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span>{format(new Date(position.startDate), "dd.MM.yyyy")}</span>

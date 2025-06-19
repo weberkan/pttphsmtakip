@@ -43,7 +43,7 @@ const positionSchema = z.object({
   name: z.string().min(2, "Ünvan en az 2 karakter olmalıdır."),
   department: z.string().min(2, "Birim adı en az 2 karakter olmalıdır."),
   dutyLocation: z.string().optional().nullable(),
-  status: z.enum(["Asıl", "Vekalet", "Yürütme"]),
+  status: z.enum(["Asıl", "Vekalet", "Yürütme", "Boş"]),
   reportsTo: z.string().nullable(),
   assignedPersonnelId: z.string().nullable(),
   startDate: z.date().nullable(),
@@ -155,8 +155,19 @@ export function AddEditPositionDialog({
       ...data,
       dutyLocation: data.dutyLocation || null,
       reportsTo: data.reportsTo === PLACEHOLDER_FOR_NULL_VALUE ? null : data.reportsTo,
-      assignedPersonnelId: data.assignedPersonnelId === PLACEHOLDER_FOR_NULL_VALUE ? null : data.assignedPersonnelId,
+      assignedPersonnelId: data.assignedPersonnelId === PLACEHOLDER_FOR_NULL_VALUE || data.status === "Boş" ? null : data.assignedPersonnelId,
+      startDate: data.status === "Boş" ? null : data.startDate,
     };
+
+     // If position status is set to "Boş", ensure assignedPersonnelId is null
+    if (data.status === "Boş") {
+      dataToSave.assignedPersonnelId = null;
+      setCurrentAssignedPersonnel(null);
+      setSelectedPersonnelStatus(undefined);
+      // Also clear start date as it might not be relevant for a "Boş" position
+      dataToSave.startDate = null;
+    }
+
 
     if (positionToEdit) {
       onSave({ ...positionToEdit, ...dataToSave });
@@ -183,6 +194,8 @@ export function AddEditPositionDialog({
         return "Vekalet Görevine Başlama Tarihi (Opsiyonel)";
       case 'Yürütme':
         return "Yürütme Görevine Başlama Tarihi (Opsiyonel)";
+      case 'Boş':
+        return "Boş Kalma Tarihi (Opsiyonel)"; // Or "İlgili Tarih (Opsiyonel)"
       default:
         return "Başlama Tarihi (Opsiyonel)";
     }
@@ -244,7 +257,18 @@ export function AddEditPositionDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Durum</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value === "Boş") {
+                        form.setValue("assignedPersonnelId", null);
+                        form.setValue("startDate", null);
+                        setCurrentAssignedPersonnel(null);
+                        setSelectedPersonnelStatus(undefined);
+                      }
+                    }} 
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Durum seçin" />
@@ -254,6 +278,7 @@ export function AddEditPositionDialog({
                       <SelectItem value="Asıl">Asıl</SelectItem>
                       <SelectItem value="Vekalet">Vekalet</SelectItem>
                       <SelectItem value="Yürütme">Yürütme</SelectItem>
+                      <SelectItem value="Boş">Boş</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -275,6 +300,7 @@ export function AddEditPositionDialog({
                             "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
+                          disabled={positionStatus === "Boş"}
                         >
                           {field.value ? (
                             format(field.value, "dd.MM.yyyy")
@@ -291,7 +317,7 @@ export function AddEditPositionDialog({
                         selected={field.value ? field.value : undefined}
                         onSelect={(date) => field.onChange(date || null)}
                         disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
+                          date > new Date() || date < new Date("1900-01-01") || positionStatus === "Boş"
                         }
                       />
                     </PopoverContent>
@@ -343,6 +369,7 @@ export function AddEditPositionDialog({
                   <Select 
                     onValueChange={field.onChange} 
                     value={field.value || PLACEHOLDER_FOR_NULL_VALUE}
+                    disabled={positionStatus === "Boş"}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -363,7 +390,7 @@ export function AddEditPositionDialog({
               )}
             />
 
-            {currentAssignedPersonnel && (
+            {currentAssignedPersonnel && positionStatus !== "Boş" && (
               <div className="space-y-2">
                 <Label htmlFor="assignedPersonnelStatus">Atanmış Personelin Statüsü ({currentAssignedPersonnel.firstName} {currentAssignedPersonnel.lastName})</Label>
                 <Select

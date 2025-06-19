@@ -34,7 +34,7 @@ const importPositionSchema = z.object({
   name: z.string().min(1, "Ünvan boş olamaz."),
   department: z.string().min(1, "Birim boş olamaz."),
   dutyLocation: z.string().optional().nullable().or(z.literal('')),
-  status: z.enum(["Asıl", "Vekalet", "Yürütme"], { errorMap: () => ({ message: "Durum 'Asıl', 'Vekalet' veya 'Yürütme' olmalıdır." }) }),
+  status: z.enum(["Asıl", "Vekalet", "Yürütme", "Boş"], { errorMap: () => ({ message: "Durum 'Asıl', 'Vekalet', 'Yürütme' veya 'Boş' olmalıdır." }) }),
   reportsToPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
   assignedPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
   startDate: z.date().optional().nullable(),
@@ -301,7 +301,7 @@ export default function HomePage() {
               }
             }
 
-            if (validatedData.assignedPersonnelRegistryNumber) {
+            if (validatedData.assignedPersonnelRegistryNumber && validatedData.status !== "Boş") {
               const assignee = personnel.find(p => p.registryNumber === validatedData.assignedPersonnelRegistryNumber);
               if (assignee) {
                 resolvedAssignedPersonnelId = assignee.id;
@@ -309,6 +309,8 @@ export default function HomePage() {
                  warningCount++;
                  toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı.`, variant: "default", duration: 4000 + warningCount * 100 });
               }
+            } else if (validatedData.status === "Boş") {
+                resolvedAssignedPersonnelId = null; // Ensure no personnel is assigned if status is "Boş"
             }
             
             const newPositionData: Omit<Position, 'id'> = {
@@ -318,7 +320,7 @@ export default function HomePage() {
               status: validatedData.status,
               reportsTo: resolvedReportsToId,
               assignedPersonnelId: resolvedAssignedPersonnelId,
-              startDate: validatedData.startDate ? new Date(validatedData.startDate) : null,
+              startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
             };
 
             if (positions.some(p => p.name === newPositionData.name && p.department === newPositionData.department)) {
@@ -446,7 +448,7 @@ export default function HomePage() {
             <Card className="shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm" id="personnel-heading">Personel Listesi (Toplam: {personnel.length})</CardTitle>
+                  <CardTitle className="text-sm font-semibold" id="personnel-heading">Personel Listesi (Toplam: {personnel.length})</CardTitle>
                   <CardDescription>Şirket personelini yönetin.</CardDescription>
                 </div>
                 <Button onClick={handleImportPersonnelClick} variant="outline" size="sm">

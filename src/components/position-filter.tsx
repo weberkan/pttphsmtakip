@@ -19,7 +19,7 @@ export function PositionFilter({ currentFilter, onFilterChange }: PositionFilter
       <RadioGroup
         defaultValue={currentFilter}
         onValueChange={(value) => onFilterChange(value as PositionFilterType)}
-        className="flex flex-row gap-4"
+        className="flex flex-wrap flex-row gap-4"
       >
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="all" id="filter-all" />
@@ -36,6 +36,10 @@ export function PositionFilter({ currentFilter, onFilterChange }: PositionFilter
         <div className="flex items-center space-x-2">
           <RadioGroupItem value="Yürütme" id="filter-yurutme" />
           <Label htmlFor="filter-yurutme" className="font-normal">Yürütme</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value="Boş" id="filter-bos" />
+          <Label htmlFor="filter-bos" className="font-normal">Boş</Label>
         </div>
       </RadioGroup>
     </div>

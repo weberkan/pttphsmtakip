@@ -4,7 +4,7 @@ export interface Position {
   name: string; // Ünvan
   department: string; // Birim
   dutyLocation?: string | null; // Görev Yeri (Opsiyonel)
-  status: 'Asıl' | 'Vekalet' | 'Yürütme'; // Güncellenmiş durumlar
+  status: 'Asıl' | 'Vekalet' | 'Yürütme' | 'Boş'; // Güncellenmiş durumlar + Boş
   reportsTo: string | null; // ID of the parent position
   assignedPersonnelId: string | null; // ID of the assigned personnel
   startDate: Date | null; // Göreve başlama tarihi

@@ -4,7 +4,7 @@
 import type { Position, Personnel } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, User, BadgeCheck, BadgeAlert, Building2, Info, CalendarDays } from "lucide-react";
+import { Briefcase, User, BadgeCheck, BadgeAlert, Building2, Info, CalendarDays, CircleOff } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 
@@ -37,9 +37,16 @@ export function OrgChartNode({ position, allPositions, allPersonnel, level }: Or
         );
       case 'Yürütme':
         return (
-          <Badge variant="outline" className="capitalize text-xs px-1.5 py-0.5">
+          <Badge variant="outline" className="capitalize text-xs px-1.5 py-0.5 bg-accent/20 border-accent/50">
             <Info className="mr-1 h-3 w-3" />
             Yürütme
+          </Badge>
+        );
+      case 'Boş':
+        return (
+          <Badge variant="outline" className="capitalize text-xs px-1.5 py-0.5">
+            <CircleOff className="mr-1 h-3 w-3" />
+            Boş
           </Badge>
         );
       default:
@@ -55,6 +62,8 @@ export function OrgChartNode({ position, allPositions, allPersonnel, level }: Or
         return "Vekalet Bşl.: ";
       case 'Yürütme':
         return "Yürütme Bşl.: ";
+      case 'Boş':
+        return "Boşalma Trh.: "; // or "İlgili Tarih: "
       default:
         return "Başlama: ";
     }
@@ -72,14 +81,14 @@ export function OrgChartNode({ position, allPositions, allPersonnel, level }: Or
             <Avatar className="h-6 w-6">
               <AvatarImage 
                 src={assignedPerson?.photoUrl || undefined} 
-                alt={assignedPerson ? `${assignedPerson.firstName} ${assignedPerson.lastName}` : "Atanmamış"} 
+                alt={assignedPerson && position.status !== 'Boş' ? `${assignedPerson.firstName} ${assignedPerson.lastName}` : "Atanmamış"} 
                 data-ai-hint="person avatar"
               />
               <AvatarFallback>
                 <User className="h-3 w-3" />
               </AvatarFallback>
             </Avatar>
-            {assignedPerson ? `${assignedPerson.firstName} ${assignedPerson.lastName}` : <span className="italic">Atanmamış</span>}
+            {assignedPerson && position.status !== 'Boş' ? `${assignedPerson.firstName} ${assignedPerson.lastName}` : <span className="italic">Atanmamış</span>}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-3 pt-0 text-xs">
@@ -88,7 +97,7 @@ export function OrgChartNode({ position, allPositions, allPersonnel, level }: Or
                 <span>{position.department}</span>
             </div>
             {getStatusBadge(position.status)}
-             {position.startDate && (
+             {position.startDate && position.status !== 'Boş' && (
               <div className="flex items-center gap-1 mt-1">
                 <CalendarDays className="h-3 w-3 text-muted-foreground"/>
                 <span>{getStartDateLabelPrefix(position.status)}{format(new Date(position.startDate), "dd.MM.yyyy")}</span>
