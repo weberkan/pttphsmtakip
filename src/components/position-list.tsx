@@ -24,18 +24,21 @@ interface PositionListProps {
   onDelete: (positionId: string) => void;
 }
 
+// Hiyerarşik sıralama için ünvanlara öncelik değerleri atanır. Düşük değer daha üstte.
 const positionTitleOrder: { [key: string]: number } = {
   "Genel Müdür": 1,
   "Genel Müdür Yardımcısı": 2,
   "Daire Başkanı": 3,
-  "Finans ve Muhasebe Başkanı": 3,
-  "Rehberlik ve Teftiş Başkanı": 3,
+  "Finans ve Muhasebe Başkanı": 3, // Aynı seviye
+  "Rehberlik ve Teftiş Başkanı": 3, // Aynı seviye
   "Başkan Yardımcısı": 4,
-  "Daire Başkan Yardımcısı": 4,
+  "Daire Başkan Yardımcısı": 4, // Aynı seviye
   "Teknik Müdür": 5,
   "Şube Müdürü": 6,
+  // Diğer tüm ünvanlar daha sonra alfabetik olarak sıralanacak (Infinity ile)
 };
 
+// Arka planı renklendirilecek özel ünvanlar
 const styledTitles = [
   "Daire Başkanı",
   "Finans ve Muhasebe Başkanı",
@@ -45,19 +48,24 @@ const styledTitles = [
 export function PositionList({ positions, allPersonnel, onEdit, onDelete }: PositionListProps) {
   const sortedPositions = useMemo(() => {
     return [...positions].sort((a, b) => {
+      // 1. Birime göre alfabetik sırala
+      const deptA = a.department.toLowerCase();
+      const deptB = b.department.toLowerCase();
+      if (deptA < deptB) return -1;
+      if (deptA > deptB) return 1;
+
+      // 2. Aynı birim içinde, ünvan hiyerarşisine göre sırala
       const orderA = positionTitleOrder[a.name] ?? Infinity;
       const orderB = positionTitleOrder[b.name] ?? Infinity;
-
       if (orderA !== orderB) {
         return orderA - orderB;
       }
 
-      // Same hierarchy or both not in hierarchy, sort by department then name
-      if (a.department.toLowerCase() < b.department.toLowerCase()) return -1;
-      if (a.department.toLowerCase() > b.department.toLowerCase()) return 1;
-      
-      if (a.name.toLowerCase() < b.name.toLowerCase()) return -1;
-      if (a.name.toLowerCase() > b.name.toLowerCase()) return 1;
+      // 3. Aynı birim ve aynı hiyerarşi seviyesinde (veya hiyerarşide olmayanlar için) ünvana göre alfabetik sırala
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
       
       return 0;
     });
