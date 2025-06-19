@@ -13,12 +13,13 @@ import { PersonnelList } from "@/components/personnel-list";
 import { OrgChart } from "@/components/org-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { usePositions } from "@/hooks/use-positions";
 import type { Position, Personnel } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, Search } from "lucide-react";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -66,6 +67,10 @@ export default function HomePage() {
   
   const [isPersonnelDialogOpen, setIsPersonnelDialogOpen] = useState(false);
   const [editingPersonnel, setEditingPersonnel] = useState<Personnel | null>(null);
+
+  const [positionSearchTerm, setPositionSearchTerm] = useState("");
+  const [personnelSearchTerm, setPersonnelSearchTerm] = useState("");
+
 
   const handleAddPositionClick = () => {
     setEditingPosition(null);
@@ -116,11 +121,43 @@ export default function HomePage() {
   };
 
   const filteredPositions = useMemo(() => {
-    if (filter === "all") {
-      return positions;
+    let _filtered = positions;
+    if (filter !== "all") {
+      _filtered = _filtered.filter(p => p.status === filter);
     }
-    return positions.filter(p => p.status === filter);
-  }, [positions, filter]);
+    if (positionSearchTerm.trim() !== "") {
+      const searchTermLower = positionSearchTerm.toLowerCase();
+      _filtered = _filtered.filter(p => {
+        const assignedPerson = p.assignedPersonnelId ? personnel.find(person => person.id === p.assignedPersonnelId) : null;
+        return (
+          p.name.toLowerCase().includes(searchTermLower) ||
+          p.department.toLowerCase().includes(searchTermLower) ||
+          (p.dutyLocation && p.dutyLocation.toLowerCase().includes(searchTermLower)) ||
+          (assignedPerson && (
+            assignedPerson.firstName.toLowerCase().includes(searchTermLower) ||
+            assignedPerson.lastName.toLowerCase().includes(searchTermLower) ||
+            assignedPerson.registryNumber.toLowerCase().includes(searchTermLower)
+          ))
+        );
+      });
+    }
+    return _filtered;
+  }, [positions, filter, positionSearchTerm, personnel]);
+
+  const filteredPersonnel = useMemo(() => {
+    if (personnelSearchTerm.trim() === "") {
+      return personnel;
+    }
+    const searchTermLower = personnelSearchTerm.toLowerCase();
+    return personnel.filter(p => 
+      p.firstName.toLowerCase().includes(searchTermLower) ||
+      p.lastName.toLowerCase().includes(searchTermLower) ||
+      p.registryNumber.toLowerCase().includes(searchTermLower) ||
+      (p.email && p.email.toLowerCase().includes(searchTermLower)) ||
+      (p.phone && p.phone.toLowerCase().includes(searchTermLower))
+    );
+  }, [personnel, personnelSearchTerm]);
+
 
   const handleImportPersonnelClick = () => {
     personnelFileInputRef.current?.click();
@@ -177,12 +214,9 @@ export default function HomePage() {
                 rawRow[personnelKey] = null;
               } else if (typeof excelValue === 'string') {
                 rawRow[personnelKey] = excelValue.trim();
-              } else if (personnelKey === 'registryNumber' && typeof excelValue === 'number') {
+              } else if ((personnelKey === 'registryNumber' || personnelKey === 'status') && typeof excelValue === 'number') {
                 rawRow[personnelKey] = String(excelValue);
-              } else if (personnelKey === 'status') {
-                 rawRow[personnelKey] = String(excelValue).trim();
-              }
-               else {
+              } else {
                 rawRow[personnelKey] = String(excelValue).trim();
               }
             }
@@ -300,10 +334,8 @@ export default function HomePage() {
                 rawRowData[positionKey] = null;
               } else if (typeof excelValue === 'string') {
                 rawRowData[positionKey] = excelValue.trim();
-              } else if ((positionKey === 'reportsToPersonnelRegistryNumber' || positionKey === 'assignedPersonnelRegistryNumber') && typeof excelValue === 'number') {
+              } else if ((positionKey === 'reportsToPersonnelRegistryNumber' || positionKey === 'assignedPersonnelRegistryNumber' || positionKey === 'status') && typeof excelValue === 'number') {
                 rawRowData[positionKey] = String(excelValue);
-              } else if (positionKey === 'status') {
-                rawRowData[positionKey] = String(excelValue).trim();
               } else if (positionKey === 'startDate') {
                 rawRowData[positionKey] = excelValue; 
               } else {
@@ -467,15 +499,27 @@ export default function HomePage() {
           </TabsList>
           <TabsContent value="positions">
             <Card className="shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle id="positions-heading" className="text-sm font-semibold">Şirket Pozisyonları (Toplam: {positions.length})</CardTitle>
+                  <CardTitle id="positions-heading" className="text-sm font-semibold">Şirket Pozisyonları (Toplam: {filteredPositions.length})</CardTitle>
                   <CardDescription>Şirket içindeki tüm pozisyonları yönetin ve görüntüleyin.</CardDescription>
                 </div>
-                 <Button onClick={handleImportPositionsClick} variant="outline" size="sm">
-                  <UploadCloud className="mr-2 h-4 w-4" />
-                  (Pozisyon)
-                </Button>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Pozisyonlarda ara..."
+                      className="pl-8 h-9"
+                      value={positionSearchTerm}
+                      onChange={(e) => setPositionSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleImportPositionsClick} variant="outline" size="sm" className="flex-shrink-0">
+                    <UploadCloud className="mr-2 h-4 w-4" />
+                    (Pozisyon)
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
@@ -490,19 +534,31 @@ export default function HomePage() {
           </TabsContent>
           <TabsContent value="personnel">
             <Card className="shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between">
+               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="text-sm font-semibold" id="personnel-heading">Personel Listesi (Toplam: {personnel.length})</CardTitle>
+                  <CardTitle className="text-sm font-semibold" id="personnel-heading">Personel Listesi (Toplam: {filteredPersonnel.length})</CardTitle>
                   <CardDescription>Şirket personelini yönetin.</CardDescription>
                 </div>
-                <Button onClick={handleImportPersonnelClick} variant="outline" size="sm">
-                  <UploadCloud className="mr-2 h-4 w-4" />
-                  (Personel)
-                </Button>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Personellerde ara..."
+                      className="pl-8 h-9"
+                      value={personnelSearchTerm}
+                      onChange={(e) => setPersonnelSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleImportPersonnelClick} variant="outline" size="sm" className="flex-shrink-0">
+                    <UploadCloud className="mr-2 h-4 w-4" />
+                    (Personel)
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <PersonnelList
-                  personnel={personnel}
+                  personnel={filteredPersonnel}
                   onEdit={handleEditPersonnel}
                   onDelete={handleDeletePersonnel}
                 />
@@ -560,3 +616,5 @@ export default function HomePage() {
     
 
     
+
+
