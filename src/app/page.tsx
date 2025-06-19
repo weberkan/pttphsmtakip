@@ -34,7 +34,9 @@ const importPositionSchema = z.object({
   name: z.string().min(1, "Ünvan boş olamaz."),
   department: z.string().min(1, "Birim boş olamaz."),
   dutyLocation: z.string().optional().nullable().or(z.literal('')),
-  status: z.enum(["Asıl", "Vekalet", "Yürütme", "Boş"], { errorMap: () => ({ message: "Durum 'Asıl', 'Vekalet', 'Yürütme' veya 'Boş' olmalıdır." }) }),
+  status: z.enum(["Asıl", "Vekalet", "Yürütme", "Boş"], { 
+    errorMap: () => ({ message: "Durum 'Asıl', 'Vekalet', 'Yürütme' veya 'Boş' olmalıdır." }) 
+  }),
   reportsToPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
   assignedPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
   startDate: z.date().optional().nullable(),
@@ -269,8 +271,8 @@ export default function HomePage() {
           'başlamatarihi': 'startDate', 'baslamatarihi': 'startDate',
         };
 
-        let importedCount = 0;
-        let skippedCount = 0;
+        let addedCount = 0;
+        let updatedCount = 0;
         let errorCount = 0;
         let warningCount = 0;
 
@@ -298,11 +300,11 @@ export default function HomePage() {
                   resolvedReportsToId = parentPosition.id;
                 } else {
                   warningCount++;
-                  toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `'${validatedData.reportsToPersonnelRegistryNumber}' sicilli personelin bağlı olduğu pozisyon bulunamadı.`, variant: "default", duration: 4000 + warningCount * 100 });
+                  toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `'${validatedData.reportsToPersonnelRegistryNumber}' sicilli personelin bağlı olduğu pozisyon bulunamadı. 'Bağlı olduğu pozisyon' boş bırakılacak.`, variant: "default", duration: 4000 + warningCount * 100 });
                 }
               } else {
                 warningCount++;
-                toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Bağlı olduğu personel için '${validatedData.reportsToPersonnelRegistryNumber}' sicil no bulunamadı.`, variant: "default", duration: 4000 + warningCount * 100 });
+                toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Bağlı olduğu personel için '${validatedData.reportsToPersonnelRegistryNumber}' sicil no bulunamadı. 'Bağlı olduğu pozisyon' boş bırakılacak.`, variant: "default", duration: 4000 + warningCount * 100 });
               }
             }
 
@@ -312,13 +314,13 @@ export default function HomePage() {
                 resolvedAssignedPersonnelId = assignee.id;
               } else {
                  warningCount++;
-                 toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı.`, variant: "default", duration: 4000 + warningCount * 100 });
+                 toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı. Personel atanmayacak.`, variant: "default", duration: 4000 + warningCount * 100 });
               }
             } else if (validatedData.status === "Boş") {
                 resolvedAssignedPersonnelId = null; 
             }
             
-            const newPositionData: Omit<Position, 'id'> = {
+            const positionDataFromExcel: Omit<Position, 'id'> = {
               name: validatedData.name,
               department: validatedData.department,
               dutyLocation: validatedData.dutyLocation || null,
@@ -327,13 +329,17 @@ export default function HomePage() {
               assignedPersonnelId: resolvedAssignedPersonnelId,
               startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
             };
+            
+            const existingPosition = positions.find(p => p.name === positionDataFromExcel.name && p.department === positionDataFromExcel.department);
 
-            if (positions.some(p => p.name === newPositionData.name && p.department === newPositionData.department)) {
-              skippedCount++;
+            if (existingPosition) {
+              updatePosition({ ...existingPosition, ...positionDataFromExcel });
+              updatedCount++;
             } else {
-              addPosition(newPositionData);
-              importedCount++;
+              addPosition(positionDataFromExcel);
+              addedCount++;
             }
+
           } else {
             errorCount++;
             const positionHeaderMappingReverse: { [key: string]: string } = {
@@ -360,14 +366,19 @@ export default function HomePage() {
           }
         });
 
-        let summaryMessage = `${importedCount} pozisyon başarıyla içe aktarıldı.`;
-        if (skippedCount > 0) summaryMessage += ` ${skippedCount} pozisyon (aynı ünvan ve birim) atlandı.`;
-        if (errorCount > 0) summaryMessage += ` ${errorCount} pozisyon hatalı veri nedeniyle eklenemedi.`;
-        if (warningCount > 0) summaryMessage += ` ${warningCount} uyarı oluştu (detaylar için önceki mesajlara bakın).`;
+        let summaryMessage = "";
+        if (addedCount > 0) summaryMessage += `${addedCount} pozisyon eklendi. `;
+        if (updatedCount > 0) summaryMessage += `${updatedCount} pozisyon güncellendi. `;
+        if (errorCount > 0) summaryMessage += `${errorCount} pozisyon hatalı veri nedeniyle işlenemedi. `;
+        if (warningCount > 0) summaryMessage += `${warningCount} uyarı oluştu (detaylar için önceki mesajlara bakın).`;
         
+        if (summaryMessage.trim() === "") {
+            summaryMessage = "İçe aktarılacak yeni veya güncellenecek pozisyon bulunamadı ya da tüm satırlar hatalıydı.";
+        }
+
         toast({
           title: "Pozisyon İçe Aktarma Tamamlandı",
-          description: summaryMessage,
+          description: summaryMessage.trim(),
         });
 
       } catch (error: any) {
@@ -524,5 +535,4 @@ export default function HomePage() {
     </div>
   );
 }
-
     
