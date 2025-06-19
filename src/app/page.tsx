@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import * as XLSX from 'xlsx';
-import * as z from "zod"; // Added Zod import
+import * as z from "zod";
 import { AppHeader } from "@/components/app-header";
 import { AddEditPositionDialog } from "@/components/add-edit-position-dialog";
 import { AddEditPersonnelDialog } from "@/components/add-edit-personnel-dialog";
@@ -20,8 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud } from "lucide-react";
 
-// Zod schema for validating imported personnel data
-// This is a simplified version for import flexibility
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
   lastName: z.string().min(1, "Soyadı boş olamaz."),
@@ -161,12 +159,9 @@ export default function HomePage() {
             }
           });
 
-          // Default status if not provided or invalid, Zod will catch truly invalid ones
           if (!row.status || (row.status !== "İHS" && row.status !== "399")) {
-             // Let Zod handle validation, but ensure it's a string for Zod
             row.status = String(row.status || "İHS"); 
           }
-
 
           const validation = importPersonnelSchema.safeParse(row);
 
@@ -185,7 +180,7 @@ export default function HomePage() {
               title: `Satır ${rowIndex + 2} Hatası`,
               description: Object.values(validation.error.flatten().fieldErrors).flat().join(', '),
               variant: "destructive",
-              duration: 5000 + rowIndex * 200 // Stagger toast display slightly
+              duration: 5000 + rowIndex * 200 
             });
           }
         });
@@ -199,11 +194,14 @@ export default function HomePage() {
           description: summaryMessage,
         });
 
-      } catch (error) {
+      } catch (error: any) {
         console.error("Excel dosyası işlenirken hata:", error);
-        toast({ title: "Hata", description: "Excel dosyası işlenirken bir sorun oluştu.", variant: "destructive" });
+        if (error.message && error.message.includes("password-protected")) {
+          toast({ title: "Hata", description: "Yüklenen dosya şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
+        } else {
+          toast({ title: "Hata", description: "Excel dosyası işlenirken bir sorun oluştu.", variant: "destructive" });
+        }
       } finally {
-        // Reset file input
         if (event.target) {
           event.target.value = "";
         }
