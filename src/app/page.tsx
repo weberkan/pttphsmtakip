@@ -3,6 +3,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import * as XLSX from 'xlsx';
+import * as z from "zod"; // Added Zod import
 import { AppHeader } from "@/components/app-header";
 import { AddEditPositionDialog } from "@/components/add-edit-position-dialog";
 import { AddEditPersonnelDialog } from "@/components/add-edit-personnel-dialog";
@@ -97,7 +98,7 @@ export default function HomePage() {
     if ('id' in data) {
       updatePersonnel(data as Personnel);
     } else {
-      addPersonnel(data as Omit<Personnel, 'id'>);
+      addPersonnel(data as Omit<Personnel, 'id'> & { status: 'İHS' | '399' });
     }
     setIsPersonnelDialogOpen(false);
     setEditingPersonnel(null);
@@ -137,7 +138,7 @@ export default function HomePage() {
         const headers = (jsonData[0] as string[]).map(normalizeHeader);
         const rows = jsonData.slice(1);
 
-        const headerMapping: { [key: string]: keyof Personnel } = {
+        const headerMapping: { [key: string]: keyof Omit<Personnel, 'id'> } = {
           'adı': 'firstName', 'ad': 'firstName',
           'soyadı': 'lastName', 'soyad': 'lastName',
           'sicilnumarası': 'registryNumber', 'sicilno': 'registryNumber', 'sicil': 'registryNumber',
@@ -170,7 +171,7 @@ export default function HomePage() {
           const validation = importPersonnelSchema.safeParse(row);
 
           if (validation.success) {
-            const newPerson = validation.data as Omit<Personnel, 'id'>;
+            const newPerson = validation.data as Omit<Personnel, 'id'> & { status: 'İHS' | '399' };
             if (personnel.some(p => p.registryNumber === newPerson.registryNumber)) {
               skippedCount++;
             } else {
@@ -336,4 +337,3 @@ export default function HomePage() {
     </div>
   );
 }
-
