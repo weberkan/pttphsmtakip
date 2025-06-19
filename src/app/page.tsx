@@ -168,19 +168,27 @@ export default function HomePage() {
         let errorCount = 0;
 
         rows.forEach((rowArray, rowIndex) => {
-          const row: any = {};
-          headers.forEach((header, index) => {
+          const rawRow: any = {};
+          headers.forEach((header, colIndex) => {
             const personnelKey = headerMapping[header];
             if (personnelKey) {
-              row[personnelKey] = rowArray[index] !== undefined ? String(rowArray[index]) : null;
+              let excelValue = rowArray[colIndex];
+              if (excelValue === null || excelValue === undefined) {
+                rawRow[personnelKey] = null;
+              } else if (typeof excelValue === 'string') {
+                rawRow[personnelKey] = excelValue.trim();
+              } else if (personnelKey === 'registryNumber' && typeof excelValue === 'number') {
+                rawRow[personnelKey] = String(excelValue);
+              } else if (personnelKey === 'status') {
+                 rawRow[personnelKey] = String(excelValue).trim();
+              }
+               else {
+                rawRow[personnelKey] = String(excelValue).trim();
+              }
             }
           });
 
-          if (!row.status || (row.status !== "İHS" && row.status !== "399")) {
-            row.status = String(row.status || "İHS"); 
-          }
-
-          const validation = importPersonnelSchema.safeParse(row);
+          const validation = importPersonnelSchema.safeParse(rawRow);
 
           if (validation.success) {
             const newPerson = validation.data as Omit<Personnel, 'id'> & { status: 'İHS' | '399' };
@@ -198,8 +206,8 @@ export default function HomePage() {
             };
             const errorMessagesForToast = validation.error.issues.map(issue => {
               let issuePath = issue.path.join('.');
-              if (issue.path.length === 1 && personnelHeaderMappingReverse[issue.path[0]]) {
-                issuePath = personnelHeaderMappingReverse[issue.path[0]];
+              if (issue.path.length === 1 && personnelHeaderMappingReverse[issue.path[0] as string]) {
+                issuePath = personnelHeaderMappingReverse[issue.path[0] as string];
               }
               return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
             });
@@ -270,6 +278,12 @@ export default function HomePage() {
           'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber',
           'başlamatarihi': 'startDate', 'baslamatarihi': 'startDate',
         };
+        
+        const positionHeaderMappingReverse: { [key: string]: string } = {
+          'name': 'Ünvan', 'department': 'Birim', 'dutyLocation': 'Görev Yeri',
+          'status': 'Durum', 'reportsToPersonnelRegistryNumber': 'Bağlı Olduğu Personel Sicil',
+          'assignedPersonnelRegistryNumber': 'Atanan Personel Sicil', 'startDate': 'Başlama Tarihi',
+        };
 
         let addedCount = 0;
         let updatedCount = 0;
@@ -278,10 +292,23 @@ export default function HomePage() {
 
         rows.forEach((rowArray, rowIndex) => {
           const rawRowData: any = {};
-          headers.forEach((header, index) => {
+          headers.forEach((header, colIndex) => {
             const positionKey = headerMapping[header];
             if (positionKey) {
-              rawRowData[positionKey] = rowArray[index];
+              let excelValue = rowArray[colIndex];
+              if (excelValue === null || excelValue === undefined) {
+                rawRowData[positionKey] = null;
+              } else if (typeof excelValue === 'string') {
+                rawRowData[positionKey] = excelValue.trim();
+              } else if ((positionKey === 'reportsToPersonnelRegistryNumber' || positionKey === 'assignedPersonnelRegistryNumber') && typeof excelValue === 'number') {
+                rawRowData[positionKey] = String(excelValue);
+              } else if (positionKey === 'status') {
+                rawRowData[positionKey] = String(excelValue).trim();
+              } else if (positionKey === 'startDate') {
+                rawRowData[positionKey] = excelValue; // Should be Date object or null
+              } else {
+                 rawRowData[positionKey] = String(excelValue).trim();
+              }
             }
           });
           
@@ -342,15 +369,10 @@ export default function HomePage() {
 
           } else {
             errorCount++;
-            const positionHeaderMappingReverse: { [key: string]: string } = {
-              'name': 'Ünvan', 'department': 'Birim', 'dutyLocation': 'Görev Yeri',
-              'status': 'Durum', 'reportsToPersonnelRegistryNumber': 'Bağlı Olduğu Personel Sicil',
-              'assignedPersonnelRegistryNumber': 'Atanan Personel Sicil', 'startDate': 'Başlama Tarihi',
-            };
             const errorMessagesForToast = validation.error.issues.map(issue => {
               let issuePath = issue.path.join('.');
-              if (issue.path.length === 1 && positionHeaderMappingReverse[issue.path[0]]) {
-                issuePath = positionHeaderMappingReverse[issue.path[0]];
+              if (issue.path.length === 1 && positionHeaderMappingReverse[issue.path[0] as string]) {
+                issuePath = positionHeaderMappingReverse[issue.path[0] as string];
               }
               return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
             });
@@ -535,4 +557,6 @@ export default function HomePage() {
     </div>
   );
 }
+    
+
     
