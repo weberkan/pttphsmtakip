@@ -310,7 +310,7 @@ export default function HomePage() {
                  toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı.`, variant: "default", duration: 4000 + warningCount * 100 });
               }
             } else if (validatedData.status === "Boş") {
-                resolvedAssignedPersonnelId = null; // Ensure no personnel is assigned if status is "Boş"
+                resolvedAssignedPersonnelId = null; 
             }
             
             const newPositionData: Omit<Position, 'id'> = {
@@ -425,7 +425,7 @@ export default function HomePage() {
             <Card className="shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle id="positions-heading">Şirket Pozisyonları</CardTitle>
+                  <CardTitle id="positions-heading" className="text-sm font-semibold">Şirket Pozisyonları (Toplam: {positions.length})</CardTitle>
                   <CardDescription>Şirket içindeki tüm pozisyonları yönetin ve görüntüleyin.</CardDescription>
                 </div>
                  <Button onClick={handleImportPositionsClick} variant="outline" size="sm">
