@@ -60,9 +60,10 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Ünvan</TableHead>
             <TableHead>Birim</TableHead>
+            <TableHead>Ünvan</TableHead>
             <TableHead>Personel</TableHead>
+            <TableHead>Statü</TableHead>
             <TableHead>Durum</TableHead>
             <TableHead>Başlama Tarihi</TableHead>
             <TableHead className="text-right">Aksiyonlar</TableHead>
@@ -73,16 +74,16 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
             const assignedPerson = allPersonnel.find(p => p.id === position.assignedPersonnelId);
             return (
               <TableRow key={position.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>{position.name}</span>
-                  </div>
-                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span>{position.department}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span>{position.name}</span>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -99,6 +100,9 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                       <span className="text-muted-foreground italic">Atanmamış</span>
                     )}
                   </div>
+                </TableCell>
+                <TableCell>
+                  {position.status}
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(position.status)}
