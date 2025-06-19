@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import * as XLSX from 'xlsx';
 import { AppHeader } from "@/components/app-header";
 import { AddEditPositionDialog } from "@/components/add-edit-position-dialog";
 import { AddEditPersonnelDialog } from "@/components/add-edit-personnel-dialog";
@@ -10,10 +11,26 @@ import { PositionList } from "@/components/position-list";
 import { PersonnelList } from "@/components/personnel-list";
 import { OrgChart } from "@/components/org-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { usePositions } from "@/hooks/use-positions";
 import type { Position, Personnel } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { UploadCloud } from "lucide-react";
+
+// Zod schema for validating imported personnel data
+// This is a simplified version for import flexibility
+const importPersonnelSchema = z.object({
+  firstName: z.string().min(1, "Adı boş olamaz."),
+  lastName: z.string().min(1, "Soyadı boş olamaz."),
+  registryNumber: z.string().min(1, "Sicil Numarası boş olamaz."),
+  status: z.enum(["İHS", "399"], { errorMap: () => ({ message: "Statü 'İHS' veya '399' olmalıdır." }) }),
+  photoUrl: z.string().url("Geçerli bir URL girin.").optional().nullable().or(z.literal('')),
+  email: z.string().email("Geçerli bir e-posta adresi girin.").optional().nullable().or(z.literal('')),
+  phone: z.string().optional().nullable().or(z.literal('')),
+});
+
 
 export default function HomePage() {
   const { 
@@ -27,6 +44,9 @@ export default function HomePage() {
     deletePersonnel,
     isInitialized 
   } = usePositions();
+
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [filter, setFilter] = useState<PositionFilterType>("all");
   const [isPositionDialogOpen, setIsPositionDialogOpen] = useState(false);
@@ -83,13 +103,114 @@ export default function HomePage() {
     setEditingPersonnel(null);
   };
 
-
   const filteredPositions = useMemo(() => {
     if (filter === "all") {
       return positions;
     }
     return positions.filter(p => p.status === filter);
   }, [positions, filter]);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const normalizeHeader = (header: string) => header.toLowerCase().replace(/\s+/g, '');
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        
+        if (jsonData.length === 0) {
+          toast({ title: "Hata", description: "Excel dosyası boş.", variant: "destructive" });
+          return;
+        }
+
+        const headers = (jsonData[0] as string[]).map(normalizeHeader);
+        const rows = jsonData.slice(1);
+
+        const headerMapping: { [key: string]: keyof Personnel } = {
+          'adı': 'firstName', 'ad': 'firstName',
+          'soyadı': 'lastName', 'soyad': 'lastName',
+          'sicilnumarası': 'registryNumber', 'sicilno': 'registryNumber', 'sicil': 'registryNumber',
+          'statü': 'status', 'statu': 'status',
+          'eposta': 'email', 'mail': 'email',
+          'telefon': 'phone', 'tel': 'phone',
+          'fotoğrafurl': 'photoUrl', 'fotourl': 'photoUrl', 'foto': 'photoUrl',
+        };
+        
+        let importedCount = 0;
+        let skippedCount = 0;
+        let errorCount = 0;
+
+        rows.forEach((rowArray, rowIndex) => {
+          const row: any = {};
+          headers.forEach((header, index) => {
+            const personnelKey = headerMapping[header];
+            if (personnelKey) {
+              row[personnelKey] = rowArray[index] !== undefined ? String(rowArray[index]) : null;
+            }
+          });
+
+          // Default status if not provided or invalid, Zod will catch truly invalid ones
+          if (!row.status || (row.status !== "İHS" && row.status !== "399")) {
+             // Let Zod handle validation, but ensure it's a string for Zod
+            row.status = String(row.status || "İHS"); 
+          }
+
+
+          const validation = importPersonnelSchema.safeParse(row);
+
+          if (validation.success) {
+            const newPerson = validation.data as Omit<Personnel, 'id'>;
+            if (personnel.some(p => p.registryNumber === newPerson.registryNumber)) {
+              skippedCount++;
+            } else {
+              addPersonnel(newPerson);
+              importedCount++;
+            }
+          } else {
+            errorCount++;
+            console.error(`Satır ${rowIndex + 2} için doğrulama hatası:`, validation.error.flatten().fieldErrors);
+            toast({
+              title: `Satır ${rowIndex + 2} Hatası`,
+              description: Object.values(validation.error.flatten().fieldErrors).flat().join(', '),
+              variant: "destructive",
+              duration: 5000 + rowIndex * 200 // Stagger toast display slightly
+            });
+          }
+        });
+
+        let summaryMessage = `${importedCount} personel başarıyla içe aktarıldı.`;
+        if (skippedCount > 0) summaryMessage += ` ${skippedCount} personel (sicil no mevcut) atlandı.`;
+        if (errorCount > 0) summaryMessage += ` ${errorCount} personel hatalı veri nedeniyle eklenemedi.`;
+        
+        toast({
+          title: "İçe Aktarma Tamamlandı",
+          description: summaryMessage,
+        });
+
+      } catch (error) {
+        console.error("Excel dosyası işlenirken hata:", error);
+        toast({ title: "Hata", description: "Excel dosyası işlenirken bir sorun oluştu.", variant: "destructive" });
+      } finally {
+        // Reset file input
+        if (event.target) {
+          event.target.value = "";
+        }
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
 
   if (!isInitialized) {
     return (
@@ -155,9 +276,15 @@ export default function HomePage() {
           </TabsContent>
           <TabsContent value="personnel">
             <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle>Personel Listesi</CardTitle>
-                <CardDescription>Şirket personelini yönetin.</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Personel Listesi</CardTitle>
+                  <CardDescription>Şirket personelini yönetin.</CardDescription>
+                </div>
+                <Button onClick={handleImportClick} variant="outline" size="sm">
+                  <UploadCloud className="mr-2 h-4 w-4" />
+                  Excel'den İçe Aktar
+                </Button>
               </CardHeader>
               <CardContent>
                 <PersonnelList
@@ -182,6 +309,14 @@ export default function HomePage() {
         </Tabs>
       </main>
 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept=".xlsx, .xls, .csv"
+        className="hidden"
+      />
+
       <AddEditPositionDialog
         isOpen={isPositionDialogOpen}
         onOpenChange={setIsPositionDialogOpen}
@@ -201,3 +336,4 @@ export default function HomePage() {
     </div>
   );
 }
+
