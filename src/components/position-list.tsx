@@ -102,7 +102,11 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   </div>
                 </TableCell>
                 <TableCell>
-                  {position.status}
+                  {assignedPerson ? (
+                    assignedPerson.status
+                  ) : (
+                    <span className="text-muted-foreground italic">Yok</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(position.status)}
