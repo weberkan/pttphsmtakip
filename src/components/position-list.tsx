@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -14,6 +15,7 @@ import { BadgeCheck, BadgeAlert, Briefcase, Building2, UserCircle, Info, Calenda
 import type { Position, Personnel } from "@/lib/types";
 import { PositionListItemActions } from "./position-list-item-actions";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface PositionListProps {
   positions: Position[];
@@ -22,7 +24,45 @@ interface PositionListProps {
   onDelete: (positionId: string) => void;
 }
 
+const positionTitleOrder: { [key: string]: number } = {
+  "Genel Müdür": 1,
+  "Genel Müdür Yardımcısı": 2,
+  "Daire Başkanı": 3,
+  "Finans ve Muhasebe Başkanı": 3,
+  "Rehberlik ve Teftiş Başkanı": 3,
+  "Başkan Yardımcısı": 4,
+  "Daire Başkan Yardımcısı": 4,
+  "Teknik Müdür": 5,
+  "Şube Müdürü": 6,
+};
+
+const styledTitles = [
+  "Daire Başkanı",
+  "Finans ve Muhasebe Başkanı",
+  "Rehberlik ve Teftiş Başkanı",
+];
+
 export function PositionList({ positions, allPersonnel, onEdit, onDelete }: PositionListProps) {
+  const sortedPositions = useMemo(() => {
+    return [...positions].sort((a, b) => {
+      const orderA = positionTitleOrder[a.name] ?? Infinity;
+      const orderB = positionTitleOrder[b.name] ?? Infinity;
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
+      // Same hierarchy or both not in hierarchy, sort by department then name
+      if (a.department.toLowerCase() < b.department.toLowerCase()) return -1;
+      if (a.department.toLowerCase() > b.department.toLowerCase()) return 1;
+      
+      if (a.name.toLowerCase() < b.name.toLowerCase()) return -1;
+      if (a.name.toLowerCase() > b.name.toLowerCase()) return 1;
+      
+      return 0;
+    });
+  }, [positions]);
+
   if (positions.length === 0) {
     return <p className="text-muted-foreground text-center py-4">Pozisyon bulunamadı. Eklemeyi deneyin!</p>;
   }
@@ -78,10 +118,14 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
           </TableRow>
         </TableHeader>
         <TableBody>
-          {positions.map((position) => {
+          {sortedPositions.map((position) => {
             const assignedPerson = allPersonnel.find(p => p.id === position.assignedPersonnelId);
+            const isStyledTitle = styledTitles.includes(position.name);
             return (
-              <TableRow key={position.id}>
+              <TableRow 
+                key={position.id}
+                className={cn(isStyledTitle && "bg-accent/10 hover:bg-accent/20")}
+              >
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
