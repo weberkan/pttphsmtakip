@@ -198,7 +198,7 @@ export default function HomePage() {
                 allErrorMessages.push("Bilinmeyen bir personel doğrulama hatası oluştu.");
             }
             const errorDescription = allErrorMessages.join('; ');
-            console.error(`Personel Satır ${rowIndex + 2} için doğrulama hatası:`, flatErrors);
+            console.error(`Personel Satır ${rowIndex + 2} için doğrulama hatası. Zod issues:`, validation.error.issues);
             toast({
               title: `Personel Satır ${rowIndex + 2} Hatası`,
               description: errorDescription,
@@ -333,11 +333,11 @@ export default function HomePage() {
             const fieldErrorMessages = Object.values(flatErrors.fieldErrors).flat();
             const formErrorMessages = flatErrors.formErrors;
             let allErrorMessages = [...formErrorMessages, ...fieldErrorMessages];
-            if (allErrorMessages.length === 0) { // Fallback if no specific messages from Zod
+            if (allErrorMessages.length === 0) { 
                 allErrorMessages.push("Bilinmeyen bir pozisyon doğrulama hatası oluştu.");
             }
             const errorDescription = allErrorMessages.join('; ');
-            console.error(`Pozisyon Satır ${rowIndex + 2} için doğrulama hatası:`, flatErrors);
+            console.error(`Pozisyon Satır ${rowIndex + 2} için doğrulama hatası. Zod issues:`, validation.error.issues);
             toast({
               title: `Pozisyon Satır ${rowIndex + 2} Hatası`,
               description: errorDescription,
