@@ -277,7 +277,7 @@ export default function HomePage() {
             <Card className="shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Personel Listesi (Toplam: {personnel.length})</CardTitle>
+                  <CardTitle className="text-sm">Personel Listesi (Toplam: {personnel.length})</CardTitle>
                   <CardDescription>Şirket personelini yönetin.</CardDescription>
                 </div>
                 <Button onClick={handleImportClick} variant="outline" size="sm">
