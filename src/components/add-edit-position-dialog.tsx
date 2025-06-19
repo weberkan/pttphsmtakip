@@ -232,8 +232,8 @@ export function AddEditPositionDialog({
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={field.value || undefined} // Changed from field.value
-                        onSelect={field.onChange}
+                        selected={field.value || undefined}
+                        onSelect={(value) => field.onChange(value === undefined ? null : value)}
                         disabled={(date) =>
                           date > new Date() || date < new Date("1900-01-01")
                         }
