@@ -61,8 +61,8 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         <TableHeader>
           <TableRow>
             <TableHead>Ünvan</TableHead>
-            <TableHead>Departman</TableHead>
-            <TableHead>Atanan Personel</TableHead>
+            <TableHead>Birim</TableHead>
+            <TableHead>Personel</TableHead>
             <TableHead>Durum</TableHead>
             <TableHead>Başlama Tarihi</TableHead>
             <TableHead className="text-right">Aksiyonlar</TableHead>

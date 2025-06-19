@@ -40,7 +40,7 @@ import { cn } from "@/lib/utils";
 
 const positionSchema = z.object({
   name: z.string().min(2, "Ünvan en az 2 karakter olmalıdır."),
-  department: z.string().min(2, "Departman adı en az 2 karakter olmalıdır."),
+  department: z.string().min(2, "Birim adı en az 2 karakter olmalıdır."),
   status: z.enum(["Asıl", "Vekalet", "Yürütme"]),
   reportsTo: z.string().nullable(),
   assignedPersonnelId: z.string().nullable(),
@@ -174,9 +174,9 @@ export function AddEditPositionDialog({
               name="department"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Departman</FormLabel>
+                  <FormLabel>Birim</FormLabel>
                   <FormControl>
-                    <Input placeholder="örn: Mühendislik" {...field} />
+                    <Input placeholder="örn: Bilgi Teknolojileri" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

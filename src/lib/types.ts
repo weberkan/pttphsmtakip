@@ -2,7 +2,7 @@
 export interface Position {
   id: string;
   name: string; // Ünvan
-  department: string; // Departman
+  department: string; // Birim
   status: 'Asıl' | 'Vekalet' | 'Yürütme'; // Güncellenmiş durumlar
   reportsTo: string | null; // ID of the parent position
   assignedPersonnelId: string | null; // ID of the assigned personnel
@@ -18,4 +18,3 @@ export interface Personnel {
   email?: string | null; // E-posta Adresi (Opsiyonel)
   phone?: string | null; // Telefon Numarası (Opsiyonel)
 }
-
