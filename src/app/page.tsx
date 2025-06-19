@@ -30,6 +30,15 @@ const importPersonnelSchema = z.object({
   phone: z.string().optional().nullable().or(z.literal('')),
 });
 
+const importPositionSchema = z.object({
+  name: z.string().min(1, "Ünvan boş olamaz."),
+  department: z.string().min(1, "Birim boş olamaz."),
+  status: z.enum(["Asıl", "Vekalet", "Yürütme"], { errorMap: () => ({ message: "Durum 'Asıl', 'Vekalet' veya 'Yürütme' olmalıdır." }) }),
+  reportsToPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
+  assignedPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
+  startDate: z.date().optional().nullable(),
+});
+
 
 export default function HomePage() {
   const { 
@@ -45,7 +54,8 @@ export default function HomePage() {
   } = usePositions();
 
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const personnelFileInputRef = useRef<HTMLInputElement>(null);
+  const positionFileInputRef = useRef<HTMLInputElement>(null);
 
   const [filter, setFilter] = useState<PositionFilterType>("all");
   const [isPositionDialogOpen, setIsPositionDialogOpen] = useState(false);
@@ -109,13 +119,17 @@ export default function HomePage() {
     return positions.filter(p => p.status === filter);
   }, [positions, filter]);
 
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
+  const handleImportPersonnelClick = () => {
+    personnelFileInputRef.current?.click();
+  };
+
+  const handleImportPositionsClick = () => {
+    positionFileInputRef.current?.click();
   };
 
   const normalizeHeader = (header: string) => header.toLowerCase().replace(/\s+/g, '');
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePersonnelFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -175,9 +189,9 @@ export default function HomePage() {
             }
           } else {
             errorCount++;
-            console.error(`Satır ${rowIndex + 2} için doğrulama hatası:`, validation.error.flatten().fieldErrors);
+            console.error(`Personel Satır ${rowIndex + 2} için doğrulama hatası:`, validation.error.flatten().fieldErrors);
             toast({
-              title: `Satır ${rowIndex + 2} Hatası`,
+              title: `Personel Satır ${rowIndex + 2} Hatası`,
               description: Object.values(validation.error.flatten().fieldErrors).flat().join(', '),
               variant: "destructive",
               duration: 5000 + rowIndex * 200 
@@ -190,7 +204,7 @@ export default function HomePage() {
         if (errorCount > 0) summaryMessage += ` ${errorCount} personel hatalı veri nedeniyle eklenemedi.`;
         
         toast({
-          title: "İçe Aktarma Tamamlandı",
+          title: "Personel İçe Aktarma Tamamlandı",
           description: summaryMessage,
         });
 
@@ -204,6 +218,147 @@ export default function HomePage() {
       } finally {
         if (event.target) {
           event.target.value = "";
+        }
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handlePositionFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        // Read with cellDates: true to attempt parsing Excel dates to JS Date objects
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+        if (jsonData.length === 0) {
+          toast({ title: "Hata", description: "Pozisyon Excel dosyası boş.", variant: "destructive" });
+          return;
+        }
+
+        const headers = (jsonData[0] as string[]).map(normalizeHeader);
+        const rows = jsonData.slice(1);
+
+        const headerMapping: { [key: string]: keyof z.infer<typeof importPositionSchema> } = {
+          'ünvan': 'name', 'unvan': 'name',
+          'birim': 'department',
+          'durum': 'status', // Asıl, Vekalet, Yürütme
+          'bağlıolduğupersonelsicil': 'reportsToPersonnelRegistryNumber', 'baglioldugupersonelsicil': 'reportsToPersonnelRegistryNumber', 'raporladiğisicil': 'reportsToPersonnelRegistryNumber',
+          'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber',
+          'başlamatarihi': 'startDate', 'baslamatarihi': 'startDate',
+        };
+
+        let importedCount = 0;
+        let skippedCount = 0;
+        let errorCount = 0;
+        let warningCount = 0;
+
+        rows.forEach((rowArray, rowIndex) => {
+          const rawRowData: any = {};
+          headers.forEach((header, index) => {
+            const positionKey = headerMapping[header];
+            if (positionKey) {
+              rawRowData[positionKey] = rowArray[index];
+            }
+          });
+
+          // Ensure status is one of the enum values, default if necessary or handle error
+          if (rawRowData.status && !["Asıl", "Vekalet", "Yürütme"].includes(rawRowData.status)) {
+            // console.warn(`Satır ${rowIndex + 2}: Geçersiz pozisyon durumu '${rawRowData.status}'. 'Asıl' olarak ayarlandı.`);
+            // rawRowData.status = "Asıl"; // Or skip this row
+          }
+
+
+          const validation = importPositionSchema.safeParse(rawRowData);
+
+          if (validation.success) {
+            const validatedData = validation.data;
+            let resolvedReportsToId: string | null = null;
+            let resolvedAssignedPersonnelId: string | null = null;
+
+            // Resolve reportsToPersonnelRegistryNumber
+            if (validatedData.reportsToPersonnelRegistryNumber) {
+              const parentAssignee = personnel.find(p => p.registryNumber === validatedData.reportsToPersonnelRegistryNumber);
+              if (parentAssignee) {
+                const parentPosition = positions.find(pos => pos.assignedPersonnelId === parentAssignee.id);
+                if (parentPosition) {
+                  resolvedReportsToId = parentPosition.id;
+                } else {
+                  warningCount++;
+                  toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `'${validatedData.reportsToPersonnelRegistryNumber}' sicilli personelin bağlı olduğu pozisyon bulunamadı.`, variant: "default", duration: 4000 + warningCount * 100 });
+                }
+              } else {
+                warningCount++;
+                toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Bağlı olduğu personel için '${validatedData.reportsToPersonnelRegistryNumber}' sicil no bulunamadı.`, variant: "default", duration: 4000 + warningCount * 100 });
+              }
+            }
+
+            // Resolve assignedPersonnelRegistryNumber
+            if (validatedData.assignedPersonnelRegistryNumber) {
+              const assignee = personnel.find(p => p.registryNumber === validatedData.assignedPersonnelRegistryNumber);
+              if (assignee) {
+                resolvedAssignedPersonnelId = assignee.id;
+              } else {
+                 warningCount++;
+                 toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı.`, variant: "default", duration: 4000 + warningCount * 100 });
+              }
+            }
+            
+            const newPositionData: Omit<Position, 'id'> = {
+              name: validatedData.name,
+              department: validatedData.department,
+              status: validatedData.status,
+              reportsTo: resolvedReportsToId,
+              assignedPersonnelId: resolvedAssignedPersonnelId,
+              startDate: validatedData.startDate ? new Date(validatedData.startDate) : null,
+            };
+
+            // Check for existing position (e.g., same name and department)
+            if (positions.some(p => p.name === newPositionData.name && p.department === newPositionData.department)) {
+              skippedCount++;
+            } else {
+              addPosition(newPositionData);
+              importedCount++;
+            }
+          } else {
+            errorCount++;
+            console.error(`Pozisyon Satır ${rowIndex + 2} için doğrulama hatası:`, validation.error.flatten().fieldErrors);
+            toast({
+              title: `Pozisyon Satır ${rowIndex + 2} Hatası`,
+              description: Object.values(validation.error.flatten().fieldErrors).flat().join(', '),
+              variant: "destructive",
+              duration: 5000 + rowIndex * 200
+            });
+          }
+        });
+
+        let summaryMessage = `${importedCount} pozisyon başarıyla içe aktarıldı.`;
+        if (skippedCount > 0) summaryMessage += ` ${skippedCount} pozisyon (aynı ünvan ve birim) atlandı.`;
+        if (errorCount > 0) summaryMessage += ` ${errorCount} pozisyon hatalı veri nedeniyle eklenemedi.`;
+        if (warningCount > 0) summaryMessage += ` ${warningCount} uyarı oluştu (detaylar için önceki mesajlara bakın).`;
+        
+        toast({
+          title: "Pozisyon İçe Aktarma Tamamlandı",
+          description: summaryMessage,
+        });
+
+      } catch (error: any) {
+        console.error("Pozisyon Excel dosyası işlenirken hata:", error);
+        if (error.message && error.message.includes("password-protected")) {
+          toast({ title: "Hata", description: "Yüklenen pozisyon dosyası şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
+        } else {
+          toast({ title: "Hata", description: "Pozisyon Excel dosyası işlenirken bir sorun oluştu.", variant: "destructive" });
+        }
+      } finally {
+        if (event.target) {
+          event.target.value = ""; 
         }
       }
     };
@@ -258,9 +413,15 @@ export default function HomePage() {
           </TabsList>
           <TabsContent value="positions">
             <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle id="positions-heading">Şirket Pozisyonları</CardTitle>
-                <CardDescription>Şirket içindeki tüm pozisyonları yönetin ve görüntüleyin.</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle id="positions-heading">Şirket Pozisyonları</CardTitle>
+                  <CardDescription>Şirket içindeki tüm pozisyonları yönetin ve görüntüleyin.</CardDescription>
+                </div>
+                 <Button onClick={handleImportPositionsClick} variant="outline" size="sm">
+                  <UploadCloud className="mr-2 h-4 w-4" />
+                  Excel'den İçe Aktar (Pozisyon)
+                </Button>
               </CardHeader>
               <CardContent>
                 <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
@@ -277,12 +438,12 @@ export default function HomePage() {
             <Card className="shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm">Personel Listesi (Toplam: {personnel.length})</CardTitle>
+                  <CardTitle className="text-sm" id="personnel-heading">Personel Listesi (Toplam: {personnel.length})</CardTitle>
                   <CardDescription>Şirket personelini yönetin.</CardDescription>
                 </div>
-                <Button onClick={handleImportClick} variant="outline" size="sm">
+                <Button onClick={handleImportPersonnelClick} variant="outline" size="sm">
                   <UploadCloud className="mr-2 h-4 w-4" />
-                  Excel'den İçe Aktar
+                  Excel'den İçe Aktar (Personel)
                 </Button>
               </CardHeader>
               <CardContent>
@@ -310,8 +471,15 @@ export default function HomePage() {
 
       <input
         type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
+        ref={personnelFileInputRef}
+        onChange={handlePersonnelFileChange}
+        accept=".xlsx, .xls, .csv"
+        className="hidden"
+      />
+       <input
+        type="file"
+        ref={positionFileInputRef}
+        onChange={handlePositionFileChange}
         accept=".xlsx, .xls, .csv"
         className="hidden"
       />
@@ -335,3 +503,6 @@ export default function HomePage() {
     </div>
   );
 }
+
+
+    
