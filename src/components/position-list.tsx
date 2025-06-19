@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BadgeCheck, BadgeAlert, Briefcase, Building2, UserCircle, Info, CalendarDays } from "lucide-react";
+import { BadgeCheck, BadgeAlert, Briefcase, Building2, UserCircle, Info, CalendarDays, MapPin } from "lucide-react";
 import type { Position, Personnel } from "@/lib/types";
 import { PositionListItemActions } from "./position-list-item-actions";
 import { format } from "date-fns";
@@ -61,6 +61,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         <TableHeader>
           <TableRow>
             <TableHead>Birim</TableHead>
+            <TableHead>Görev Yeri</TableHead>
             <TableHead>Ünvan</TableHead>
             <TableHead>Personel</TableHead>
             <TableHead>Statü</TableHead>
@@ -78,6 +79,12 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span>{position.department}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span>{position.dutyLocation || <span className="text-muted-foreground italic">Belirtilmemiş</span>}</span>
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">

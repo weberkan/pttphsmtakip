@@ -42,6 +42,7 @@ import { Label } from "@/components/ui/label";
 const positionSchema = z.object({
   name: z.string().min(2, "Ünvan en az 2 karakter olmalıdır."),
   department: z.string().min(2, "Birim adı en az 2 karakter olmalıdır."),
+  dutyLocation: z.string().optional().nullable(),
   status: z.enum(["Asıl", "Vekalet", "Yürütme"]),
   reportsTo: z.string().nullable(),
   assignedPersonnelId: z.string().nullable(),
@@ -77,6 +78,7 @@ export function AddEditPositionDialog({
     defaultValues: {
       name: "",
       department: "",
+      dutyLocation: "",
       status: "Asıl",
       reportsTo: null,
       assignedPersonnelId: null,
@@ -96,6 +98,7 @@ export function AddEditPositionDialog({
         form.reset({
           name: positionToEdit.name,
           department: positionToEdit.department,
+          dutyLocation: positionToEdit.dutyLocation || "",
           status: positionToEdit.status,
           reportsTo: positionToEdit.reportsTo,
           assignedPersonnelId: positionToEdit.assignedPersonnelId,
@@ -113,6 +116,7 @@ export function AddEditPositionDialog({
         form.reset({
           name: "",
           department: "",
+          dutyLocation: "",
           status: "Asıl",
           reportsTo: null,
           assignedPersonnelId: null,
@@ -122,14 +126,13 @@ export function AddEditPositionDialog({
         setSelectedPersonnelStatus(undefined);
       }
     } else {
-        // Reset states when dialog is closed
         setCurrentAssignedPersonnel(null);
         setSelectedPersonnelStatus(undefined);
     }
   }, [positionToEdit, form, isOpen, allPersonnel]);
 
   useEffect(() => {
-    if (isOpen) { // Only run if dialog is open
+    if (isOpen) { 
       if (assignedPersonnelId && assignedPersonnelId !== PLACEHOLDER_FOR_NULL_VALUE) {
         const person = allPersonnel.find(p => p.id === assignedPersonnelId);
         setCurrentAssignedPersonnel(person || null);
@@ -150,6 +153,7 @@ export function AddEditPositionDialog({
 
     const dataToSave = {
       ...data,
+      dutyLocation: data.dutyLocation || null,
       reportsTo: data.reportsTo === PLACEHOLDER_FOR_NULL_VALUE ? null : data.reportsTo,
       assignedPersonnelId: data.assignedPersonnelId === PLACEHOLDER_FOR_NULL_VALUE ? null : data.assignedPersonnelId,
     };
@@ -161,7 +165,6 @@ export function AddEditPositionDialog({
       onSave(dataToSave as Omit<Position, 'id'>);
       toast({ title: "Pozisyon Eklendi", description: `"${data.name}" başarıyla eklendi.` });
     }
-    // form.reset(); // Reset is handled by handleDialogClose / isOpen effect
     onOpenChange(false);
   };
   
@@ -198,12 +201,12 @@ export function AddEditPositionDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
             <FormField
               control={form.control}
-              name="name"
+              name="department"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ünvan</FormLabel>
+                  <FormLabel>Birim</FormLabel>
                   <FormControl>
-                    <Input placeholder="örn: Yazılım Mühendisi" {...field} />
+                    <Input placeholder="örn: Bilgi Teknolojileri" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -211,12 +214,25 @@ export function AddEditPositionDialog({
             />
             <FormField
               control={form.control}
-              name="department"
+              name="dutyLocation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Birim</FormLabel>
+                  <FormLabel>Görev Yeri (Opsiyonel)</FormLabel>
                   <FormControl>
-                    <Input placeholder="örn: Bilgi Teknolojileri" {...field} />
+                    <Input placeholder="örn: Ankara Genel Müdürlük" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ünvan</FormLabel>
+                  <FormControl>
+                    <Input placeholder="örn: Yazılım Mühendisi" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
