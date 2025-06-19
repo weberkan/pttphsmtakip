@@ -9,10 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User, Mail, Phone } from "lucide-react";
+import { User, Mail, Phone, BadgeInfo } from "lucide-react";
 import type { Personnel } from "@/lib/types";
 import { PersonnelListItemActions } from "./personnel-list-item-actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 interface PersonnelListProps {
   personnel: Personnel[];
@@ -32,6 +33,7 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
           <TableRow>
             <TableHead>Adı Soyadı</TableHead>
             <TableHead>Sicil Numarası</TableHead>
+            <TableHead>Statü</TableHead>
             <TableHead>E-posta</TableHead>
             <TableHead>Telefon</TableHead>
             <TableHead className="text-right">Aksiyonlar</TableHead>
@@ -56,6 +58,12 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                 </div>
               </TableCell>
               <TableCell>{person.registryNumber}</TableCell>
+              <TableCell>
+                 <Badge variant={person.status === "İHS" ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
+                    <BadgeInfo className="h-3 w-3"/>
+                    {person.status}
+                 </Badge>
+              </TableCell>
               <TableCell>
                 {person.email ? (
                   <div className="flex items-center gap-2">

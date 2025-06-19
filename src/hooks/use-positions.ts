@@ -32,15 +32,20 @@ export function usePositions() {
 
         const storedPersonnel = localStorage.getItem(LOCAL_STORAGE_PERSONNEL_KEY);
         if (storedPersonnel) {
-          setPersonnel(JSON.parse(storedPersonnel));
+          // Ensure existing personnel have a default status if it's missing
+          const parsedPersonnel = JSON.parse(storedPersonnel).map((p: Personnel) => ({
+            ...p,
+            status: p.status || 'İHS', // Default to İHS if status is missing
+          }));
+          setPersonnel(parsedPersonnel);
         } else {
-          setPersonnel(initialPersonnelData);
+          setPersonnel(initialPersonnelData.map(p => ({...p, status: p.status || 'İHS'})));
           localStorage.setItem(LOCAL_STORAGE_PERSONNEL_KEY, JSON.stringify(initialPersonnelData));
         }
       } catch (error) {
         console.error("Error accessing localStorage:", error);
         setPositions(initialPositionsData.map(p => ({...p, startDate: p.startDate ? new Date(p.startDate) : null }))); 
-        setPersonnel(initialPersonnelData);
+        setPersonnel(initialPersonnelData.map(p => ({...p, status: p.status || 'İHS'})));
       }
       setIsInitialized(true);
     }
@@ -81,7 +86,7 @@ export function usePositions() {
     });
   }, []);
 
-  const addPersonnel = useCallback((personnelData: Omit<Personnel, 'id'>) => {
+  const addPersonnel = useCallback((personnelData: Omit<Personnel, 'id' | 'status'> & { status: 'İHS' | '399' }) => {
     setPersonnel(prev => [...prev, { ...personnelData, id: crypto.randomUUID() }]);
   }, []);
 

@@ -22,6 +22,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Personnel } from "@/lib/types";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +38,9 @@ const personnelSchema = z.object({
   firstName: z.string().min(2, "Personel adı en az 2 karakter olmalıdır."),
   lastName: z.string().min(2, "Personel soyadı en az 2 karakter olmalıdır."),
   registryNumber: z.string().min(2, "Sicil numarası en az 2 karakter olmalıdır."),
+  status: z.enum(["İHS", "399"], {
+    required_error: "Personel statüsü seçmek zorunludur.",
+  }),
   photoUrl: z.string().url("Geçerli bir URL girin.").optional().or(z.literal('')),
   email: z.string().email("Geçerli bir e-posta adresi girin.").optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
@@ -58,6 +68,7 @@ export function AddEditPersonnelDialog({
       firstName: "",
       lastName: "",
       registryNumber: "",
+      status: "İHS",
       photoUrl: "",
       email: "",
       phone: "",
@@ -71,6 +82,7 @@ export function AddEditPersonnelDialog({
           firstName: personnelToEdit.firstName,
           lastName: personnelToEdit.lastName,
           registryNumber: personnelToEdit.registryNumber,
+          status: personnelToEdit.status,
           photoUrl: personnelToEdit.photoUrl || "",
           email: personnelToEdit.email || "",
           phone: personnelToEdit.phone || "",
@@ -80,6 +92,7 @@ export function AddEditPersonnelDialog({
           firstName: "",
           lastName: "",
           registryNumber: "",
+          status: "İHS",
           photoUrl: "",
           email: "",
           phone: "",
@@ -162,6 +175,27 @@ export function AddEditPersonnelDialog({
                   <FormControl>
                     <Input placeholder="örn: SN12345" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Statü</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Statü seçin" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="İHS">İHS</SelectItem>
+                      <SelectItem value="399">399</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

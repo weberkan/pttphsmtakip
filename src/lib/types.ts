@@ -14,6 +14,7 @@ export interface Personnel {
   firstName: string; // Adı
   lastName: string; // Soyadı
   registryNumber: string; // Sicil Numarası
+  status: 'İHS' | '399'; // Personel Statüsü
   photoUrl?: string | null; // Fotoğraf URL'si (Opsiyonel)
   email?: string | null; // E-posta Adresi (Opsiyonel)
   phone?: string | null; // Telefon Numarası (Opsiyonel)
