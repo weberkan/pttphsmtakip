@@ -104,7 +104,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   {position.startDate ? (
                     <div className="flex items-center gap-2">
                       <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span>{format(new Date(position.startDate), "dd/MM/yyyy")}</span>
+                      <span>{format(new Date(position.startDate), "dd.MM.yyyy")}</span>
                     </div>
                   ) : (
                     <span className="text-muted-foreground italic">Belirtilmemiş</span>

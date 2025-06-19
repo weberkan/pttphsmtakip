@@ -91,7 +91,7 @@ export function OrgChartNode({ position, allPositions, allPersonnel, level }: Or
              {position.startDate && (
               <div className="flex items-center gap-1 mt-1">
                 <CalendarDays className="h-3 w-3 text-muted-foreground"/>
-                <span>{getStartDateLabelPrefix(position.status)}{format(new Date(position.startDate), "dd/MM/yyyy")}</span>
+                <span>{getStartDateLabelPrefix(position.status)}{format(new Date(position.startDate), "dd.MM.yyyy")}</span>
               </div>
             )}
         </CardContent>

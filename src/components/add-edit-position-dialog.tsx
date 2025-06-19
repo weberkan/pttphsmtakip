@@ -221,7 +221,7 @@ export function AddEditPositionDialog({
                           )}
                         >
                           {field.value ? (
-                            format(field.value, "dd/MM/yyyy")
+                            format(field.value, "dd.MM.yyyy")
                           ) : (
                             <span>Tarih seçin</span>
                           )}
@@ -237,6 +237,7 @@ export function AddEditPositionDialog({
                         disabled={(date) =>
                           date > new Date() || date < new Date("1900-01-01")
                         }
+                        
                       />
                     </PopoverContent>
                   </Popover>
