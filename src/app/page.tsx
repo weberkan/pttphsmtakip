@@ -305,7 +305,7 @@ export default function HomePage() {
               } else if (positionKey === 'status') {
                 rawRowData[positionKey] = String(excelValue).trim();
               } else if (positionKey === 'startDate') {
-                rawRowData[positionKey] = excelValue; // Should be Date object or null
+                rawRowData[positionKey] = excelValue; 
               } else {
                  rawRowData[positionKey] = String(excelValue).trim();
               }
@@ -474,7 +474,7 @@ export default function HomePage() {
                 </div>
                  <Button onClick={handleImportPositionsClick} variant="outline" size="sm">
                   <UploadCloud className="mr-2 h-4 w-4" />
-                  Excel'den İçe Aktar (Pozisyon)
+                  (Pozisyon)
                 </Button>
               </CardHeader>
               <CardContent>
@@ -497,7 +497,7 @@ export default function HomePage() {
                 </div>
                 <Button onClick={handleImportPersonnelClick} variant="outline" size="sm">
                   <UploadCloud className="mr-2 h-4 w-4" />
-                  Excel'den İçe Aktar (Personel)
+                  (Personel)
                 </Button>
               </CardHeader>
               <CardContent>
