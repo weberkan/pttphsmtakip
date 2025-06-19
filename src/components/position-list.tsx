@@ -89,10 +89,10 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   <div className="flex items-center gap-2">
                     {assignedPerson ? (
                       <>
-                        <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <UserCircle className="h-4 w-4 text-muted-foreground shrink-0 self-start mt-1" />
                         <div className="flex flex-col">
                           <span>{assignedPerson.firstName} {assignedPerson.lastName}</span>
-                          <span className="text-xs text-muted-foreground">Sicil: {assignedPerson.registryNumber}</span>
+                          <span className="text-xs text-muted-foreground">{assignedPerson.registryNumber}</span>
                         </div>
                       </>
                     ) : (
