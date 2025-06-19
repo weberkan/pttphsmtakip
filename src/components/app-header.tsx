@@ -12,7 +12,7 @@ interface AppHeaderProps {
 export function AppHeader({ onAddPosition, onAddPersonnel }: AppHeaderProps) {
   return (
     <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="max-w-screen-2xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Network className="h-8 w-8 text-primary" />
           <h1 className="text-xl font-semibold text-foreground">Pozisyon Takip</h1>
