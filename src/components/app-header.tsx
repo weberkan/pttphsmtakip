@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,7 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: App
             height={40}
             className="object-contain"
           />
-          <h1 className="text-xl font-semibold text-foreground">Merkezi Teşkilat</h1>
+          <h1 className="text-xl font-semibold text-foreground">Merkez Teşkilatı Yönetici Tablosu</h1>
         </div>
         {user && (
           <div className="flex items-center gap-4">
@@ -80,5 +79,3 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: App
     </header>
   );
 }
-
-    
