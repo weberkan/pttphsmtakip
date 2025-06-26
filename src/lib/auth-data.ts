@@ -14,7 +14,7 @@
 // Anyone with access to the source code can see all user passwords.
 
 export const USERS = [
-  { registryNumber: '1001', password: 'password1', firstName: 'Ahmet', lastName: 'Yılmaz' },
+  { registryNumber: '240637', password: 'ptt2025++', firstName: 'Ahmet', lastName: 'Yılmaz' },
   { registryNumber: '1002', password: 'password2', firstName: 'Ayşe', lastName: 'Kaya' },
   { registryNumber: '1003', password: 'password3', firstName: 'Mehmet', lastName: 'Demir' },
   { registryNumber: '1004', password: 'password4', firstName: 'Fatma', lastName: 'Çelik' },
@@ -25,3 +25,4 @@ export const USERS = [
   { registryNumber: '1009', password: 'password9', firstName: 'Hüseyin', lastName: 'Arslan' },
   { registryNumber: '1010', password: 'password10', firstName: 'Hatice', lastName: 'Doğan' },
 ];
+
