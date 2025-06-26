@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,14 @@ interface AppHeaderProps {
   onAddPosition: () => void;
   onAddPersonnel: () => void;
   onLogout: () => void;
+  activeOrg: 'merkez' | 'tasra';
 }
 
-export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: AppHeaderProps) {
+export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout, activeOrg }: AppHeaderProps) {
+  const title = activeOrg === 'merkez' 
+    ? "Merkez Teşkilatı Yönetici Tablosu"
+    : "Taşra Teşkilatı Yönetici Tablosu";
+  
   return (
     <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
       <div className="max-w-screen-2xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -34,10 +40,10 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: App
             height={40}
             className="object-contain"
           />
-          <h1 className="text-xl font-semibold text-foreground">Merkez Teşkilatı Yönetici Tablosu</h1>
+          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
         </div>
-        {user && (
-          <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4">
+          {user && activeOrg === 'merkez' && (
             <div className="flex gap-2">
               <Button onClick={onAddPersonnel} size="sm" variant="outline">
                 <Users className="mr-2 h-4 w-4" />
@@ -48,7 +54,9 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: App
                 Pozisyon Ekle
               </Button>
             </div>
+          )}
 
+          {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -73,8 +81,8 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: App
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </header>
   );

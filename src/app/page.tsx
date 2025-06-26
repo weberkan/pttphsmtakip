@@ -20,7 +20,7 @@ import type { Position, Personnel } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, Search, LogOut } from "lucide-react";
+import { UploadCloud, Search, LogOut, Building } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 
 const importPersonnelSchema = z.object({
@@ -78,7 +78,8 @@ export default function HomePage() {
   const { toast } = useToast();
   const personnelFileInputRef = useRef<HTMLInputElement>(null);
   const positionFileInputRef = useRef<HTMLInputElement>(null);
-
+  
+  const [activeOrg, setActiveOrg] = useState<'merkez' | 'tasra'>('merkez');
   const [filter, setFilter] = useState<PositionFilterType>("all");
   const [isPositionDialogOpen, setIsPositionDialogOpen] = useState(false);
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
@@ -170,7 +171,6 @@ export default function HomePage() {
   }, [positions, filter, positionSearchTerm, personnel]);
 
   const sortedAndFilteredPersonnel = useMemo(() => {
-    // 1. Filter personnel based on search term
     let filtered = personnel;
     if (personnelSearchTerm.trim() !== "") {
         const searchTermLower = personnelSearchTerm.toLowerCase();
@@ -183,7 +183,6 @@ export default function HomePage() {
         );
     }
 
-    // 2. Define sorting helpers
     const getOverallOrderGroup = (p: Position): number => {
         if (p.name === "Genel Müdür") return 1;
         if (p.name === "Genel Müdür Yardımcısı") return 2;
@@ -211,7 +210,6 @@ export default function HomePage() {
         return personPositions[0];
     };
 
-    // 3. Sort the filtered list
     return [...filtered].sort((personA, personB) => {
         const posA = getPrimaryPosition(personA.id);
         const posB = getPrimaryPosition(personB.id);
@@ -553,7 +551,8 @@ export default function HomePage() {
           user={null} 
           onAddPosition={() => {}} 
           onAddPersonnel={() => {}} 
-          onLogout={() => {}} 
+          onLogout={() => {}}
+          activeOrg={activeOrg}
         />
         <main className="flex-grow max-w-screen-2xl mx-auto p-4 md:p-6 lg:p-8 w-full">
           <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
@@ -595,90 +594,113 @@ export default function HomePage() {
         onAddPosition={handleAddPositionClick} 
         onAddPersonnel={handleAddPersonnelClick}
         onLogout={logout}
+        activeOrg={activeOrg}
       />
       <main className="flex-grow max-w-screen-2xl mx-auto p-4 md:p-6 lg:p-8 w-full">
-        <Tabs defaultValue="positions" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="positions">Pozisyon Yönetimi</TabsTrigger>
-            <TabsTrigger value="personnel">Personel Yönetimi</TabsTrigger>
-            <TabsTrigger value="org-chart">Organizasyon Şeması</TabsTrigger>
+        <Tabs defaultValue="merkez" className="w-full" onValueChange={(value) => setActiveOrg(value as 'merkez' | 'tasra')}>
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="merkez">Merkez Teşkilatı</TabsTrigger>
+            <TabsTrigger value="tasra">Taşra Teşkilatı</TabsTrigger>
           </TabsList>
-          <TabsContent value="positions">
-            <Card className="shadow-lg">
-              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <CardTitle id="positions-heading" className="text-sm font-semibold">Şirket Pozisyonları (Toplam: {filteredPositions.length})</CardTitle>
-                  <CardDescription>Şirket içindeki tüm pozisyonları yönetin ve görüntüleyin.</CardDescription>
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Pozisyonlarda ara..."
-                      className="pl-8 h-9"
-                      value={positionSearchTerm}
-                      onChange={(e) => setPositionSearchTerm(e.target.value)}
+          <TabsContent value="merkez">
+            <Tabs defaultValue="positions" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsTrigger value="positions">Pozisyon Yönetimi</TabsTrigger>
+                <TabsTrigger value="personnel">Personel Yönetimi</TabsTrigger>
+                <TabsTrigger value="org-chart">Organizasyon Şeması</TabsTrigger>
+              </TabsList>
+              <TabsContent value="positions">
+                <Card className="shadow-lg">
+                  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <CardTitle id="positions-heading" className="text-sm font-semibold">Şirket Pozisyonları (Toplam: {filteredPositions.length})</CardTitle>
+                      <CardDescription>Şirket içindeki tüm pozisyonları yönetin ve görüntüleyin.</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="search"
+                          placeholder="Pozisyonlarda ara..."
+                          className="pl-8 h-9"
+                          value={positionSearchTerm}
+                          onChange={(e) => setPositionSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      <Button onClick={handleImportPositionsClick} variant="outline" size="sm" className="flex-shrink-0">
+                        <UploadCloud />
+                        (Pozisyon)
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
+                    <PositionList 
+                      positions={filteredPositions} 
+                      allPersonnel={personnel}
+                      onEdit={handleEditPosition}
+                      onDelete={handleDeletePosition}
                     />
-                  </div>
-                  <Button onClick={handleImportPositionsClick} variant="outline" size="sm" className="flex-shrink-0">
-                    <UploadCloud />
-                    (Pozisyon)
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
-                <PositionList 
-                  positions={filteredPositions} 
-                  allPersonnel={personnel}
-                  onEdit={handleEditPosition}
-                  onDelete={handleDeletePosition}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="personnel">
-            <Card className="shadow-lg">
-               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-sm font-semibold" id="personnel-heading">Personel Listesi (Toplam: {sortedAndFilteredPersonnel.length})</CardTitle>
-                  <CardDescription>Şirket personelini yönetin.</CardDescription>
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Personellerde ara..."
-                      className="pl-8 h-9"
-                      value={personnelSearchTerm}
-                      onChange={(e) => setPersonnelSearchTerm(e.target.value)}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="personnel">
+                <Card className="shadow-lg">
+                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-sm font-semibold" id="personnel-heading">Personel Listesi (Toplam: {sortedAndFilteredPersonnel.length})</CardTitle>
+                      <CardDescription>Şirket personelini yönetin.</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="search"
+                          placeholder="Personellerde ara..."
+                          className="pl-8 h-9"
+                          value={personnelSearchTerm}
+                          onChange={(e) => setPersonnelSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      <Button onClick={handleImportPersonnelClick} variant="outline" size="sm" className="flex-shrink-0">
+                        <UploadCloud />
+                        (Personel)
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <PersonnelList
+                      personnel={sortedAndFilteredPersonnel}
+                      onEdit={handleEditPersonnel}
+                      onDelete={handleDeletePersonnel}
                     />
-                  </div>
-                  <Button onClick={handleImportPersonnelClick} variant="outline" size="sm" className="flex-shrink-0">
-                    <UploadCloud />
-                    (Personel)
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <PersonnelList
-                  personnel={sortedAndFilteredPersonnel}
-                  onEdit={handleEditPersonnel}
-                  onDelete={handleDeletePersonnel}
-                />
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="org-chart">
+                <Card className="shadow-lg">
+                  <CardHeader>
+                    <CardTitle id="org-chart-heading">Organizasyon Şeması</CardTitle>
+                    <CardDescription>Şirketin raporlama yapısının görsel özeti.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <OrgChart positions={positions} allPersonnel={personnel} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
-          <TabsContent value="org-chart">
+          <TabsContent value="tasra">
             <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle id="org-chart-heading">Organizasyon Şeması</CardTitle>
-                <CardDescription>Şirketin raporlama yapısının görsel özeti.</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building className="h-6 w-6 text-primary" />
+                    Taşra Teşkilatı Yönetici Tablosu
+                  </CardTitle>
+                  <CardDescription>Bu bölüm yakında eklenecektir.</CardDescription>
               </CardHeader>
               <CardContent>
-                <OrgChart positions={positions} allPersonnel={personnel} />
+                  <p className="text-muted-foreground">Taşra teşkilatına ait pozisyon ve personel yönetimi özellikleri burada yer alacaktır.</p>
               </CardContent>
             </Card>
           </TabsContent>
