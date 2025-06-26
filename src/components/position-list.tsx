@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, Building2, UserCircle, CalendarDays, MapPin, Award } from "lucide-react";
+import { Building2, MapPin } from "lucide-react";
 import type { Position, Personnel } from "@/lib/types";
 import { PositionListItemActions } from "./position-list-item-actions";
 import { format } from "date-fns";
@@ -61,7 +61,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         return overallGroupA - overallGroupB;
       }
 
-      if (overallGroupA === 5) {
+      if (overallGroupA === 5) { 
         const deptNameA = a.department.toLowerCase();
         const deptNameB = b.department.toLowerCase();
         if (deptNameA < deptNameB) return -1;
@@ -73,7 +73,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
       if (titleOrderValA !== titleOrderValB) {
         return titleOrderValA - titleOrderValB;
       }
-
+      
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
       if (nameA !== nameB) {
@@ -166,25 +166,17 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>{position.name}</span>
-                  </div>
+                  {position.name}
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    {assignedPerson && position.status !== 'Boş' ? (
-                      <>
-                        <UserCircle className="h-4 w-4 text-muted-foreground shrink-0 self-start mt-1" />
-                        <div className="flex flex-col">
-                          <span>{assignedPerson.firstName} {assignedPerson.lastName}</span>
-                          <span className="text-xs text-muted-foreground">{assignedPerson.registryNumber}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground italic">Atanmamış</span>
-                    )}
-                  </div>
+                  {assignedPerson && position.status !== 'Boş' ? (
+                    <div className="flex flex-col">
+                      <span>{assignedPerson.firstName} {assignedPerson.lastName}</span>
+                      <span className="text-xs text-muted-foreground">{assignedPerson.registryNumber}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground italic">Atanmamış</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {assignedPerson && position.status !== 'Boş' ? (
@@ -194,26 +186,18 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    {(position.status === 'Vekalet' || position.status === 'Yürütme') && position.originalTitle ? (
-                       <>
-                        <Award className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span>{position.originalTitle}</span>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground italic">Yok</span>
-                    )}
-                  </div>
+                  {(position.status === 'Vekalet' || position.status === 'Yürütme') && position.originalTitle ? (
+                    <span>{position.originalTitle}</span>
+                  ) : (
+                    <span className="text-muted-foreground italic">Yok</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(position.status)}
                 </TableCell>
                 <TableCell>
                   {position.startDate && position.status !== 'Boş' ? (
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span>{format(new Date(position.startDate), "dd.MM.yyyy")}</span>
-                    </div>
+                    <span>{format(new Date(position.startDate), "dd.MM.yyyy")}</span>
                   ) : (
                     <span className="text-muted-foreground italic">Belirtilmemiş</span>
                   )}
