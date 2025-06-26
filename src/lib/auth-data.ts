@@ -1,6 +1,17 @@
 
-// In a real-world application, this data would come from a secure database
-// and passwords would be hashed. For this prototype, we use a hardcoded list.
+// ---
+// !!! SECURITY WARNING !!!
+// ---
+// This file contains hardcoded user credentials for demonstration and prototyping purposes ONLY.
+// In a real-world, production application, you should NEVER store plain-text passwords in your source code.
+// 
+// For a production environment, you must:
+// 1. Use a secure database to store user information.
+// 2. Use a strong hashing algorithm (like bcrypt or Argon2) to hash passwords before storing them.
+// 3. Implement a proper authentication service (like Firebase Authentication, Auth0, or your own).
+//
+// Storing credentials this way is highly insecure and makes your application vulnerable.
+// Anyone with access to the source code can see all user passwords.
 
 export const USERS = [
   { registryNumber: '1001', password: 'password1', firstName: 'Ahmet', lastName: 'Yılmaz' },
