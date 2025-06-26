@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import * as XLSX from 'xlsx';
 import * as z from "zod";
 import { AppHeader } from "@/components/app-header";
@@ -19,7 +20,8 @@ import type { Position, Personnel } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, Search } from "lucide-react";
+import { UploadCloud, Search, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -46,6 +48,9 @@ const importPositionSchema = z.object({
 
 
 export default function HomePage() {
+  const { user, logout, loading: authLoading } = useAuth();
+  const router = useRouter();
+
   const { 
     positions, 
     personnel,
@@ -71,6 +76,12 @@ export default function HomePage() {
 
   const [positionSearchTerm, setPositionSearchTerm] = useState("");
   const [personnelSearchTerm, setPersonnelSearchTerm] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
 
 
   const handleAddPositionClick = () => {
@@ -216,8 +227,6 @@ export default function HomePage() {
                 rawRow[personnelKey] = null;
               } else if (typeof excelValue === 'string') {
                 rawRow[personnelKey] = excelValue.trim();
-              } else if ((personnelKey === 'registryNumber' || personnelKey === 'status') && typeof excelValue === 'number') {
-                rawRow[personnelKey] = String(excelValue);
               } else {
                 rawRow[personnelKey] = String(excelValue).trim();
               }
@@ -337,10 +346,8 @@ export default function HomePage() {
                 rawRowData[positionKey] = null;
               } else if (typeof excelValue === 'string') {
                 rawRowData[positionKey] = excelValue.trim();
-              } else if ((positionKey === 'reportsToPersonnelRegistryNumber' || positionKey === 'assignedPersonnelRegistryNumber' || positionKey === 'status') && typeof excelValue === 'number') {
-                rawRowData[positionKey] = String(excelValue);
               } else if (positionKey === 'startDate') {
-                rawRowData[positionKey] = excelValue; 
+                 rawRowData[positionKey] = excelValue instanceof Date ? excelValue : null;
               } else {
                  rawRowData[positionKey] = String(excelValue).trim();
               }
@@ -456,34 +463,41 @@ export default function HomePage() {
   };
 
 
-  if (!isInitialized) {
+  if (authLoading || !isInitialized || !user) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
-        <AppHeader onAddPosition={() => {}} onAddPersonnel={() => {}} />
+        <AppHeader 
+          user={null} 
+          onAddPosition={() => {}} 
+          onAddPersonnel={() => {}} 
+          onLogout={() => {}} 
+        />
         <main className="flex-grow max-w-screen-2xl mx-auto p-4 md:p-6 lg:p-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-1/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Skeleton className="h-8 w-3/4" />
-                  <Skeleton className="h-40 w-full" />
-                </CardContent>
-              </Card>
-            </div>
-            <div className="lg:col-span-1 space-y-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-1/3" />
-                   <Skeleton className="h-4 w-3/5" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-64 w-full" />
-                </CardContent>
-              </Card>
+          <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+              <div className="lg:col-span-2 space-y-6">
+                <Card>
+                  <CardHeader>
+                    <Skeleton className="h-6 w-1/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Skeleton className="h-8 w-3/4" />
+                    <Skeleton className="h-40 w-full" />
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="lg:col-span-1 space-y-6">
+                <Card>
+                  <CardHeader>
+                    <Skeleton className="h-6 w-1/3" />
+                    <Skeleton className="h-4 w-3/5" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-64 w-full" />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </main>
@@ -493,7 +507,12 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <AppHeader onAddPosition={handleAddPositionClick} onAddPersonnel={handleAddPersonnelClick} />
+      <AppHeader 
+        user={user} 
+        onAddPosition={handleAddPositionClick} 
+        onAddPersonnel={handleAddPersonnelClick}
+        onLogout={logout}
+      />
       <main className="flex-grow max-w-screen-2xl mx-auto p-4 md:p-6 lg:p-8 w-full">
         <Tabs defaultValue="positions" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
@@ -520,7 +539,7 @@ export default function HomePage() {
                     />
                   </div>
                   <Button onClick={handleImportPositionsClick} variant="outline" size="sm" className="flex-shrink-0">
-                    <UploadCloud className="mr-2 h-4 w-4" />
+                    <UploadCloud />
                     (Pozisyon)
                   </Button>
                 </div>
@@ -555,7 +574,7 @@ export default function HomePage() {
                     />
                   </div>
                   <Button onClick={handleImportPersonnelClick} variant="outline" size="sm" className="flex-shrink-0">
-                    <UploadCloud className="mr-2 h-4 w-4" />
+                    <UploadCloud />
                     (Personel)
                   </Button>
                 </div>
@@ -617,10 +636,3 @@ export default function HomePage() {
     </div>
   );
 }
-    
-
-    
-
-
-
-

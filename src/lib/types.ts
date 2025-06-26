@@ -9,6 +9,8 @@ export interface Position {
   assignedPersonnelId: string | null; // ID of the assigned personnel
   startDate: Date | null; // Göreve başlama tarihi
   originalTitle?: string | null; // Asıl Ünvan (Vekalet/Yürütme durumları için)
+  lastModifiedBy?: string; // Sicil Numarası
+  lastModifiedAt?: Date | null;
 }
 
 export interface Personnel {
@@ -20,4 +22,6 @@ export interface Personnel {
   photoUrl?: string | null; // Fotoğraf URL'si (Opsiyonel)
   email?: string | null; // E-posta Adresi (Opsiyonel)
   phone?: string | null; // Telefon Numarası (Opsiyonel)
+  lastModifiedBy?: string; // Sicil Numarası
+  lastModifiedAt?: Date | null;
 }

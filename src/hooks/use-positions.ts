@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Position, Personnel } from '@/lib/types';
+import { useAuth } from '@/contexts/auth-context';
 
 const LOCAL_STORAGE_POSITIONS_KEY = 'positionTrackerApp_positions';
 const LOCAL_STORAGE_PERSONNEL_KEY = 'positionTrackerApp_personnel';
@@ -11,6 +12,7 @@ const initialPersonnelData: Personnel[] = [];
 const initialPositionsData: Position[] = [];
 
 export function usePositions() {
+  const { user } = useAuth();
   const [positions, setPositions] = useState<Position[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -23,6 +25,7 @@ export function usePositions() {
           const parsedPositions = JSON.parse(storedPositions).map((p: Position) => ({
             ...p,
             startDate: p.startDate ? new Date(p.startDate) : null,
+            lastModifiedAt: p.lastModifiedAt ? new Date(p.lastModifiedAt) : null,
           }));
           setPositions(parsedPositions);
         } else {
@@ -32,10 +35,10 @@ export function usePositions() {
 
         const storedPersonnel = localStorage.getItem(LOCAL_STORAGE_PERSONNEL_KEY);
         if (storedPersonnel) {
-          // Ensure existing personnel have a default status if it's missing
           const parsedPersonnel = JSON.parse(storedPersonnel).map((p: Personnel) => ({
             ...p,
-            status: p.status || 'İHS', // Default to İHS if status is missing
+            status: p.status || 'İHS',
+            lastModifiedAt: p.lastModifiedAt ? new Date(p.lastModifiedAt) : null,
           }));
           setPersonnel(parsedPersonnel);
         } else {
@@ -72,38 +75,69 @@ export function usePositions() {
   }, [personnel, isInitialized]);
 
   const addPosition = useCallback((positionData: Omit<Position, 'id'>) => {
-    setPositions(prev => [...prev, { ...positionData, id: crypto.randomUUID() }]);
-  }, []);
+    const newPosition = { 
+      ...positionData, 
+      id: crypto.randomUUID(),
+      lastModifiedBy: user?.registryNumber,
+      lastModifiedAt: new Date(),
+    };
+    setPositions(prev => [...prev, newPosition]);
+  }, [user]);
 
   const updatePosition = useCallback((updatedPosition: Position) => {
-    setPositions(prev => prev.map(p => p.id === updatedPosition.id ? updatedPosition : p));
-  }, []);
+    const positionWithAudit = {
+      ...updatedPosition,
+      lastModifiedBy: user?.registryNumber,
+      lastModifiedAt: new Date(),
+    };
+    setPositions(prev => prev.map(p => p.id === updatedPosition.id ? positionWithAudit : p));
+  }, [user]);
 
   const deletePosition = useCallback((positionId: string) => {
     setPositions(prev => {
+      const itemToDelete = prev.find(p => p.id === positionId);
+      if (itemToDelete) {
+         // Optionally log deletion, but for now we just remove it
+      }
       return prev.filter(p => p.id !== positionId)
                  .map(p => p.reportsTo === positionId ? { ...p, reportsTo: null } : p);
     });
   }, []);
 
   const addPersonnel = useCallback((personnelData: Omit<Personnel, 'id' | 'status'> & { status: 'İHS' | '399' }) => {
-    setPersonnel(prev => [...prev, { ...personnelData, id: crypto.randomUUID() }]);
-  }, []);
+    const newPersonnel = { 
+      ...personnelData, 
+      id: crypto.randomUUID(),
+      lastModifiedBy: user?.registryNumber,
+      lastModifiedAt: new Date(),
+    };
+    setPersonnel(prev => [...prev, newPersonnel]);
+  }, [user]);
 
   const updatePersonnel = useCallback((updatedPersonnel: Personnel) => {
-    setPersonnel(prev => prev.map(p => p.id === updatedPersonnel.id ? updatedPersonnel : p));
-  }, []);
+    const personnelWithAudit = {
+      ...updatedPersonnel,
+      lastModifiedBy: user?.registryNumber,
+      lastModifiedAt: new Date(),
+    };
+    setPersonnel(prev => prev.map(p => p.id === updatedPersonnel.id ? personnelWithAudit : p));
+  }, [user]);
 
   const deletePersonnel = useCallback((personnelId: string) => {
     setPersonnel(prevPersonnel => prevPersonnel.filter(p => p.id !== personnelId));
     setPositions(prevPositions => 
       prevPositions.map(pos => 
         pos.assignedPersonnelId === personnelId 
-          ? { ...pos, assignedPersonnelId: null } 
+          ? { 
+              ...pos, 
+              assignedPersonnelId: null, 
+              lastModifiedBy: user?.registryNumber,
+              lastModifiedAt: new Date(),
+            } 
           : pos
       )
     );
-  }, []);
+  }, [user]);
 
   return { 
     positions, 

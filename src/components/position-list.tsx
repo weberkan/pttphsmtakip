@@ -11,10 +11,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin } from "lucide-react";
+import { Building2, MapPin, PencilRuler } from "lucide-react";
 import type { Position, Personnel } from "@/lib/types";
 import { PositionListItemActions } from "./position-list-item-actions";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
+import { tr } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -56,10 +57,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
     return [...positions].sort((a, b) => {
       const overallGroupA = getOverallOrderGroup(a);
       const overallGroupB = getOverallOrderGroup(b);
-
-      if (overallGroupA !== overallGroupB) {
-        return overallGroupA - overallGroupB;
-      }
+      if (overallGroupA !== overallGroupB) return overallGroupA - overallGroupB;
 
       if (overallGroupA === 5) { 
         const deptNameA = a.department.toLowerCase();
@@ -70,21 +68,15 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
 
       const titleOrderValA = positionTitleOrder[a.name] ?? Infinity;
       const titleOrderValB = positionTitleOrder[b.name] ?? Infinity;
-      if (titleOrderValA !== titleOrderValB) {
-        return titleOrderValA - titleOrderValB;
-      }
+      if (titleOrderValA !== titleOrderValB) return titleOrderValA - titleOrderValB;
       
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
-      if (nameA !== nameB) {
-        return nameA.localeCompare(nameB);
-      }
+      if (nameA !== nameB) return nameA.localeCompare(nameB);
       
       const locationA = a.dutyLocation?.trim().toLowerCase() ?? '';
       const locationB = b.dutyLocation?.trim().toLowerCase() ?? '';
-      if (locationA !== locationB) {
-        return locationA.localeCompare(locationB || '');
-      }
+      if (locationA !== locationB) return locationA.localeCompare(locationB);
 
       const personA = allPersonnel.find(p => p.id === a.assignedPersonnelId);
       const personB = allPersonnel.find(p => p.id === b.assignedPersonnelId);
@@ -141,6 +133,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
             <TableHead>Asıl Ünvan</TableHead>
             <TableHead>Durum</TableHead>
             <TableHead>Başlama Tarihi</TableHead>
+            <TableHead>Son Değişiklik</TableHead>
             <TableHead className="text-right">Aksiyonlar</TableHead>
           </TableRow>
         </TableHeader>
@@ -200,6 +193,27 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                     <span>{format(new Date(position.startDate), "dd.MM.yyyy")}</span>
                   ) : (
                     <span className="text-muted-foreground italic">Belirtilmemiş</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {position.lastModifiedBy ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                              <PencilRuler className="h-4 w-4" />
+                              <span>{position.lastModifiedBy}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            {position.lastModifiedAt ? `${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <span className="text-muted-foreground italic">Yok</span>
                   )}
                 </TableCell>
                 <TableCell className="text-right">

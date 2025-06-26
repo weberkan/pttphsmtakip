@@ -9,11 +9,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User, Mail, Phone, BadgeInfo } from "lucide-react";
+import { User, Mail, Phone, BadgeInfo, PencilRuler } from "lucide-react";
 import type { Personnel } from "@/lib/types";
 import { PersonnelListItemActions } from "./personnel-list-item-actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PersonnelListProps {
   personnel: Personnel[];
@@ -36,6 +44,7 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
             <TableHead>Statü</TableHead>
             <TableHead>E-posta</TableHead>
             <TableHead>Telefon</TableHead>
+            <TableHead>Son Değişiklik</TableHead>
             <TableHead className="text-right">Aksiyonlar</TableHead>
           </TableRow>
         </TableHeader>
@@ -82,6 +91,27 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                   </div>
                 ) : (
                   <span className="text-muted-foreground italic">Belirtilmemiş</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {person.lastModifiedBy ? (
+                   <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <PencilRuler className="h-4 w-4" />
+                            <span>{person.lastModifiedBy}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {person.lastModifiedAt ? `${formatDistanceToNow(new Date(person.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <span className="text-muted-foreground italic">Yok</span>
                 )}
               </TableCell>
               <TableCell className="text-right">
