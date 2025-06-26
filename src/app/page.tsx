@@ -46,6 +46,18 @@ const importPositionSchema = z.object({
   startDate: z.date().optional().nullable(),
 });
 
+const positionTitleOrder: { [key: string]: number } = {
+  "Genel Müdür": 1,
+  "Genel Müdür Yardımcısı": 2,
+  "Daire Başkanı": 3,
+  "Finans ve Muhasebe Başkanı": 3,
+  "Rehberlik ve Teftiş Başkanı": 3,
+  "Başkan Yardımcısı": 4,
+  "Daire Başkan Yardımcısı": 4,
+  "Teknik Müdür": 5,
+  "Şube Müdürü": 6,
+};
+
 
 export default function HomePage() {
   const { user, logout, loading: authLoading } = useAuth();
@@ -157,19 +169,90 @@ export default function HomePage() {
     return _filtered;
   }, [positions, filter, positionSearchTerm, personnel]);
 
-  const filteredPersonnel = useMemo(() => {
-    if (personnelSearchTerm.trim() === "") {
-      return personnel;
+  const sortedAndFilteredPersonnel = useMemo(() => {
+    // 1. Filter personnel based on search term
+    let filtered = personnel;
+    if (personnelSearchTerm.trim() !== "") {
+        const searchTermLower = personnelSearchTerm.toLowerCase();
+        filtered = personnel.filter(p => 
+            p.firstName.toLowerCase().includes(searchTermLower) ||
+            p.lastName.toLowerCase().includes(searchTermLower) ||
+            p.registryNumber.toLowerCase().includes(searchTermLower) ||
+            (p.email && p.email.toLowerCase().includes(searchTermLower)) ||
+            (p.phone && p.phone.toLowerCase().includes(searchTermLower))
+        );
     }
-    const searchTermLower = personnelSearchTerm.toLowerCase();
-    return personnel.filter(p => 
-      p.firstName.toLowerCase().includes(searchTermLower) ||
-      p.lastName.toLowerCase().includes(searchTermLower) ||
-      p.registryNumber.toLowerCase().includes(searchTermLower) ||
-      (p.email && p.email.toLowerCase().includes(searchTermLower)) ||
-      (p.phone && p.phone.toLowerCase().includes(searchTermLower))
-    );
-  }, [personnel, personnelSearchTerm]);
+
+    // 2. Define sorting helpers
+    const getOverallOrderGroup = (p: Position): number => {
+        if (p.name === "Genel Müdür") return 1;
+        if (p.name === "Genel Müdür Yardımcısı") return 2;
+        if (p.department === "Rehberlik ve Teftiş Başkanlığı") return 3;
+        if (p.department === "Finans ve Muhasebe Başkanlığı") return 4;
+        return 5;
+    };
+
+    const getPrimaryPosition = (personId: string): Position | null => {
+        const personPositions = positions.filter(p => p.assignedPersonnelId === personId && p.status !== 'Boş');
+        if (personPositions.length === 0) return null;
+        
+        personPositions.sort((a, b) => {
+            const groupA = getOverallOrderGroup(a);
+            const groupB = getOverallOrderGroup(b);
+            if (groupA !== groupB) return groupA - groupB;
+            
+            const titleOrderA = positionTitleOrder[a.name] ?? Infinity;
+            const titleOrderB = positionTitleOrder[b.name] ?? Infinity;
+            if (titleOrderA !== titleOrderB) return titleOrderA - titleOrderB;
+            
+            return 0;
+        });
+        
+        return personPositions[0];
+    };
+
+    // 3. Sort the filtered list
+    return [...filtered].sort((personA, personB) => {
+        const posA = getPrimaryPosition(personA.id);
+        const posB = getPrimaryPosition(personB.id);
+
+        if (!posA && !posB) {
+             const personNameA = `${personA.firstName} ${personA.lastName}`.toLowerCase();
+             const personNameB = `${personB.firstName} ${personB.lastName}`.toLowerCase();
+             return personNameA.localeCompare(personNameB);
+        }
+        if (!posA) return 1;
+        if (!posB) return -1;
+
+        const overallGroupA = getOverallOrderGroup(posA);
+        const overallGroupB = getOverallOrderGroup(posB);
+        if (overallGroupA !== overallGroupB) return overallGroupA - overallGroupB;
+
+        if (overallGroupA === 5) {
+            const deptNameA = posA.department.toLowerCase();
+            const deptNameB = posB.department.toLowerCase();
+            if (deptNameA < deptNameB) return -1;
+            if (deptNameA > deptNameB) return 1;
+        }
+
+        const titleOrderValA = positionTitleOrder[posA.name] ?? Infinity;
+        const titleOrderValB = positionTitleOrder[posB.name] ?? Infinity;
+        if (titleOrderValA !== titleOrderValB) return titleOrderValA - titleOrderValB;
+        
+        const nameA = posA.name.toLowerCase();
+        const nameB = posB.name.toLowerCase();
+        if (nameA !== nameB) return nameA.localeCompare(nameB);
+        
+        const locationA = posA.dutyLocation?.trim().toLowerCase() ?? '';
+        const locationB = posB.dutyLocation?.trim().toLowerCase() ?? '';
+        if (locationA !== locationB) return locationA.localeCompare(locationB);
+
+        const personNameA = `${personA.firstName} ${personA.lastName}`.toLowerCase();
+        const personNameB = `${personB.firstName} ${personB.lastName}`.toLowerCase();
+        return personNameA.localeCompare(personNameB);
+    });
+
+  }, [personnel, positions, personnelSearchTerm]);
 
 
   const handleImportPersonnelClick = () => {
@@ -559,7 +642,7 @@ export default function HomePage() {
             <Card className="shadow-lg">
                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="text-sm font-semibold" id="personnel-heading">Personel Listesi (Toplam: {filteredPersonnel.length})</CardTitle>
+                  <CardTitle className="text-sm font-semibold" id="personnel-heading">Personel Listesi (Toplam: {sortedAndFilteredPersonnel.length})</CardTitle>
                   <CardDescription>Şirket personelini yönetin.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -581,7 +664,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <PersonnelList
-                  personnel={filteredPersonnel}
+                  personnel={sortedAndFilteredPersonnel}
                   onEdit={handleEditPersonnel}
                   onDelete={handleDeletePersonnel}
                 />
