@@ -2,7 +2,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Network, PlusCircle, Users, LogOut, User as UserIcon } from "lucide-react";
+import { PlusCircle, Users, LogOut } from "lucide-react";
+import Image from "next/image";
 import type { AuthUser } from "@/contexts/auth-context";
 import {
   DropdownMenu,
@@ -12,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 
 interface AppHeaderProps {
@@ -26,9 +27,15 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: App
   return (
     <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
       <div className="max-w-screen-2xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Network className="h-8 w-8 text-primary" />
-          <h1 className="text-xl font-semibold text-foreground">Pozisyon Takip</h1>
+        <div className="flex items-center gap-3">
+          <Image
+            src="https://pttwebdosya.ptt.gov.tr/esite/images/184-logo.png"
+            alt="PTT Logo"
+            width={40}
+            height={40}
+            className="object-contain"
+          />
+          <h1 className="text-xl font-semibold text-foreground">Merkezi Teşkilat</h1>
         </div>
         {user && (
           <div className="flex items-center gap-4">
