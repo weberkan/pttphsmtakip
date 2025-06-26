@@ -98,13 +98,13 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                    <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger>
-                        <div className="flex items-center gap-2 text-muted-foreground">
+                        <div className="flex items-center text-muted-foreground">
                             <PencilRuler className="h-4 w-4" />
-                            <span>{person.lastModifiedBy}</span>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
+                          {person.lastModifiedBy} sicil nolu kullanıcı tarafından{' '}
                           {person.lastModifiedAt ? `${formatDistanceToNow(new Date(person.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
                         </p>
                       </TooltipContent>

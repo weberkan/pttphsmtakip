@@ -200,13 +200,13 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
-                          <div className="flex items-center gap-2 text-muted-foreground">
+                          <div className="flex items-center text-muted-foreground">
                               <PencilRuler className="h-4 w-4" />
-                              <span>{position.lastModifiedBy}</span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>
+                            {position.lastModifiedBy} sicil nolu kullanıcı tarafından{' '}
                             {position.lastModifiedAt ? `${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
                           </p>
                         </TooltipContent>
