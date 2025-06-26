@@ -14,15 +14,15 @@
 // Anyone with access to the source code can see all user passwords.
 
 export const USERS = [
-  { registryNumber: '240637', password: 'ptt2025++', firstName: 'Ahmet', lastName: 'Yılmaz' },
-  { registryNumber: '1002', password: 'password2', firstName: 'Ayşe', lastName: 'Kaya' },
-  { registryNumber: '1003', password: 'password3', firstName: 'Mehmet', lastName: 'Demir' },
-  { registryNumber: '1004', password: 'password4', firstName: 'Fatma', lastName: 'Çelik' },
-  { registryNumber: '1005', password: 'password5', firstName: 'Mustafa', lastName: 'Şahin' },
-  { registryNumber: '1006', password: 'password6', firstName: 'Emine', lastName: 'Yıldız' },
-  { registryNumber: '1007', password: 'password7', firstName: 'Ali', lastName: 'Öztürk' },
-  { registryNumber: '1008', password: 'password8', firstName: 'Zeynep', lastName: 'Aydın' },
-  { registryNumber: '1009', password: 'password9', firstName: 'Hüseyin', lastName: 'Arslan' },
-  { registryNumber: '1010', password: 'password10', firstName: 'Hatice', lastName: 'Doğan' },
+  { registryNumber: '240637', password: 'ptt2025+', firstName: 'Erkan', lastName: 'İçil' },
+  { registryNumber: '239089', password: 'ptt2025+', firstName: 'Ekrem', lastName: 'Acar' },
+  { registryNumber: '213964', password: 'ptt2025+', firstName: 'Murat', lastName: 'Yıldırım' },
+  { registryNumber: '248143', password: 'ptt2025+', firstName: 'Salih', lastName: 'Çakmak' },
+  { registryNumber: '215812', password: 'ptt2025+', firstName: 'Ali', lastName: 'Yılmaz' },
+  { registryNumber: '239628', password: 'ptt2025+', firstName: 'İsrafil', lastName: 'Kayhan' },
+  { registryNumber: '242202', password: 'ptt2025+', firstName: 'Recep', lastName: 'Cin' },
+  { registryNumber: '251469', password: 'ptt2025+', firstName: 'Sema Betül', lastName: 'Doğanyiğit' },
+  { registryNumber: '258311', password: 'ptt2025+', firstName: 'Mustafa Dursun', lastName: 'Canseven' },
+  { registryNumber: '255197', password: 'ptt2025+', firstName: 'Sercan Emre', lastName: 'Yalçınkaya' },
+  { registryNumber: '254841', password: 'ptt2025+', firstName: 'Özge', lastName: 'Parmaksız' },
 ];
-
