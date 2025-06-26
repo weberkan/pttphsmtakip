@@ -70,8 +70,6 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         if (deptNameA < deptNameB) return -1;
         if (deptNameA > deptNameB) return 1;
       }
-      // Not: GM, GM Yrd, Rehberlik, Finans grupları zaten kendi departmanları içinde olduklarından
-      // bu aşamada ayrıca departman adına göre sıralamaya gerek yok (kendi grupları zaten tanımlı).
 
       // 3. Aynı grup ve (gerekiyorsa) aynı departman içindeyse, ünvan hiyerarşisine göre sırala
       const titleOrderValA = positionTitleOrder[a.name] ?? Infinity;
@@ -80,14 +78,23 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         return titleOrderValA - titleOrderValB;
       }
 
-      // 4. Fallback: Aynı hiyerarşi seviyesindeyse, ünvana göre alfabetik sırala
+      // 4. Aynı hiyerarşi seviyesindeyse, ünvana göre alfabetik sırala
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
       if (nameA !== nameB) {
         return nameA.localeCompare(nameB);
       }
       
-      // 5. Fallback 2: Eğer ünvanlar da aynı ise, atanmış personele göre sırala (stabilite için)
+      // 5. Eğer ünvanlar da aynı ise, Görev Yeri'ne göre alfabetik sırala
+      const locationA = a.dutyLocation?.trim().toLowerCase() ?? '';
+      const locationB = b.dutyLocation?.trim().toLowerCase() ?? '';
+      if (locationA && !locationB) return -1; // Görev yeri olanlar olmayanlardan önce gelir
+      if (!locationA && locationB) return 1;
+      if (locationA !== locationB) {
+        return locationA.localeCompare(locationB);
+      }
+
+      // 6. Son çare: Eğer Görev Yeri de aynıysa, atanmış personele göre sırala (stabilite için)
       const personA = allPersonnel.find(p => p.id === a.assignedPersonnelId);
       const personB = allPersonnel.find(p => p.id === b.assignedPersonnelId);
 
