@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from "react";
@@ -81,15 +80,28 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         return titleOrderValA - titleOrderValB;
       }
 
-      // 4. Fallback: Aynı hiyerarşi seviyesindeyse, ünvana göre alfabetik sırala (genelde gerek kalmaz)
+      // 4. Fallback: Aynı hiyerarşi seviyesindeyse, ünvana göre alfabetik sırala
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
-      if (nameA < nameB) return -1;
-      if (nameA > nameB) return 1;
+      if (nameA !== nameB) {
+        return nameA.localeCompare(nameB);
+      }
       
+      // 5. Fallback 2: Eğer ünvanlar da aynı ise, atanmış personele göre sırala (stabilite için)
+      const personA = allPersonnel.find(p => p.id === a.assignedPersonnelId);
+      const personB = allPersonnel.find(p => p.id === b.assignedPersonnelId);
+
+      if (personA && !personB) return -1; // Atanmış olanlar atanmamış olanlardan önce gelir
+      if (!personA && personB) return 1;
+      if (personA && personB) {
+        const personNameA = `${personA.firstName} ${personA.lastName}`.toLowerCase();
+        const personNameB = `${personB.firstName} ${personB.lastName}`.toLowerCase();
+        return personNameA.localeCompare(personNameB);
+      }
+
       return 0;
     });
-  }, [positions]);
+  }, [positions, allPersonnel]);
 
   if (positions.length === 0) {
     return <p className="text-muted-foreground text-center py-4">Pozisyon bulunamadı. Eklemeyi deneyin!</p>;
