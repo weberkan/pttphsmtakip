@@ -29,9 +29,9 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: App
       <div className="max-w-screen-2xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Image
-            src="https://pttwebdosya.ptt.gov.tr/esite/images/184-logo.png"
+            src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
             alt="PTT Logo"
-            width={40}
+            width={100}
             height={40}
             className="object-contain"
           />
@@ -80,3 +80,5 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: App
     </header>
   );
 }
+
+    

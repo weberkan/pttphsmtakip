@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'pttwebdosya.ptt.gov.tr',
+        hostname: 'www.ptt.gov.tr',
         port: '',
         pathname: '/**',
       }
