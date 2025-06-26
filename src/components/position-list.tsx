@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -10,11 +11,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BadgeCheck, BadgeAlert, Briefcase, Building2, UserCircle, Info, CalendarDays, MapPin, CircleOff } from "lucide-react";
+import { Briefcase, Building2, UserCircle, CalendarDays, MapPin, Award } from "lucide-react";
 import type { Position, Personnel } from "@/lib/types";
 import { PositionListItemActions } from "./position-list-item-actions";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PositionListProps {
   positions: Position[];
@@ -23,21 +25,18 @@ interface PositionListProps {
   onDelete: (positionId: string) => void;
 }
 
-// Hiyerarşik sıralama için ünvanlara öncelik değerleri atanır. Düşük değer daha üstte.
 const positionTitleOrder: { [key: string]: number } = {
   "Genel Müdür": 1,
   "Genel Müdür Yardımcısı": 2,
   "Daire Başkanı": 3,
-  "Finans ve Muhasebe Başkanı": 3, // Aynı seviye
-  "Rehberlik ve Teftiş Başkanı": 3, // Aynı seviye
+  "Finans ve Muhasebe Başkanı": 3,
+  "Rehberlik ve Teftiş Başkanı": 3,
   "Başkan Yardımcısı": 4,
-  "Daire Başkan Yardımcısı": 4, // Aynı seviye
+  "Daire Başkan Yardımcısı": 4,
   "Teknik Müdür": 5,
   "Şube Müdürü": 6,
-  // Diğer tüm ünvanlar daha sonra alfabetik olarak sıralanacak (Infinity ile)
 };
 
-// Arka planı renklendirilecek özel ünvanlar
 const styledTitles = [
   "Daire Başkanı",
   "Finans ve Muhasebe Başkanı",
@@ -51,19 +50,17 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
       if (p.name === "Genel Müdür Yardımcısı") return 2;
       if (p.department === "Rehberlik ve Teftiş Başkanlığı") return 3;
       if (p.department === "Finans ve Muhasebe Başkanlığı") return 4;
-      return 5; // Diğer tüm departmanlar
+      return 5;
     };
 
     return [...positions].sort((a, b) => {
       const overallGroupA = getOverallOrderGroup(a);
       const overallGroupB = getOverallOrderGroup(b);
 
-      // 1. Ana gruplara göre sırala (GM, GM Yrd, Rehberlik, Finans, Diğerleri)
       if (overallGroupA !== overallGroupB) {
         return overallGroupA - overallGroupB;
       }
 
-      // 2. Eğer "Diğerleri" grubundaysalar (overallGroupA === 5), departmana göre alfabetik sırala
       if (overallGroupA === 5) {
         const deptNameA = a.department.toLowerCase();
         const deptNameB = b.department.toLowerCase();
@@ -71,35 +68,26 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         if (deptNameA > deptNameB) return 1;
       }
 
-      // 3. Aynı grup ve (gerekiyorsa) aynı departman içindeyse, ünvan hiyerarşisine göre sırala
       const titleOrderValA = positionTitleOrder[a.name] ?? Infinity;
       const titleOrderValB = positionTitleOrder[b.name] ?? Infinity;
       if (titleOrderValA !== titleOrderValB) {
         return titleOrderValA - titleOrderValB;
       }
 
-      // 4. Aynı hiyerarşi seviyesindeyse, ünvana göre alfabetik sırala
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
       if (nameA !== nameB) {
         return nameA.localeCompare(nameB);
       }
       
-      // 5. Eğer ünvanlar da aynı ise, Görev Yeri'ne göre alfabetik sırala
       const locationA = a.dutyLocation?.trim().toLowerCase() ?? '';
       const locationB = b.dutyLocation?.trim().toLowerCase() ?? '';
-      if (locationA && !locationB) return -1; // Görev yeri olanlar olmayanlardan önce gelir
-      if (!locationA && locationB) return 1;
       if (locationA !== locationB) {
-        return locationA.localeCompare(locationB);
+        return locationA.localeCompare(locationB || '');
       }
 
-      // 6. Son çare: Eğer Görev Yeri de aynıysa, atanmış personele göre sırala (stabilite için)
       const personA = allPersonnel.find(p => p.id === a.assignedPersonnelId);
       const personB = allPersonnel.find(p => p.id === b.assignedPersonnelId);
-
-      if (personA && !personB) return -1; // Atanmış olanlar atanmamış olanlardan önce gelir
-      if (!personA && personB) return 1;
       if (personA && personB) {
         const personNameA = `${personA.firstName} ${personA.lastName}`.toLowerCase();
         const personNameB = `${personB.firstName} ${personB.lastName}`.toLowerCase();
@@ -115,38 +103,29 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
   }
 
   const getStatusBadge = (status: Position['status']) => {
-    switch (status) {
-      case 'Asıl':
-        return (
-          <Badge variant="default" className="capitalize">
-            <BadgeCheck className="mr-1 h-3.5 w-3.5" />
-            Asıl
-          </Badge>
-        );
-      case 'Vekalet':
-        return (
-          <Badge variant="secondary" className="capitalize">
-            <BadgeAlert className="mr-1 h-3.5 w-3.5" />
-            Vekalet
-          </Badge>
-        );
-      case 'Yürütme':
-        return (
-          <Badge variant="outline" className="capitalize bg-accent/20 border-accent/50">
-            <Info className="mr-1 h-3.5 w-3.5" />
-            Yürütme
-          </Badge>
-        );
-      case 'Boş':
-        return (
-          <Badge variant="outline" className="capitalize">
-            <CircleOff className="mr-1 h-3.5 w-3.5" />
-            Boş
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+    const statusMap = {
+      'Asıl': { letter: 'A', tooltip: 'Asıl', variant: 'default' as const, className: '' },
+      'Vekalet': { letter: 'V', tooltip: 'Vekalet', variant: 'secondary' as const, className: '' },
+      'Yürütme': { letter: 'Y', tooltip: 'Yürütme', variant: 'outline' as const, className: 'bg-accent/20 border-accent/50' },
+      'Boş': { letter: 'B', tooltip: 'Boş', variant: 'outline' as const, className: '' },
+    };
+    
+    const { letter, tooltip, variant, className } = statusMap[status] || { letter: '?', tooltip: status, variant: 'secondary' as const, className: '' };
+
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant={variant} className={cn("w-6 h-6 flex items-center justify-center p-0 font-bold", className)}>
+              {letter}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   return (
@@ -159,6 +138,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
             <TableHead>Ünvan</TableHead>
             <TableHead>Personel</TableHead>
             <TableHead>Statü</TableHead>
+            <TableHead>Asıl Ünvan</TableHead>
             <TableHead>Durum</TableHead>
             <TableHead>Başlama Tarihi</TableHead>
             <TableHead className="text-right">Aksiyonlar</TableHead>
@@ -212,6 +192,18 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   ) : (
                     <span className="text-muted-foreground italic">Yok</span>
                   )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {(position.status === 'Vekalet' || position.status === 'Yürütme') && position.originalTitle ? (
+                       <>
+                        <Award className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span>{position.originalTitle}</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground italic">Yok</span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(position.status)}

@@ -35,6 +35,7 @@ const importPositionSchema = z.object({
   name: z.string().min(1, "Ünvan boş olamaz."),
   department: z.string().min(1, "Birim boş olamaz."),
   dutyLocation: z.string().optional().nullable().or(z.literal('')),
+  originalTitle: z.string().optional().nullable().or(z.literal('')),
   status: z.enum(["Asıl", "Vekalet", "Yürütme", "Boş"], { 
     errorMap: () => ({ message: "Durum 'Asıl', 'Vekalet', 'Yürütme' veya 'Boş' olmalıdır." }) 
   }),
@@ -133,6 +134,7 @@ export default function HomePage() {
           p.name.toLowerCase().includes(searchTermLower) ||
           p.department.toLowerCase().includes(searchTermLower) ||
           (p.dutyLocation && p.dutyLocation.toLowerCase().includes(searchTermLower)) ||
+          (p.originalTitle && p.originalTitle.toLowerCase().includes(searchTermLower)) ||
           (assignedPerson && (
             assignedPerson.firstName.toLowerCase().includes(searchTermLower) ||
             assignedPerson.lastName.toLowerCase().includes(searchTermLower) ||
@@ -306,7 +308,8 @@ export default function HomePage() {
         const headerMapping: { [key: string]: keyof z.infer<typeof importPositionSchema> } = {
           'ünvan': 'name', 'unvan': 'name',
           'birim': 'department',
-          'görevyeri': 'dutyLocation', 'gorevyeri': 'dutyLocation',
+          'göremyyeri': 'dutyLocation', 'gorevyeri': 'dutyLocation',
+          'asılünvan': 'originalTitle', 'asilunvan': 'originalTitle',
           'durum': 'status', 
           'bağlıolduğupersonelsicil': 'reportsToPersonnelRegistryNumber', 'baglioldugupersonelsicil': 'reportsToPersonnelRegistryNumber', 'raporladiğisicil': 'reportsToPersonnelRegistryNumber',
           'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber',
@@ -314,7 +317,7 @@ export default function HomePage() {
         };
         
         const positionHeaderMappingReverse: { [key: string]: string } = {
-          'name': 'Ünvan', 'department': 'Birim', 'dutyLocation': 'Görev Yeri',
+          'name': 'Ünvan', 'department': 'Birim', 'dutyLocation': 'Görev Yeri', 'originalTitle': 'Asıl Ünvan',
           'status': 'Durum', 'reportsToPersonnelRegistryNumber': 'Bağlı Olduğu Personel Sicil',
           'assignedPersonnelRegistryNumber': 'Atanan Personel Sicil', 'startDate': 'Başlama Tarihi',
         };
@@ -383,13 +386,14 @@ export default function HomePage() {
               name: validatedData.name,
               department: validatedData.department,
               dutyLocation: validatedData.dutyLocation || null,
+              originalTitle: validatedData.originalTitle || null,
               status: validatedData.status,
               reportsTo: resolvedReportsToId,
               assignedPersonnelId: resolvedAssignedPersonnelId,
               startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
             };
             
-            const existingPosition = positions.find(p => p.name === positionDataFromExcel.name && p.department === positionDataFromExcel.department);
+            const existingPosition = positions.find(p => p.name === positionDataFromExcel.name && p.department === positionDataFromExcel.department && p.dutyLocation === positionDataFromExcel.dutyLocation);
 
             if (existingPosition) {
               updatePosition({ ...existingPosition, ...positionDataFromExcel });
@@ -616,6 +620,7 @@ export default function HomePage() {
     
 
     
+
 
 
 

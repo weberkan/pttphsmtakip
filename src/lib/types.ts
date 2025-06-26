@@ -8,6 +8,7 @@ export interface Position {
   reportsTo: string | null; // ID of the parent position
   assignedPersonnelId: string | null; // ID of the assigned personnel
   startDate: Date | null; // Göreve başlama tarihi
+  originalTitle?: string | null; // Asıl Ünvan (Vekalet/Yürütme durumları için)
 }
 
 export interface Personnel {

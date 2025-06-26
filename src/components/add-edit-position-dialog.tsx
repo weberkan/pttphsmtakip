@@ -44,6 +44,7 @@ const positionSchema = z.object({
   department: z.string().min(2, "Birim adı en az 2 karakter olmalıdır."),
   dutyLocation: z.string().optional().nullable(),
   status: z.enum(["Asıl", "Vekalet", "Yürütme", "Boş"]),
+  originalTitle: z.string().optional().nullable(),
   reportsTo: z.string().nullable(),
   assignedPersonnelId: z.string().nullable(),
   startDate: z.date().nullable(),
@@ -80,6 +81,7 @@ export function AddEditPositionDialog({
       department: "",
       dutyLocation: "",
       status: "Asıl",
+      originalTitle: "",
       reportsTo: null,
       assignedPersonnelId: null,
       startDate: null,
@@ -100,6 +102,7 @@ export function AddEditPositionDialog({
           department: positionToEdit.department,
           dutyLocation: positionToEdit.dutyLocation || "",
           status: positionToEdit.status,
+          originalTitle: positionToEdit.originalTitle || "",
           reportsTo: positionToEdit.reportsTo,
           assignedPersonnelId: positionToEdit.assignedPersonnelId,
           startDate: positionToEdit.startDate ? new Date(positionToEdit.startDate) : null,
@@ -118,6 +121,7 @@ export function AddEditPositionDialog({
           department: "",
           dutyLocation: "",
           status: "Asıl",
+          originalTitle: "",
           reportsTo: null,
           assignedPersonnelId: null,
           startDate: null,
@@ -154,20 +158,18 @@ export function AddEditPositionDialog({
     const dataToSave = {
       ...data,
       dutyLocation: data.dutyLocation || null,
+      originalTitle: data.status === 'Vekalet' || data.status === 'Yürütme' ? data.originalTitle || null : null,
       reportsTo: data.reportsTo === PLACEHOLDER_FOR_NULL_VALUE ? null : data.reportsTo,
       assignedPersonnelId: data.assignedPersonnelId === PLACEHOLDER_FOR_NULL_VALUE || data.status === "Boş" ? null : data.assignedPersonnelId,
       startDate: data.status === "Boş" ? null : data.startDate,
     };
 
-     // If position status is set to "Boş", ensure assignedPersonnelId is null
     if (data.status === "Boş") {
       dataToSave.assignedPersonnelId = null;
       setCurrentAssignedPersonnel(null);
       setSelectedPersonnelStatus(undefined);
-      // Also clear start date as it might not be relevant for a "Boş" position
       dataToSave.startDate = null;
     }
-
 
     if (positionToEdit) {
       onSave({ ...positionToEdit, ...dataToSave });
@@ -195,7 +197,7 @@ export function AddEditPositionDialog({
       case 'Yürütme':
         return "Yürütme Görevine Başlama Tarihi (Opsiyonel)";
       case 'Boş':
-        return "Boş Kalma Tarihi (Opsiyonel)"; // Or "İlgili Tarih (Opsiyonel)"
+        return "Boş Kalma Tarihi (Opsiyonel)";
       default:
         return "Başlama Tarihi (Opsiyonel)";
     }
@@ -266,6 +268,9 @@ export function AddEditPositionDialog({
                         setCurrentAssignedPersonnel(null);
                         setSelectedPersonnelStatus(undefined);
                       }
+                      if (value === "Asıl" || value === "Boş") {
+                          form.setValue("originalTitle", "");
+                      }
                     }} 
                     defaultValue={field.value}
                   >
@@ -285,6 +290,21 @@ export function AddEditPositionDialog({
                 </FormItem>
               )}
             />
+             {(positionStatus === 'Vekalet' || positionStatus === 'Yürütme') && (
+              <FormField
+                control={form.control}
+                name="originalTitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Asıl Ünvan (Opsiyonel)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="örn: Şube Müdürü" {...field} value={field.value ?? ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="startDate"
