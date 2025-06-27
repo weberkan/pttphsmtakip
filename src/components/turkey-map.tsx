@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -33,14 +34,16 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
   };
   
   return (
-    <div data-testid="turkey-map" className="w-full aspect-[2/1] relative">
+    <div data-testid="turkey-map" className="w-full">
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
           rotate: [-35.5, -39.3, 0],
           scale: 2800
         }}
-        className="w-full h-full absolute top-0 left-0"
+        width={800}
+        height={450}
+        style={{ width: "100%", height: "auto" }}
       >
         <Geographies geography={geoData}>
           {({ geographies }) =>
