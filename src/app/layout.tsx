@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="tr" suppressHydrationWarning>
       <head>
       </head>
-      <body className="font-body antialiased">
+      <body>
         <AuthProvider>
           {children}
           <Toaster />
