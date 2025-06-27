@@ -20,7 +20,8 @@ export function TurkeyMapInteractive() {
   }, [hoveredProvinceId]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    setTooltipPosition({ x: e.clientX, y: e.clientY });
+    // Adjust the position to be slightly offset from the cursor
+    setTooltipPosition({ x: e.clientX + 15, y: e.clientY + 15 });
   };
 
   return (
@@ -31,8 +32,13 @@ export function TurkeyMapInteractive() {
       />
       {tooltipData && (
         <div
-          className="fixed z-50 pointer-events-none transform translate-x-4 translate-y-4"
-          style={{ top: tooltipPosition.y, left: tooltipPosition.x }}
+          className="fixed z-50 pointer-events-none transform"
+          style={{ 
+            top: tooltipPosition.y, 
+            left: tooltipPosition.x,
+            // Ensure the tooltip doesn't go off-screen
+            transform: `translate(-50%, -50%)`,
+          }}
         >
           <ProvinceInfoCard data={tooltipData} />
         </div>

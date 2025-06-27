@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -701,7 +700,9 @@ export default function HomePage() {
                 <CardDescription>Harita üzerinden il yöneticilerini görüntüleyin. Detaylar için bir ilin üzerine gelin.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <TurkeyMapInteractive />
+                 <div className="w-full h-[600px] bg-background flex items-center justify-center">
+                   <TurkeyMapInteractive />
+                 </div>
               </CardContent>
             </Card>
           </TabsContent>
