@@ -41,7 +41,7 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
         <TableHeader>
           <TableRow>
             <TableHead>Adı Soyadı</TableHead>
-            <TableHead>Kadro Ünvanı</TableHead>
+            <TableHead>Ünvan</TableHead>
             <TableHead>Sicil Numarası</TableHead>
             <TableHead>Statü</TableHead>
             <TableHead>E-posta</TableHead>

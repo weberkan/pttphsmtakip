@@ -133,7 +133,15 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
                 <TableCell>{assignedPerson ? <div className="flex items-center gap-2"><Hash className="h-4 w-4 shrink-0 text-muted-foreground"/>{assignedPerson.registryNumber}</div> : <span className="text-muted-foreground italic">N/A</span>}</TableCell>
                 <TableCell>{assignedPerson ? <div className="flex items-center gap-2"><User className="h-4 w-4 shrink-0 text-muted-foreground"/>{`${assignedPerson.firstName} ${assignedPerson.lastName}`}</div> : <span className="text-muted-foreground italic">Atanmamış</span>}</TableCell>
                 <TableCell>{assignedPerson ? <Badge variant={assignedPerson.status === "İHS" ? "default" : "secondary"}>{assignedPerson.status}</Badge> : <span className="text-muted-foreground italic">N/A</span>}</TableCell>
-                <TableCell>{(position.status === 'Vekalet' || position.status === 'Yürütme') && position.originalTitle ? <div className="flex items-center gap-2"><Briefcase className="h-4 w-4 shrink-0 text-muted-foreground"/>{position.originalTitle}</div> : <span className="text-muted-foreground italic">Yok</span>}</TableCell>
+                <TableCell>
+                  {(position.status === 'Asıl' && assignedPerson?.unvan) ? (
+                    <div className="flex items-center gap-2"><Briefcase className="h-4 w-4 shrink-0 text-muted-foreground"/>{assignedPerson.unvan}</div>
+                  ) : ((position.status === 'Vekalet' || position.status === 'Yürütme') && position.originalTitle) ? (
+                    <div className="flex items-center gap-2"><Briefcase className="h-4 w-4 shrink-0 text-muted-foreground"/>{position.originalTitle}</div>
+                  ) : (
+                    <span className="text-muted-foreground italic">Yok</span>
+                  )}
+                </TableCell>
                 <TableCell>{renderStatusMakam(position)}</TableCell>
                 <TableCell>{position.startDate ? format(new Date(position.startDate), "dd.MM.yyyy") : <span className="text-muted-foreground italic">Belirtilmemiş</span>}</TableCell>
                 <TableCell><BooleanIcon value={position.receivesProxyPay} /></TableCell>
