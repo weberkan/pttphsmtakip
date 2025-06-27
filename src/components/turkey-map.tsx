@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -62,7 +61,7 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
                   }}
                   onMouseLeave={handleMouseLeave}
                   className={cn(
-                    'stroke-border outline-none transition-colors duration-200',
+                    'stroke-muted-foreground outline-none transition-colors duration-200',
                     provinceInfo
                       ? 'fill-muted-foreground/30 hover:fill-primary/80 cursor-pointer'
                       : 'fill-muted/50 pointer-events-none',
