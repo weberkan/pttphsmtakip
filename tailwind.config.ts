@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        body: ['Omnes', 'sans-serif'],
+        headline: ['Omnes', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -97,5 +97,3 @@ export default {
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;
-
-    
