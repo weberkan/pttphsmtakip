@@ -130,10 +130,14 @@ export function AddEditTasraPositionDialog({
 
 
   const onSubmit = (data: PositionFormData) => {
+    const isProxyOrActing = data.status === 'Vekalet' || data.status === 'Yürütme';
+
     const dataToSave = {
       ...data,
-      originalTitle: data.status === 'Vekalet' || data.status === 'Yürütme' ? data.originalTitle || null : null,
-      actingAuthority: data.status === 'Yürütme' ? data.actingAuthority : null,
+      originalTitle: isProxyOrActing ? data.originalTitle || null : null,
+      actingAuthority: isProxyOrActing ? data.actingAuthority : null,
+      receivesProxyPay: isProxyOrActing ? data.receivesProxyPay : false,
+      hasDelegatedAuthority: isProxyOrActing ? data.hasDelegatedAuthority : false,
       assignedPersonnelId: data.assignedPersonnelId === PLACEHOLDER_FOR_NULL_VALUE || data.status === "Boş" ? null : data.assignedPersonnelId,
       startDate: data.status === "Boş" ? null : data.startDate,
     };
@@ -159,6 +163,8 @@ export function AddEditTasraPositionDialog({
     }
     onOpenChange(open);
   };
+  
+  const isProxyOrActing = positionStatus === 'Vekalet' || positionStatus === 'Yürütme';
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
@@ -207,8 +213,16 @@ export function AddEditTasraPositionDialog({
                         <Select 
                           onValueChange={(value) => {
                             field.onChange(value);
-                            if (value === "Boş") form.setValue("assignedPersonnelId", null);
-                            if (value !== "Yürütme") form.setValue("actingAuthority", null);
+                            if (value === "Boş") {
+                                form.setValue("assignedPersonnelId", null);
+                                form.setValue("startDate", null);
+                            }
+                            if (value === 'Asıl' || value === 'Boş') {
+                                form.setValue('originalTitle', '');
+                                form.setValue('actingAuthority', null);
+                                form.setValue('receivesProxyPay', false);
+                                form.setValue('hasDelegatedAuthority', false);
+                            }
                           }} 
                           defaultValue={field.value}
                         >
@@ -288,29 +302,35 @@ export function AddEditTasraPositionDialog({
                     </FormItem>
                   )}
                 />
-                {(positionStatus === 'Vekalet' || positionStatus === 'Yürütme') && (
-                  <FormField
+                <FormField
                     control={form.control}
                     name="originalTitle"
                     render={({ field }) => (
-                      <FormItem>
+                    <FormItem>
                         <FormLabel>Asıl Ünvan (Opsiyonel)</FormLabel>
                         <FormControl>
-                          <Input placeholder="örn: Şube Müdürü" {...field} value={field.value ?? ""} />
+                        <Input 
+                            placeholder="örn: Şube Müdürü" 
+                            {...field} 
+                            value={field.value ?? ""} 
+                            disabled={!isProxyOrActing}
+                        />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
+                    </FormItem>
                     )}
-                  />
-                )}
-                 {positionStatus === 'Yürütme' && (
-                  <FormField
+                />
+                <FormField
                     control={form.control}
                     name="actingAuthority"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Yürütme Görevini Veren Makam</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                        <FormLabel>Görevi Veren Makam</FormLabel>
+                        <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value ?? undefined}
+                            disabled={!isProxyOrActing}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Makam Seçin" />
@@ -325,7 +345,6 @@ export function AddEditTasraPositionDialog({
                       </FormItem>
                     )}
                   />
-                )}
                 <FormField
                   control={form.control}
                   name="startDate"
@@ -366,12 +385,13 @@ export function AddEditTasraPositionDialog({
                     control={form.control}
                     name="receivesProxyPay"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col rounded-lg border p-3">
+                        <FormItem className="flex flex-col rounded-lg border p-3 justify-between">
                             <FormLabel className="mb-2">Vekalet Ücreti Alıyor Mu?</FormLabel>
                             <FormControl>
                                 <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
+                                disabled={!isProxyOrActing}
                                 />
                             </FormControl>
                         </FormItem>
@@ -381,12 +401,13 @@ export function AddEditTasraPositionDialog({
                     control={form.control}
                     name="hasDelegatedAuthority"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col rounded-lg border p-3">
+                        <FormItem className="flex flex-col rounded-lg border p-3 justify-between">
                             <FormLabel className="mb-2">Yetki Devri Var Mı?</FormLabel>
                             <FormControl>
                                 <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
+                                disabled={!isProxyOrActing}
                                 />
                             </FormControl>
                         </FormItem>

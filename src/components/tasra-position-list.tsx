@@ -48,25 +48,45 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
     return <p className="text-muted-foreground text-center py-4">Taşra pozisyonu bulunamadı. Eklemeyi deneyin!</p>;
   }
 
-  const getStatusBadge = (status: TasraPosition['status'], authority?: TasraPosition['actingAuthority'] | null) => {
+  const renderStatusMakam = (position: TasraPosition) => {
+    const { status, actingAuthority } = position;
     const statusMap = {
-      'Asıl': { text: 'Asıl', variant: 'default' as const, className: '' },
-      'Vekalet': { text: 'Vekalet', variant: 'secondary' as const, className: 'bg-orange-100 text-orange-800 border-orange-200' },
-      'Yürütme': { text: 'Yürütme', variant: 'outline' as const, className: 'bg-blue-100 text-blue-800 border-blue-200' },
-      'Boş': { text: 'Boş', variant: 'outline' as const, className: '' },
+      'Asıl': { letter: 'A', tooltip: 'Asıl', variant: 'default' as const, className: '' },
+      'Vekalet': { letter: 'V', tooltip: 'Vekalet', variant: 'secondary' as const, className: 'bg-orange-100 text-orange-800 border-orange-200' },
+      'Yürütme': { letter: 'Y', tooltip: 'Yürütme', variant: 'outline' as const, className: 'bg-blue-100 text-blue-800 border-blue-200' },
+      'Boş': { letter: 'B', tooltip: 'Boş', variant: 'outline' as const, className: '' },
     };
-    
-    const { text, variant, className } = statusMap[status] || { text: status, variant: 'secondary' as const, className: '' };
+    const authorityMap = {
+        'Başmüdürlük': { letter: 'B', tooltip: 'Başmüdürlükçe' },
+        'Genel Müdürlük': { letter: 'G', tooltip: 'Genel Müdürlükçe' },
+    }
+
+    const statusInfo = statusMap[status];
 
     return (
-        <div className="flex flex-col gap-1 items-start">
-            <Badge variant={variant} className={cn("capitalize", className)}>
-                {text}
-            </Badge>
-            {status === 'Yürütme' && authority && (
-                <Badge variant="outline" className="font-normal text-xs">
-                    {authority}
-                </Badge>
+        <div className="flex items-center gap-1">
+            <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                         <Badge variant={statusInfo.variant} className={cn("w-6 h-6 flex items-center justify-center p-0 font-bold", statusInfo.className)}>
+                            {statusInfo.letter}
+                        </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent><p>{statusInfo.tooltip}</p></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+            
+            {(status === 'Vekalet' || status === 'Yürütme') && actingAuthority && authorityMap[actingAuthority] && (
+                 <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Badge variant="outline" className="w-6 h-6 flex items-center justify-center p-0 font-bold">
+                                {authorityMap[actingAuthority].letter}
+                            </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent><p>{authorityMap[actingAuthority].tooltip}</p></TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             )}
         </div>
     );
@@ -114,7 +134,7 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
                 <TableCell>{assignedPerson ? <div className="flex items-center gap-2"><User className="h-4 w-4 shrink-0 text-muted-foreground"/>{`${assignedPerson.firstName} ${assignedPerson.lastName}`}</div> : <span className="text-muted-foreground italic">Atanmamış</span>}</TableCell>
                 <TableCell>{assignedPerson ? <Badge variant={assignedPerson.status === "İHS" ? "default" : "secondary"}>{assignedPerson.status}</Badge> : <span className="text-muted-foreground italic">N/A</span>}</TableCell>
                 <TableCell>{(position.status === 'Vekalet' || position.status === 'Yürütme') && position.originalTitle ? <div className="flex items-center gap-2"><Briefcase className="h-4 w-4 shrink-0 text-muted-foreground"/>{position.originalTitle}</div> : <span className="text-muted-foreground italic">Yok</span>}</TableCell>
-                <TableCell>{getStatusBadge(position.status, position.actingAuthority)}</TableCell>
+                <TableCell>{renderStatusMakam(position)}</TableCell>
                 <TableCell>{position.startDate ? format(new Date(position.startDate), "dd.MM.yyyy") : <span className="text-muted-foreground italic">Belirtilmemiş</span>}</TableCell>
                 <TableCell><BooleanIcon value={position.receivesProxyPay} /></TableCell>
                 <TableCell><BooleanIcon value={position.hasDelegatedAuthority} /></TableCell>
