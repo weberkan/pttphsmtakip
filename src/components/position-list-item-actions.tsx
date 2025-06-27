@@ -33,38 +33,38 @@ export function PositionListItemActions({ position, onEdit, onDelete }: Position
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
+            <span className="sr-only">Menüyü aç</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => onEdit(position)}>
             <Edit className="mr-2 h-4 w-4" />
-            Edit
+            Düzenle
           </DropdownMenuItem>
           <AlertDialogTrigger asChild>
             <DropdownMenuItem className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10">
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                Sil
             </DropdownMenuItem>
           </AlertDialogTrigger>
         </DropdownMenuContent>
       </DropdownMenu>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the position "{position.name}"
-            and remove it from the system. Any positions reporting to this position will have their 'reports to' field cleared.
+            Bu işlem geri alınamaz. Bu, "{position.name}" pozisyonunu kalıcı olarak silecek
+            ve sistemden kaldıracaktır. Bu pozisyona raporlayan tüm pozisyonların 'bağlı olduğu pozisyon' alanı temizlenecektir.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>İptal</AlertDialogCancel>
           <AlertDialogAction 
             onClick={() => onDelete(position.id)}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Delete
+            Sil
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
