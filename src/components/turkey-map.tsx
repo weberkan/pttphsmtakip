@@ -33,17 +33,16 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
     setTooltipData(null);
   };
   
+  // This wrapper div uses a robust aspect-ratio technique to ensure the map scales correctly.
   return (
-    <div data-testid="turkey-map" className="w-full">
+    <div data-testid="turkey-map" className="w-full relative" style={{ paddingTop: '55%' /* Aspect ratio hack */ }}>
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
           rotate: [-35.5, -39.3, 0],
           scale: 2800
         }}
-        width={800}
-        height={450}
-        style={{ width: "100%", height: "auto" }}
+        className="absolute top-0 left-0 w-full h-full"
       >
         <Geographies geography={geoData}>
           {({ geographies }) =>
@@ -69,6 +68,7 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
                       : 'fill-muted/50 pointer-events-none',
                     isHovered && '!fill-primary'
                   )}
+                  style={{ strokeWidth: 0.5 }} // Make borders a bit thinner
                 />
               );
             })
