@@ -22,8 +22,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, Search } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { TurkeyMap } from "@/components/turkey-map";
-import { tasraChiefs } from "@/lib/tasra-data";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -675,7 +673,6 @@ export default function HomePage() {
                   <CardContent>
                     <PersonnelList
                       personnel={sortedAndFilteredPersonnel}
-                      allPersonnel={personnel}
                       onEdit={handleEditPersonnel}
                       onDelete={handleDeletePersonnel}
                     />
@@ -700,10 +697,12 @@ export default function HomePage() {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>Taşra Teşkilatı</CardTitle>
-                <CardDescription>Harita üzerinden il başmüdürlerini görüntüleyin.</CardDescription>
+                <CardDescription>Bu bölüm yapım aşamasındadır.</CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
-                <TurkeyMap data={tasraChiefs} />
+              <CardContent>
+                <div className="flex items-center justify-center h-96 rounded-md border border-dashed">
+                  <p className="text-muted-foreground">Taşra teşkilatı özellikleri burada yer alacak.</p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

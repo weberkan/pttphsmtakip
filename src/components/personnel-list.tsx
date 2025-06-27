@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -25,12 +26,11 @@ import { USERS } from "@/lib/auth-data";
 
 interface PersonnelListProps {
   personnel: Personnel[];
-  allPersonnel: Personnel[];
   onEdit: (person: Personnel) => void;
   onDelete: (personnelId: string) => void;
 }
 
-export function PersonnelList({ personnel, allPersonnel, onEdit, onDelete }: PersonnelListProps) {
+export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProps) {
   if (personnel.length === 0) {
     return <p className="text-muted-foreground text-center py-4">Personel bulunamadı. Eklemeyi deneyin!</p>;
   }
