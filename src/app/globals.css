@@ -105,4 +105,14 @@
   }
 }
 
-    
+@layer components {
+  .main-tabs-list > button[data-state='active'] {
+    background-color: #00A9CE;
+    color: #FFFFFF;
+  }
+
+  .sub-tabs-list > button[data-state='active'] {
+    background-color: #FFC72C;
+    color: #1f2937;
+  }
+}

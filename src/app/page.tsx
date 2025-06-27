@@ -689,14 +689,14 @@ export default function HomePage() {
       />
       <main className="flex-grow max-w-screen-2xl mx-auto p-4 md:p-6 lg:p-8 w-full">
         <Tabs defaultValue="merkez" onValueChange={(value) => setActiveMainTab(value as 'merkez' | 'tasra')} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-2 mb-6 main-tabs-list">
             <TabsTrigger value="merkez">Merkez Teşkilatı</TabsTrigger>
             <TabsTrigger value="tasra">Taşra Teşkilatı</TabsTrigger>
           </TabsList>
           
           <TabsContent value="merkez">
             <Tabs defaultValue="positions" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6 sub-tabs-list">
                 <TabsTrigger value="positions">Pozisyon Yönetimi</TabsTrigger>
                 <TabsTrigger value="personnel">Personel Yönetimi</TabsTrigger>
                 <TabsTrigger value="org-chart">Organizasyon Şeması</TabsTrigger>
@@ -785,7 +785,7 @@ export default function HomePage() {
 
           <TabsContent value="tasra">
              <Tabs defaultValue="positions" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-2 mb-6 sub-tabs-list">
                 <TabsTrigger value="positions">Pozisyon Yönetimi</TabsTrigger>
                 <TabsTrigger value="personnel">Personel Yönetimi</TabsTrigger>
               </TabsList>
