@@ -17,6 +17,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { tr } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { USERS } from "@/lib/auth-data";
 
 interface PositionListProps {
   positions: Position[];
@@ -139,7 +140,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         <TableBody>
           {sortedPositions.map((position) => {
             const assignedPerson = allPersonnel.find(p => p.id === position.assignedPersonnelId);
-            const modifier = position.lastModifiedBy ? allPersonnel.find(p => p.registryNumber === position.lastModifiedBy) : null;
+            const modifier = position.lastModifiedBy ? USERS.find(u => u.registryNumber === position.lastModifiedBy) : null;
             const modifierDisplayName = modifier ? `${modifier.firstName} ${modifier.lastName}` : (position.lastModifiedBy || 'Bilinmeyen');
             const isStyledTitle = styledTitles.includes(position.name);
             return (
@@ -208,7 +209,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                         <TooltipContent>
                           <p>
                             {modifierDisplayName}{' '}
-                            {position.lastModifiedAt ? `${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
+                            {position.lastModifiedAt ? `${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })} güncelledi.` : 'Tarih bilgisi yok'}
                           </p>
                         </TooltipContent>
                       </Tooltip>

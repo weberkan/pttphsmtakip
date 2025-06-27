@@ -21,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { USERS } from "@/lib/auth-data";
 
 interface PersonnelListProps {
   personnel: Personnel[];
@@ -50,7 +51,7 @@ export function PersonnelList({ personnel, allPersonnel, onEdit, onDelete }: Per
         </TableHeader>
         <TableBody>
           {personnel.map((person) => {
-            const modifier = person.lastModifiedBy ? allPersonnel.find(p => p.registryNumber === person.lastModifiedBy) : null;
+            const modifier = person.lastModifiedBy ? USERS.find(u => u.registryNumber === person.lastModifiedBy) : null;
             const modifierDisplayName = modifier ? `${modifier.firstName} ${modifier.lastName}` : (person.lastModifiedBy || 'Bilinmeyen');
 
             return (
