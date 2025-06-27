@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -19,8 +20,10 @@ import type { Position, Personnel } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, Search, LogOut, Building } from "lucide-react";
+import { UploadCloud, Search, Building } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { TurkeyMap } from "@/components/turkey-map";
+import { tasraChiefs } from "@/lib/tasra-data";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -694,12 +697,12 @@ export default function HomePage() {
               <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Building className="h-6 w-6 text-primary" />
-                    Taşra Teşkilatı Yönetici Tablosu
+                    Taşra Teşkilatı
                   </CardTitle>
-                  <CardDescription>Bu bölüm yakında eklenecektir.</CardDescription>
+                  <CardDescription>İllerin üzerine gelerek Başmüdür bilgilerini görüntüleyin.</CardDescription>
               </CardHeader>
-              <CardContent>
-                  <p className="text-muted-foreground">Taşra teşkilatına ait pozisyon ve personel yönetimi özellikleri burada yer alacaktır.</p>
+              <CardContent className="p-0 md:p-6">
+                <TurkeyMap data={tasraChiefs} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -740,3 +743,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
