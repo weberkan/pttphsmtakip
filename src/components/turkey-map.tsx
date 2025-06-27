@@ -33,11 +33,12 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
   };
   
   return (
-    <div className="relative w-full h-auto flex justify-center items-center">
+    <div className="relative w-full h-full flex justify-center items-center">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 1000 440"
           aria-label="Türkiye Haritası"
+          className="w-full h-full"
         >
           <g>
             {Object.entries(turkeyMapPaths).map(([id, pathData]) => {
@@ -94,5 +95,3 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
     </div>
   );
 }
-
-    
