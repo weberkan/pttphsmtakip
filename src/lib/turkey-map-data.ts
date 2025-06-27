@@ -59,10 +59,10 @@ export const provinceDataMap: Record<string, ProvinceData> = {
   ankara: {
     id: 'ankara',
     il_adi: 'Ankara',
-    basmudur_adi_soyadi: 'Bülent Karslı',
+    basmudur_adi_soyadi: 'Mustafa Demir',
     basmudur_foto_url: 'https://placehold.co/100x100.png',
-    gorev_durumu: 'Asaleten',
-    gorevlendirme_tarihi: '01.01.2020',
+    gorev_durumu: 'Vekaleten',
+    gorevlendirme_tarihi: '30.07.2023',
   },
   antalya: {
     id: 'antalya',
@@ -83,7 +83,7 @@ export const provinceDataMap: Record<string, ProvinceData> = {
   artvin: {
     id: 'artvin',
     il_adi: 'Artvin',
-    basmudur_adi_soyadi: 'Yusufeli Kaya',
+    basmudur_adi_soyadi: 'Yusuf Kaya',
     basmudur_foto_url: 'https://placehold.co/100x100.png',
     gorev_durumu: 'Asaleten',
     gorevlendirme_tarihi: '03.04.2021',
