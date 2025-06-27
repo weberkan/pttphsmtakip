@@ -736,7 +736,7 @@ export default function HomePage() {
 
       <AddEditPersonnelDialog
         isOpen={isPersonnelDialogOpen}
-        onOpenChange={setIsPersonnelDialogOpen}
+        onOpen-change={setIsPersonnelDialogOpen}
         personnelToEdit={editingPersonnel}
         onSave={handleSavePersonnel}
       />
