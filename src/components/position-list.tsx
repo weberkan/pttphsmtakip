@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from "react";
@@ -140,6 +139,8 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         <TableBody>
           {sortedPositions.map((position) => {
             const assignedPerson = allPersonnel.find(p => p.id === position.assignedPersonnelId);
+            const modifier = position.lastModifiedBy ? allPersonnel.find(p => p.registryNumber === position.lastModifiedBy) : null;
+            const modifierDisplayName = modifier ? `${modifier.firstName} ${modifier.lastName}` : (position.lastModifiedBy || 'Bilinmeyen');
             const isStyledTitle = styledTitles.includes(position.name);
             return (
               <TableRow 
@@ -206,7 +207,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>
-                            Sicil: {position.lastModifiedBy} / {' '}
+                            {modifierDisplayName}{' '}
                             {position.lastModifiedAt ? `${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
                           </p>
                         </TooltipContent>

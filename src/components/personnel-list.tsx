@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -49,76 +48,81 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {personnel.map((person) => (
-            <TableRow key={person.id}>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage 
-                      src={person.photoUrl || undefined} 
-                      alt={`${person.firstName} ${person.lastName}`} 
-                      data-ai-hint="person avatar"
-                    />
-                    <AvatarFallback>
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  {person.firstName} {person.lastName}
-                </div>
-              </TableCell>
-              <TableCell>{person.registryNumber}</TableCell>
-              <TableCell>
-                 <Badge variant={person.status === "İHS" ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
-                    <BadgeInfo className="h-3 w-3"/>
-                    {person.status}
-                 </Badge>
-              </TableCell>
-              <TableCell>
-                {person.email ? (
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <a href={`mailto:${person.email}`} className="hover:underline">{person.email}</a>
+          {personnel.map((person) => {
+            const modifier = person.lastModifiedBy ? personnel.find(p => p.registryNumber === person.lastModifiedBy) : null;
+            const modifierDisplayName = modifier ? `${modifier.firstName} ${modifier.lastName}` : (person.lastModifiedBy || 'Bilinmeyen');
+
+            return (
+              <TableRow key={person.id}>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage 
+                        src={person.photoUrl || undefined} 
+                        alt={`${person.firstName} ${person.lastName}`} 
+                        data-ai-hint="person avatar"
+                      />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    {person.firstName} {person.lastName}
                   </div>
-                ) : (
-                  <span className="text-muted-foreground italic">Belirtilmemiş</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {person.phone ? (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span>{person.phone}</span>
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground italic">Belirtilmemiş</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {person.lastModifiedBy ? (
-                   <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <div className="flex items-center text-muted-foreground">
-                            <PencilRuler className="h-4 w-4" />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>
-                          Sicil: {person.lastModifiedBy} / {' '}
-                          {person.lastModifiedAt ? `${formatDistanceToNow(new Date(person.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ) : (
-                  <span className="text-muted-foreground italic">Yok</span>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                <PersonnelListItemActions person={person} onEdit={onEdit} onDelete={onDelete} />
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>{person.registryNumber}</TableCell>
+                <TableCell>
+                  <Badge variant={person.status === "İHS" ? "default" : "secondary"} className="flex items-center gap-1 w-fit">
+                      <BadgeInfo className="h-3 w-3"/>
+                      {person.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {person.email ? (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <a href={`mailto:${person.email}`} className="hover:underline">{person.email}</a>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground italic">Belirtilmemiş</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {person.phone ? (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span>{person.phone}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground italic">Belirtilmemiş</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {person.lastModifiedBy ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <div className="flex items-center text-muted-foreground">
+                              <PencilRuler className="h-4 w-4" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            {modifierDisplayName}{' '}
+                            {person.lastModifiedAt ? `${formatDistanceToNow(new Date(person.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <span className="text-muted-foreground italic">Yok</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <PersonnelListItemActions person={person} onEdit={onEdit} onDelete={onDelete} />
+                </TableCell>
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
     </div>
