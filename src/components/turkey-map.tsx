@@ -95,5 +95,3 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
     </div>
   );
 }
-
-    
