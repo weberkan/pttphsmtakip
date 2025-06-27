@@ -34,12 +34,12 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
   };
   
   return (
-    <div data-testid="turkey-map" className="relative w-full" style={{ paddingTop: '50%' /* Aspect ratio w:100, h:50 */ }}>
+    <div data-testid="turkey-map" className="relative w-full" style={{ paddingTop: '56.25%' /* 16:9 Aspect Ratio */ }}>
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
-          center: [35.5, 39.2], // Centered on Turkey
-          scale: 2600,         // Zoom level for Turkey
+          rotate: [-35.5, -39.0, 0],
+          scale: 2800,
         }}
         className="absolute top-0 left-0 w-full h-full"
       >
@@ -62,13 +62,13 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
                   onMouseLeave={handleMouseLeave}
                   className={cn(
                     'outline-none transition-colors duration-200',
-                    'stroke-white', 
+                    'stroke-card', 
                     provinceInfo
-                      ? 'fill-primary/50 hover:fill-primary/80 cursor-pointer'
-                      : 'fill-muted-foreground/40 pointer-events-none',
+                      ? 'fill-muted hover:fill-primary cursor-pointer'
+                      : 'fill-border pointer-events-none',
                     isHovered && '!fill-primary'
                   )}
-                  style={{ strokeWidth: 0.75 }}
+                  style={{ strokeWidth: 0.5 }}
                 />
               );
             })
@@ -78,7 +78,7 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
 
       {tooltipData && (
         <div
-          className="pointer-events-none fixed z-50 transform -translate-x-1/2 -translate-y-[110%] rounded-lg bg-card p-2 shadow-lg border animate-in fade-in-0 zoom-in-95"
+          className="pointer-events-none fixed z-50 transform -translate-x-1/2 -translate-y-[110%] rounded-lg bg-card p-3 shadow-lg border animate-in fade-in-0 zoom-in-95"
           style={{
             left: tooltipData.x,
             top: tooltipData.y,

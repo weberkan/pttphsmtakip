@@ -702,7 +702,7 @@ export default function HomePage() {
                 <CardTitle>Taşra Teşkilatı</CardTitle>
                 <CardDescription>Harita üzerinden il başmüdürlerini görüntüleyin.</CardDescription>
               </CardHeader>
-              <CardContent className="p-0 md:p-2">
+              <CardContent className="p-0">
                 <TurkeyMap data={tasraChiefs} />
               </CardContent>
             </Card>
