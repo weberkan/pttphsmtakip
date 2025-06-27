@@ -33,14 +33,14 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
   };
   
   return (
-    <div data-testid="turkey-map">
+    <div data-testid="turkey-map" className="w-full aspect-[2/1] relative">
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
           rotate: [-35.5, -39.3, 0],
           scale: 2800
         }}
-        style={{ width: "100%", height: "auto" }}
+        className="w-full h-full absolute top-0 left-0"
       >
         <Geographies geography={geoData}>
           {({ geographies }) =>
@@ -60,7 +60,7 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
                   }}
                   onMouseLeave={handleMouseLeave}
                   className={cn(
-                    'stroke-background outline-none transition-colors duration-200',
+                    'stroke-border outline-none transition-colors duration-200',
                     provinceInfo
                       ? 'fill-muted-foreground/30 hover:fill-primary/80 cursor-pointer'
                       : 'fill-muted/50 pointer-events-none',
