@@ -104,7 +104,7 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
-                          {person.lastModifiedBy} sicil nolu kullanıcı tarafından{' '}
+                          Sicil: {person.lastModifiedBy} / {' '}
                           {person.lastModifiedAt ? `${formatDistanceToNow(new Date(person.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
                         </p>
                       </TooltipContent>

@@ -206,7 +206,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>
-                            {position.lastModifiedBy} sicil nolu kullanıcı tarafından{' '}
+                            Sicil: {position.lastModifiedBy} / {' '}
                             {position.lastModifiedAt ? `${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
                           </p>
                         </TooltipContent>
