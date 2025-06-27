@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, Search } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { TurkeyMapInteractive } from "@/components/turkey-map-interactive";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -601,7 +602,7 @@ export default function HomePage() {
         <Tabs defaultValue="merkez" onValueChange={(value) => setActiveMainTab(value as 'merkez' | 'tasra')} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="merkez">Merkez Teşkilatı</TabsTrigger>
-            <TabsTrigger value="tasra">Taşra Teşkilatı</TabsTrigger>
+            <TabsTrigger value="tasra">Türkiye Yönetici Haritası</TabsTrigger>
           </TabsList>
           
           <TabsContent value="merkez">
@@ -696,13 +697,11 @@ export default function HomePage() {
           <TabsContent value="tasra">
             <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle>Taşra Teşkilatı</CardTitle>
-                <CardDescription>Bu bölüm yapım aşamasındadır.</CardDescription>
+                <CardTitle>Türkiye Yönetici Haritası</CardTitle>
+                <CardDescription>Harita üzerinden il yöneticilerini görüntüleyin. Detaylar için bir ilin üzerine gelin.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center h-96 rounded-md border border-dashed">
-                  <p className="text-muted-foreground">Taşra teşkilatı özellikleri burada yer alacak.</p>
-                </div>
+              <CardContent className="p-0">
+                <TurkeyMapInteractive />
               </CardContent>
             </Card>
           </TabsContent>

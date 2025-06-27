@@ -39,6 +39,12 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
+    /* Custom Badge Colors */
+    --asaleten: 142.1 76.2% 36.3%;
+    --asaleten-foreground: 142.1 76.2% 96.3%;
+    --vekaleten: 38.3 92.4% 52.9%;
+    --vekaleten-foreground: 38.3 92.4% 12.9%;
+
     /* Sidebar variables, can remain default or be themed if sidebar is used extensively */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -84,6 +90,12 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* Custom Badge Colors */
+    --asaleten: 142.1 76.2% 36.3%;
+    --asaleten-foreground: 142.1 76.2% 96.3%;
+    --vekaleten: 38.3 92.4% 52.9%;
+    --vekaleten-foreground: 38.3 92.4% 12.9%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
