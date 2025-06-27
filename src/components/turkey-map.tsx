@@ -2,12 +2,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import Image from 'next/image';
 import { turkeyMapPaths } from '@/lib/turkey-map-paths';
 import type { TasraChiefInfo } from '@/lib/tasra-data';
