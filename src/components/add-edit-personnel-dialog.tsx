@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 const personnelSchema = z.object({
   firstName: z.string().min(2, "Personel adı en az 2 karakter olmalıdır."),
   lastName: z.string().min(2, "Personel soyadı en az 2 karakter olmalıdır."),
+  unvan: z.string().optional().or(z.literal('')),
   registryNumber: z.string().min(2, "Sicil numarası en az 2 karakter olmalıdır."),
   status: z.enum(["İHS", "399"], {
     required_error: "Personel statüsü seçmek zorunludur.",
@@ -73,6 +74,7 @@ export function AddEditPersonnelDialog({
     defaultValues: {
       firstName: "",
       lastName: "",
+      unvan: "",
       registryNumber: "",
       status: "İHS",
       photoUrl: "",
@@ -88,6 +90,7 @@ export function AddEditPersonnelDialog({
         form.reset({
           firstName: personnelToEdit.firstName,
           lastName: personnelToEdit.lastName,
+          unvan: personnelToEdit.unvan || "",
           registryNumber: personnelToEdit.registryNumber,
           status: personnelToEdit.status,
           photoUrl: personnelToEdit.photoUrl || "",
@@ -99,6 +102,7 @@ export function AddEditPersonnelDialog({
         form.reset({
           firstName: "",
           lastName: "",
+          unvan: "",
           registryNumber: "",
           status: "İHS",
           photoUrl: "",
@@ -113,6 +117,7 @@ export function AddEditPersonnelDialog({
   const onSubmit = (data: PersonnelFormData) => {
     const dataToSave = {
       ...data,
+      unvan: data.unvan || null,
       photoUrl: data.photoUrl || null,
       email: data.email || null,
       phone: data.phone || null,
@@ -141,7 +146,7 @@ export function AddEditPersonnelDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{personnelToEdit ? "Personel Düzenle" : "Yeni Personel Ekle"}</DialogTitle>
           <DialogDescription>
@@ -150,7 +155,7 @@ export function AddEditPersonnelDialog({
         </DialogHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-6">
                     <FormField
                         control={form.control}
                         name="firstName"
@@ -172,6 +177,19 @@ export function AddEditPersonnelDialog({
                             <FormLabel>Soyadı</FormLabel>
                             <FormControl>
                             <Input placeholder="örn: Veli" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="unvan"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Kadro Ünvanı (Opsiyonel)</FormLabel>
+                            <FormControl>
+                            <Input placeholder="örn: Başmüdür" {...field} value={field.value ?? ""} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -294,7 +312,7 @@ export function AddEditPersonnelDialog({
                         )}
                     />
                     {currentPhotoUrl && (
-                        <div className="sm:col-span-2 flex justify-center">
+                        <div className="sm:col-span-3 flex justify-center">
                             <Image 
                                 src={currentPhotoUrl} 
                                 alt="Personel Fotoğraf Önizleme" 

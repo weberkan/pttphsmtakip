@@ -32,6 +32,7 @@ export interface Personnel {
   id: string;
   firstName: string; // Adı
   lastName: string; // Soyadı
+  unvan?: string | null; // Kadro Ünvanı
   registryNumber: string; // Sicil Numarası
   status: 'İHS' | '399'; // Personel Statüsü
   photoUrl?: string | null; // Fotoğraf URL'si (Opsiyonel)
@@ -41,3 +42,4 @@ export interface Personnel {
   lastModifiedBy?: string; // Sicil Numarası
   lastModifiedAt?: Date | null;
 }
+

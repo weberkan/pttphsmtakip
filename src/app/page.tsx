@@ -29,6 +29,7 @@ import { AddEditTasraPositionDialog } from "@/components/add-edit-tasra-position
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
   lastName: z.string().min(1, "Soyadı boş olamaz."),
+  unvan: z.string().optional().nullable().or(z.literal('')),
   registryNumber: z.string().min(1, "Sicil Numarası boş olamaz."),
   status: z.enum(["İHS", "399"], { errorMap: () => ({ message: "Statü 'İHS' veya '399' olmalıdır." }) }),
   photoUrl: z.string().url("Geçerli bir URL girin.").optional().nullable().or(z.literal('')),
@@ -375,6 +376,7 @@ export default function HomePage() {
         const headerMapping: { [key: string]: keyof Omit<Personnel, 'id'> } = {
           'adı': 'firstName', 'ad': 'firstName',
           'soyadı': 'lastName', 'soyad': 'lastName',
+          'ünvan': 'unvan', 'unvan': 'unvan', 'kadrounvanı': 'unvan',
           'sicilnumarası': 'registryNumber', 'sicilno': 'registryNumber', 'sicil': 'registryNumber',
           'statü': 'status', 'statu': 'status',
           'eposta': 'email', 'mail': 'email',
@@ -418,7 +420,7 @@ export default function HomePage() {
           } else {
             errorCount++;
             const personnelHeaderMappingReverse: { [key: string]: string } = {
-              'firstName': 'Adı', 'lastName': 'Soyadı', 'registryNumber': 'Sicil Numarası',
+              'firstName': 'Adı', 'lastName': 'Soyadı', 'registryNumber': 'Sicil Numarası', 'unvan': 'Ünvan',
               'status': 'Statü', 'email': 'E-posta', 'phone': 'Telefon', 'photoUrl': 'Fotoğraf URL',
             };
             const errorMessagesForToast = validation.error.issues.map(issue => {

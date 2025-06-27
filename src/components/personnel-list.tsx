@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User, Mail, Phone, BadgeInfo, PencilRuler } from "lucide-react";
+import { User, Mail, Phone, BadgeInfo, PencilRuler, Briefcase } from "lucide-react";
 import type { Personnel } from "@/lib/types";
 import { PersonnelListItemActions } from "./personnel-list-item-actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -41,6 +41,7 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
         <TableHeader>
           <TableRow>
             <TableHead>Adı Soyadı</TableHead>
+            <TableHead>Kadro Ünvanı</TableHead>
             <TableHead>Sicil Numarası</TableHead>
             <TableHead>Statü</TableHead>
             <TableHead>E-posta</TableHead>
@@ -70,6 +71,16 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                     </Avatar>
                     {person.firstName} {person.lastName}
                   </div>
+                </TableCell>
+                <TableCell>
+                  {person.unvan ? (
+                     <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                        {person.unvan}
+                     </div>
+                  ) : (
+                    <span className="text-muted-foreground italic">Belirtilmemiş</span>
+                  )}
                 </TableCell>
                 <TableCell>{person.registryNumber}</TableCell>
                 <TableCell>
