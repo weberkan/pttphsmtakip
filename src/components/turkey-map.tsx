@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { turkeyMapPaths } from '@/lib/turkey-map-paths';
-import type { TasraChiefInfo } from '@/lib/tasra-data';
+import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
 import { cn } from '@/lib/utils';
+import type { TasraChiefInfo } from '@/lib/tasra-data';
+import geoData from '@/lib/turkey-geojson';
 
 interface TurkeyMapProps {
   data: TasraChiefInfo[];
@@ -17,7 +18,7 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
     y: number;
   } | null>(null);
 
-  const provinceDataMap = new Map(data.map(p => [p.provinceId, p]));
+  const provinceDataMap = new Map(data.map(p => [p.provinceName, p]));
 
   const handleMouseMove = (e: React.MouseEvent, provinceInfo: TasraChiefInfo) => {
     setTooltipData({
@@ -32,40 +33,45 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
   };
   
   return (
-    <div className="relative w-full aspect-[1000/440]">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 1000 440"
-        aria-label="Türkiye Haritası"
-        className="absolute top-0 left-0 w-full h-full"
+    <div data-testid="turkey-map">
+      <ComposableMap
+        projection="geoMercator"
+        projectionConfig={{
+          rotate: [-35.5, -39.3, 0],
+          scale: 2800
+        }}
+        style={{ width: "100%", height: "auto" }}
       >
-        <g>
-          {Object.entries(turkeyMapPaths).map(([id, pathData]) => {
-            const provinceInfo = provinceDataMap.get(id);
-            const isHoverable = !!provinceInfo;
-            const isHovered = tooltipData?.province.provinceId === id;
+        <Geographies geography={geoData}>
+          {({ geographies }) =>
+            geographies.map((geo) => {
+              const provinceName = geo.properties.name;
+              const provinceInfo = provinceDataMap.get(provinceName);
+              const isHovered = tooltipData?.province.provinceName === provinceName;
 
-            return (
-              <path
-                key={id}
-                id={id}
-                d={pathData.d}
-                className={cn(
-                  'stroke-background stroke-[0.5] transition-colors duration-200',
-                  isHoverable
-                    ? 'fill-muted-foreground/30 hover:fill-primary/80 cursor-pointer'
-                    : 'fill-muted/50 pointer-events-none',
-                  isHovered && '!fill-primary'
-                )}
-                onMouseMove={(e) => provinceInfo && handleMouseMove(e, provinceInfo)}
-                onMouseLeave={handleMouseLeave}
-              >
-                <title>{pathData.name}</title>
-              </path>
-            );
-          })}
-        </g>
-      </svg>
+              return (
+                <Geography
+                  key={geo.rsmKey}
+                  geography={geo}
+                  onMouseEnter={(e) => {
+                    if (provinceInfo) {
+                      handleMouseMove(e, provinceInfo);
+                    }
+                  }}
+                  onMouseLeave={handleMouseLeave}
+                  className={cn(
+                    'stroke-background outline-none transition-colors duration-200',
+                    provinceInfo
+                      ? 'fill-muted-foreground/30 hover:fill-primary/80 cursor-pointer'
+                      : 'fill-muted/50 pointer-events-none',
+                    isHovered && '!fill-primary'
+                  )}
+                />
+              );
+            })
+          }
+        </Geographies>
+      </ComposableMap>
 
       {tooltipData && (
         <div
