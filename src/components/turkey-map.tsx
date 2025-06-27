@@ -34,7 +34,7 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
   
   // This wrapper div uses a robust aspect-ratio technique to ensure the map scales correctly.
   return (
-    <div data-testid="turkey-map" className="w-full relative" style={{ paddingTop: '55%' /* Aspect ratio hack */ }}>
+    <div data-testid="turkey-map" className="relative w-full" style={{ paddingTop: '50%' /* Aspect ratio w:100, h:50 */ }}>
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
@@ -61,13 +61,15 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
                   }}
                   onMouseLeave={handleMouseLeave}
                   className={cn(
-                    'stroke-muted-foreground outline-none transition-colors duration-200',
+                    'outline-none transition-colors duration-200',
+                    // HIGHLY VISIBLE COLORS
+                    'stroke-white', // Use white for borders, will show on dark fills
                     provinceInfo
-                      ? 'fill-muted-foreground/30 hover:fill-primary/80 cursor-pointer'
-                      : 'fill-muted/50 pointer-events-none',
+                      ? 'fill-primary/50 hover:fill-primary/80 cursor-pointer'
+                      : 'fill-muted-foreground/40 pointer-events-none',
                     isHovered && '!fill-primary'
                   )}
-                  style={{ strokeWidth: 0.5 }} // Make borders a bit thinner
+                  style={{ strokeWidth: 0.5 }}
                 />
               );
             })
