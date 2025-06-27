@@ -701,7 +701,7 @@ export default function HomePage() {
                   </CardTitle>
                   <CardDescription>İllerin üzerine gelerek Başmüdür bilgilerini görüntüleyin.</CardDescription>
               </CardHeader>
-              <CardContent className="p-0 md:p-6">
+              <CardContent className="p-0">
                 <TurkeyMap data={tasraChiefs} />
               </CardContent>
             </Card>
@@ -743,5 +743,7 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
 
     
