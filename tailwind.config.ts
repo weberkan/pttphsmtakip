@@ -45,14 +45,6 @@ export default {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
-        asaleten: {
-            DEFAULT: "hsl(var(--asaleten))",
-            foreground: "hsl(var(--asaleten-foreground))",
-        },
-        vekaleten: {
-            DEFAULT: "hsl(var(--vekaleten))",
-            foreground: "hsl(var(--vekaleten-foreground))",
-        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -105,3 +97,5 @@ export default {
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;
+
+    
