@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -21,10 +20,13 @@ interface AppHeaderProps {
   onAddPosition: () => void;
   onAddPersonnel: () => void;
   onLogout: () => void;
+  activeTab: 'merkez' | 'tasra';
 }
 
-export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: AppHeaderProps) {
-  const title = "Merkez Teşkilatı Yönetici Tablosu";
+export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout, activeTab }: AppHeaderProps) {
+  const title = activeTab === 'merkez'
+    ? "Merkez Teşkilatı Yönetici Tablosu"
+    : "Taşra Teşkilatı Yönetici Tablosu";
   
   return (
     <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
@@ -40,7 +42,7 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout }: App
           <h1 className="text-xl font-semibold text-foreground">{title}</h1>
         </div>
         <div className="flex items-center gap-4">
-          {user && (
+          {user && activeTab === 'merkez' && (
             <div className="flex gap-2">
               <Button onClick={onAddPersonnel} size="sm" variant="outline">
                 <Users className="mr-2 h-4 w-4" />
