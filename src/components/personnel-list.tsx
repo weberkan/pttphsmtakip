@@ -24,11 +24,12 @@ import {
 
 interface PersonnelListProps {
   personnel: Personnel[];
+  allPersonnel: Personnel[];
   onEdit: (person: Personnel) => void;
   onDelete: (personnelId: string) => void;
 }
 
-export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProps) {
+export function PersonnelList({ personnel, allPersonnel, onEdit, onDelete }: PersonnelListProps) {
   if (personnel.length === 0) {
     return <p className="text-muted-foreground text-center py-4">Personel bulunamadı. Eklemeyi deneyin!</p>;
   }
@@ -49,7 +50,7 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
         </TableHeader>
         <TableBody>
           {personnel.map((person) => {
-            const modifier = person.lastModifiedBy ? personnel.find(p => p.registryNumber === person.lastModifiedBy) : null;
+            const modifier = person.lastModifiedBy ? allPersonnel.find(p => p.registryNumber === person.lastModifiedBy) : null;
             const modifierDisplayName = modifier ? `${modifier.firstName} ${modifier.lastName}` : (person.lastModifiedBy || 'Bilinmeyen');
 
             return (
@@ -108,7 +109,7 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                         <TooltipContent>
                           <p>
                             {modifierDisplayName}{' '}
-                            {person.lastModifiedAt ? `${formatDistanceToNow(new Date(person.lastModifiedAt), { addSuffix: true, locale: tr })} güncellendi.` : 'Tarih bilgisi yok'}
+                            {person.lastModifiedAt ? `${formatDistanceToNow(new Date(person.lastModifiedAt), { addSuffix: true, locale: tr })} güncelledi.` : 'Tarih bilgisi yok'}
                           </p>
                         </TooltipContent>
                       </Tooltip>

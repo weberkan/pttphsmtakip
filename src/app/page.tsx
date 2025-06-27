@@ -672,6 +672,7 @@ export default function HomePage() {
                   <CardContent>
                     <PersonnelList
                       personnel={sortedAndFilteredPersonnel}
+                      allPersonnel={personnel}
                       onEdit={handleEditPersonnel}
                       onDelete={handleDeletePersonnel}
                     />
