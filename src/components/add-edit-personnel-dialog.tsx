@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -131,16 +130,16 @@ export function AddEditPersonnelDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px] flex flex-col max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>{personnelToEdit ? "Personel Düzenle" : "Yeni Personel Ekle"}</DialogTitle>
           <DialogDescription>
             {personnelToEdit ? "Bu personelin detaylarını güncelleyin." : "Yeni personel için detayları girin."}
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
-            <div className="max-h-[60vh] overflow-y-auto pr-4 -mr-4 space-y-4">
+        <div className="flex-1 overflow-y-auto -mx-6 px-6 py-4">
+          <Form {...form}>
+            <form id="personnel-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="firstName"
@@ -257,17 +256,17 @@ export function AddEditPersonnelDialog({
                   />
                 </div>
               )}
-            </div>
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => handleDialogClose(false)}>
-                İptal
-              </Button>
-              <Button type="submit">
-                {personnelToEdit ? "Değişiklikleri Kaydet" : "Personel Ekle"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            </form>
+          </Form>
+        </div>
+        <DialogFooter className="pt-4 border-t shrink-0">
+          <Button type="button" variant="outline" onClick={() => handleDialogClose(false)}>
+            İptal
+          </Button>
+          <Button type="submit" form="personnel-form">
+            {personnelToEdit ? "Değişiklikleri Kaydet" : "Personel Ekle"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
