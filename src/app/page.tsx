@@ -693,7 +693,7 @@ export default function HomePage() {
             </Tabs>
           </TabsContent>
           <TabsContent value="tasra">
-            <Card className="shadow-lg h-[calc(100vh-14rem)] flex flex-col">
+            <Card className="shadow-lg">
               <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Building className="h-6 w-6 text-primary" />
@@ -701,7 +701,7 @@ export default function HomePage() {
                   </CardTitle>
                   <CardDescription>İllerin üzerine gelerek Başmüdür bilgilerini görüntüleyin.</CardDescription>
               </CardHeader>
-              <CardContent className="p-0 flex-grow">
+              <CardContent className="p-0">
                 <TurkeyMap data={tasraChiefs} />
               </CardContent>
             </Card>
@@ -743,3 +743,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
