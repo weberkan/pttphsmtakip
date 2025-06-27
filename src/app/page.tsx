@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -21,6 +22,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, Search } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { TurkeyMap } from "@/components/turkey-map";
+import { tasraChiefs } from "@/lib/tasra-data";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -697,10 +700,10 @@ export default function HomePage() {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>Taşra Teşkilatı</CardTitle>
-                <CardDescription>Bu alan yakında geliştirilecektir.</CardDescription>
+                <CardDescription>Harita üzerinden il başmüdürlerini görüntüleyin.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <p>Taşra teşkilatı yönetici tablosu ve ilgili içerikler burada yer alacak.</p>
+              <CardContent className="p-0 md:p-2">
+                <TurkeyMap data={tasraChiefs} />
               </CardContent>
             </Card>
           </TabsContent>
