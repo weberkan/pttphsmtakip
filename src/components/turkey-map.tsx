@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -33,12 +32,13 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
   };
   
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full" style={{ paddingBottom: '44%' /* Aspect ratio from viewBox: 440 / 1000 */ }}>
+      <div className="absolute inset-0">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 1000 440"
           aria-label="Türkiye Haritası"
-          className="w-full h-auto"
+          className="w-full h-full"
         >
           <g>
             {Object.entries(turkeyMapPaths).map(([id, pathData]) => {
@@ -67,31 +67,32 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
             })}
           </g>
         </svg>
+      </div>
 
-        {tooltipData && (
-          <div
-            className="pointer-events-none fixed z-50 transform -translate-x-1/2 -translate-y-[110%] rounded-lg bg-card p-2 shadow-lg border animate-in fade-in-0 zoom-in-95"
-            style={{
-              left: tooltipData.x,
-              top: tooltipData.y,
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <Image
-                src={tooltipData.province.chiefPhotoUrl}
-                alt={tooltipData.province.chiefName}
-                width={50}
-                height={50}
-                className="rounded-full object-cover border-2 border-primary"
-                data-ai-hint="person avatar"
-              />
-              <div>
-                <p className="font-bold text-base text-foreground">{tooltipData.province.provinceName}</p>
-                <p className="text-sm text-muted-foreground">{tooltipData.province.chiefName}</p>
-              </div>
+      {tooltipData && (
+        <div
+          className="pointer-events-none fixed z-50 transform -translate-x-1/2 -translate-y-[110%] rounded-lg bg-card p-2 shadow-lg border animate-in fade-in-0 zoom-in-95"
+          style={{
+            left: tooltipData.x,
+            top: tooltipData.y,
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <Image
+              src={tooltipData.province.chiefPhotoUrl}
+              alt={tooltipData.province.chiefName}
+              width={50}
+              height={50}
+              className="rounded-full object-cover border-2 border-primary"
+              data-ai-hint="person avatar"
+            />
+            <div>
+              <p className="font-bold text-base text-foreground">{tooltipData.province.provinceName}</p>
+              <p className="text-sm text-muted-foreground">{tooltipData.province.chiefName}</p>
             </div>
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 }
