@@ -33,7 +33,7 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
   };
   
   return (
-    <div className="relative w-full h-full flex justify-center items-center">
+    <div className="relative w-full h-full">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 1000 440"
