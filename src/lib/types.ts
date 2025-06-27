@@ -13,6 +13,21 @@ export interface Position {
   lastModifiedAt?: Date | null;
 }
 
+export interface TasraPosition {
+  id: string;
+  unit: string;
+  dutyLocation: string;
+  assignedPersonnelId: string | null;
+  originalTitle?: string | null;
+  status: 'Asıl' | 'Vekalet' | 'Yürütme' | 'Boş';
+  actingAuthority?: 'Başmüdürlük' | 'Genel Müdürlük' | null;
+  startDate: Date | null;
+  receivesProxyPay: boolean;
+  hasDelegatedAuthority: boolean;
+  lastModifiedBy?: string;
+  lastModifiedAt?: Date | null;
+}
+
 export interface Personnel {
   id: string;
   firstName: string; // Adı
@@ -22,6 +37,7 @@ export interface Personnel {
   photoUrl?: string | null; // Fotoğraf URL'si (Opsiyonel)
   email?: string | null; // E-posta Adresi (Opsiyonel)
   phone?: string | null; // Telefon Numarası (Opsiyonel)
+  dateOfBirth?: Date | null; // Doğum Tarihi
   lastModifiedBy?: string; // Sicil Numarası
   lastModifiedAt?: Date | null;
 }

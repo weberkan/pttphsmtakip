@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -15,12 +16,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePositions } from "@/hooks/use-positions";
-import type { Position, Personnel } from "@/lib/types";
+import { useTasraPositions } from "@/hooks/use-tasra-positions";
+import type { Position, Personnel, TasraPosition } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, Search } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { TasraPositionList } from "@/components/tasra-position-list";
+import { AddEditTasraPositionDialog } from "@/components/add-edit-tasra-position-dialog";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -62,6 +66,7 @@ export default function HomePage() {
   const { user, logout, loading: authLoading } = useAuth();
   const router = useRouter();
 
+  // Merkez Teşkilatı Data
   const { 
     positions, 
     personnel,
@@ -71,22 +76,44 @@ export default function HomePage() {
     addPersonnel,
     updatePersonnel,
     deletePersonnel,
-    isInitialized 
+    isInitialized: isMerkezInitialized 
   } = usePositions();
+
+  // Taşra Teşkilatı Data
+  const {
+    tasraPositions,
+    tasraPersonnel,
+    addTasraPosition,
+    updateTasraPosition,
+    deleteTasraPosition,
+    addTasraPersonnel,
+    updateTasraPersonnel,
+    deleteTasraPersonnel,
+    isInitialized: isTasraInitialized
+  } = useTasraPositions();
+
 
   const { toast } = useToast();
   const personnelFileInputRef = useRef<HTMLInputElement>(null);
   const positionFileInputRef = useRef<HTMLInputElement>(null);
   
+  // Merkez States
   const [filter, setFilter] = useState<PositionFilterType>("all");
   const [isPositionDialogOpen, setIsPositionDialogOpen] = useState(false);
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
-  
   const [isPersonnelDialogOpen, setIsPersonnelDialogOpen] = useState(false);
   const [editingPersonnel, setEditingPersonnel] = useState<Personnel | null>(null);
-
   const [positionSearchTerm, setPositionSearchTerm] = useState("");
   const [personnelSearchTerm, setPersonnelSearchTerm] = useState("");
+
+  // Taşra States
+  const [isTasraPositionDialogOpen, setIsTasraPositionDialogOpen] = useState(false);
+  const [editingTasraPosition, setEditingTasraPosition] = useState<TasraPosition | null>(null);
+  const [isTasraPersonnelDialogOpen, setIsTasraPersonnelDialogOpen] = useState(false);
+  const [editingTasraPersonnel, setEditingTasraPersonnel] = useState<Personnel | null>(null);
+  const [tasraPositionSearchTerm, setTasraPositionSearchTerm] = useState("");
+  const [tasraPersonnelSearchTerm, setTasraPersonnelSearchTerm] = useState("");
+
   const [activeMainTab, setActiveMainTab] = useState<'merkez' | 'tasra'>('merkez');
 
 
@@ -97,6 +124,7 @@ export default function HomePage() {
   }, [user, authLoading, router]);
 
 
+  // ---- Merkez Handlers ----
   const handleAddPositionClick = () => {
     setEditingPosition(null);
     setIsPositionDialogOpen(true);
@@ -144,6 +172,66 @@ export default function HomePage() {
     setIsPersonnelDialogOpen(false);
     setEditingPersonnel(null);
   };
+
+  // ---- Taşra Handlers ----
+  const handleAddTasraPositionClick = () => {
+    setEditingTasraPosition(null);
+    setIsTasraPositionDialogOpen(true);
+  };
+
+  const handleEditTasraPosition = (position: TasraPosition) => {
+    setEditingTasraPosition(position);
+    setIsTasraPositionDialogOpen(true);
+  }
+
+  const handleDeleteTasraPosition = (positionId: string) => {
+    deleteTasraPosition(positionId);
+  }
+
+  const handleSaveTasraPosition = (data: Omit<TasraPosition, 'id'> | TasraPosition) => {
+    if ('id' in data) {
+      updateTasraPosition(data as TasraPosition);
+    } else {
+      addTasraPosition(data as Omit<TasraPosition, 'id'>);
+    }
+    setIsTasraPositionDialogOpen(false);
+    setEditingTasraPosition(null);
+  }
+
+  const handleAddTasraPersonnelClick = () => {
+    setEditingTasraPersonnel(null);
+    setIsTasraPersonnelDialogOpen(true);
+  };
+
+  const handleEditTasraPersonnel = (person: Personnel) => {
+    setEditingTasraPersonnel(person);
+    setIsTasraPersonnelDialogOpen(true);
+  }
+
+  const handleDeleteTasraPersonnel = (personnelId: string) => {
+    deleteTasraPersonnel(personnelId);
+  }
+
+  const handleSaveTasraPersonnel = (data: Omit<Personnel, 'id'> | Personnel) => {
+    if ('id' in data) {
+      updateTasraPersonnel(data as Personnel);
+    } else {
+      addTasraPersonnel(data as Omit<Personnel, 'id'>);
+    }
+    setIsTasraPersonnelDialogOpen(false);
+    setEditingTasraPersonnel(null);
+  }
+
+  // --- Header Button Logic ---
+  const handleGenericAddPosition = () => {
+    if (activeMainTab === 'merkez') handleAddPositionClick();
+    else handleAddTasraPositionClick();
+  }
+
+  const handleGenericAddPersonnel = () => {
+    if (activeMainTab === 'merkez') handleAddPersonnelClick();
+    else handleAddTasraPersonnelClick();
+  }
 
   const filteredPositions = useMemo(() => {
     let _filtered = positions;
@@ -318,10 +406,13 @@ export default function HomePage() {
 
           if (validation.success) {
             const newPerson = validation.data as Omit<Personnel, 'id'> & { status: 'İHS' | '399' };
-            if (personnel.some(p => p.registryNumber === newPerson.registryNumber)) {
+            const personnelList = activeMainTab === 'merkez' ? personnel : tasraPersonnel;
+            const addFunc = activeMainTab === 'merkez' ? addPersonnel : addTasraPersonnel;
+
+            if (personnelList.some(p => p.registryNumber === newPerson.registryNumber)) {
               skippedCount++;
             } else {
-              addPersonnel(newPerson);
+              addFunc(newPerson);
               importedCount++;
             }
           } else {
@@ -544,7 +635,7 @@ export default function HomePage() {
   };
 
 
-  if (authLoading || !isInitialized || !user) {
+  if (authLoading || !isMerkezInitialized || !isTasraInitialized || !user) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <AppHeader 
@@ -591,8 +682,8 @@ export default function HomePage() {
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader 
         user={user} 
-        onAddPosition={handleAddPositionClick} 
-        onAddPersonnel={handleAddPersonnelClick}
+        onAddPosition={handleGenericAddPosition} 
+        onAddPersonnel={handleGenericAddPersonnel}
         onLogout={logout}
         activeTab={activeMainTab}
       />
@@ -614,8 +705,8 @@ export default function HomePage() {
                 <Card className="shadow-lg">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle id="positions-heading" className="text-sm font-semibold">Şirket Pozisyonları (Toplam: {filteredPositions.length})</CardTitle>
-                      <CardDescription>Şirket içindeki tüm pozisyonları yönetin ve görüntüleyin.</CardDescription>
+                      <CardTitle id="positions-heading" className="text-sm font-semibold">Merkez Pozisyonları (Toplam: {filteredPositions.length})</CardTitle>
+                      <CardDescription>Şirket içindeki tüm merkez pozisyonları yönetin ve görüntüleyin.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <div className="relative w-full sm:w-64">
@@ -649,8 +740,8 @@ export default function HomePage() {
                 <Card className="shadow-lg">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-sm font-semibold" id="personnel-heading">Personel Listesi (Toplam: {sortedAndFilteredPersonnel.length})</CardTitle>
-                      <CardDescription>Şirket personelini yönetin.</CardDescription>
+                      <CardTitle className="text-sm font-semibold" id="personnel-heading">Merkez Personel Listesi (Toplam: {sortedAndFilteredPersonnel.length})</CardTitle>
+                      <CardDescription>Merkez personelini yönetin.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <div className="relative w-full sm:w-64">
@@ -693,15 +784,47 @@ export default function HomePage() {
           </TabsContent>
 
           <TabsContent value="tasra">
-            <Card>
-              <CardHeader>
-                <CardTitle>Taşra Teşkilatı</CardTitle>
-                <CardDescription>Bu bölüm yapım aşamasındadır.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Taşra teşkilatı yöneticileri ve bilgileri burada görüntülenecektir.</p>
-              </CardContent>
-            </Card>
+             <Tabs defaultValue="positions" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="positions">Pozisyon Yönetimi</TabsTrigger>
+                <TabsTrigger value="personnel">Personel Yönetimi</TabsTrigger>
+              </TabsList>
+               <TabsContent value="positions">
+                <Card className="shadow-lg">
+                  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <CardTitle id="tasra-positions-heading" className="text-sm font-semibold">Taşra Pozisyonları (Toplam: {tasraPositions.length})</CardTitle>
+                      <CardDescription>Şirket içindeki tüm taşra pozisyonları yönetin ve görüntüleyin.</CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <TasraPositionList
+                      positions={tasraPositions}
+                      allPersonnel={tasraPersonnel}
+                      onEdit={handleEditTasraPosition}
+                      onDelete={handleDeleteTasraPosition}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+               <TabsContent value="personnel">
+                <Card className="shadow-lg">
+                  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-sm font-semibold" id="tasra-personnel-heading">Taşra Personel Listesi (Toplam: {tasraPersonnel.length})</CardTitle>
+                      <CardDescription>Taşra personelini yönetin.</CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <PersonnelList
+                      personnel={tasraPersonnel}
+                      onEdit={handleEditTasraPersonnel}
+                      onDelete={handleDeleteTasraPersonnel}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </main>
@@ -721,6 +844,7 @@ export default function HomePage() {
         className="hidden"
       />
 
+      {/* Merkez Dialogs */}
       <AddEditPositionDialog
         isOpen={isPositionDialogOpen}
         onOpenChange={setIsPositionDialogOpen}
@@ -730,15 +854,28 @@ export default function HomePage() {
         onSave={handleSavePosition}
         updatePersonnel={updatePersonnel} 
       />
-
       <AddEditPersonnelDialog
         isOpen={isPersonnelDialogOpen}
         onOpenChange={setIsPersonnelDialogOpen}
         personnelToEdit={editingPersonnel}
         onSave={handleSavePersonnel}
       />
+
+      {/* Taşra Dialogs */}
+      <AddEditTasraPositionDialog
+        isOpen={isTasraPositionDialogOpen}
+        onOpenChange={setIsTasraPositionDialogOpen}
+        positionToEdit={editingTasraPosition}
+        allPersonnel={tasraPersonnel}
+        onSave={handleSaveTasraPosition}
+      />
+      <AddEditPersonnelDialog
+        isOpen={isTasraPersonnelDialogOpen}
+        onOpenChange={setIsTasraPersonnelDialogOpen}
+        personnelToEdit={editingTasraPersonnel}
+        onSave={handleSaveTasraPersonnel}
+      />
+
     </div>
   );
 }
-
-    

@@ -1,7 +1,8 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Users, LogOut } from "lucide-react";
+import { PlusCircle, Users, LogOut, Map, Building } from "lucide-react";
 import Image from "next/image";
 import type { AuthUser } from "@/contexts/auth-context";
 import {
@@ -25,9 +26,12 @@ interface AppHeaderProps {
 
 export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout, activeTab }: AppHeaderProps) {
   const title = activeTab === 'merkez'
-    ? "Merkez Teşkilatı Yönetici Tablosu"
-    : "Taşra Teşkilatı Yönetici Tablosu";
+    ? "Merkez Teşkilatı Yönetim Sistemi"
+    : "Taşra Teşkilatı Yönetim Sistemi";
   
+  const personnelButtonText = activeTab === 'merkez' ? 'Personel Ekle' : 'Taşra Personel Ekle';
+  const positionButtonText = activeTab === 'merkez' ? 'Pozisyon Ekle' : 'Taşra Pozisyon Ekle';
+
   return (
     <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
       <div className="max-w-screen-2xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -42,15 +46,15 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout, activ
           <h1 className="text-xl font-semibold text-foreground">{title}</h1>
         </div>
         <div className="flex items-center gap-4">
-          {user && activeTab === 'merkez' && (
+          {user && (
             <div className="flex gap-2">
               <Button onClick={onAddPersonnel} size="sm" variant="outline">
                 <Users className="mr-2 h-4 w-4" />
-                Personel Ekle
+                {personnelButtonText}
               </Button>
               <Button onClick={onAddPosition} size="sm">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Pozisyon Ekle
+                {activeTab === 'merkez' ? <Building className="mr-2 h-4 w-4" /> : <Map className="mr-2 h-4 w-4" /> }
+                {positionButtonText}
               </Button>
             </div>
           )}

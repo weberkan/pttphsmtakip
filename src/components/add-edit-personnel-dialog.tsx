@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,6 +33,11 @@ import type { Personnel } from "@/lib/types";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Calendar } from "./ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const personnelSchema = z.object({
   firstName: z.string().min(2, "Personel adı en az 2 karakter olmalıdır."),
@@ -43,6 +49,7 @@ const personnelSchema = z.object({
   photoUrl: z.string().url("Geçerli bir URL girin.").optional().or(z.literal('')),
   email: z.string().email("Geçerli bir e-posta adresi girin.").optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
+  dateOfBirth: z.date().optional().nullable(),
 });
 
 type PersonnelFormData = z.infer<typeof personnelSchema>;
@@ -71,6 +78,7 @@ export function AddEditPersonnelDialog({
       photoUrl: "",
       email: "",
       phone: "",
+      dateOfBirth: null,
     },
   });
 
@@ -85,6 +93,7 @@ export function AddEditPersonnelDialog({
           photoUrl: personnelToEdit.photoUrl || "",
           email: personnelToEdit.email || "",
           phone: personnelToEdit.phone || "",
+          dateOfBirth: personnelToEdit.dateOfBirth ? new Date(personnelToEdit.dateOfBirth) : null,
         });
       } else {
         form.reset({
@@ -95,6 +104,7 @@ export function AddEditPersonnelDialog({
           photoUrl: "",
           email: "",
           phone: "",
+          dateOfBirth: null,
         });
       }
     }
@@ -106,6 +116,7 @@ export function AddEditPersonnelDialog({
       photoUrl: data.photoUrl || null,
       email: data.email || null,
       phone: data.phone || null,
+      dateOfBirth: data.dateOfBirth || null,
     };
 
     if (personnelToEdit) {
@@ -226,11 +237,54 @@ export function AddEditPersonnelDialog({
                         </FormItem>
                         )}
                     />
+                     <FormField
+                        control={form.control}
+                        name="dateOfBirth"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Doğum Tarihi (Opsiyonel)</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                      "w-full pl-3 text-left font-normal",
+                                      !field.value && "text-muted-foreground"
+                                    )}
+                                  >
+                                    {field.value ? (
+                                      format(field.value, "dd.MM.yyyy")
+                                    ) : (
+                                      <span>Tarih seçin</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value ? field.value : undefined}
+                                  onSelect={(date) => field.onChange(date || null)}
+                                  captionLayout="dropdown-buttons"
+                                  fromYear={1950}
+                                  toYear={new Date().getFullYear()}
+                                  disabled={(date) =>
+                                    date > new Date() || date < new Date("1900-01-01")
+                                  }
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     <FormField
                         control={form.control}
                         name="photoUrl"
                         render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
+                        <FormItem>
                             <FormLabel>Fotoğraf URL (Opsiyonel)</FormLabel>
                             <FormControl>
                             <Input placeholder="https://ornek.com/fotograf.png" {...field} value={field.value ?? ""} />
