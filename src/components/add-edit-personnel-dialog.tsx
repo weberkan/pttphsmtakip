@@ -130,143 +130,143 @@ export function AddEditPersonnelDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-[480px] flex flex-col max-h-[90vh]">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{personnelToEdit ? "Personel Düzenle" : "Yeni Personel Ekle"}</DialogTitle>
           <DialogDescription>
             {personnelToEdit ? "Bu personelin detaylarını güncelleyin." : "Yeni personel için detayları girin."}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto -mx-6 px-6 py-4">
-          <Form {...form}>
-            <form id="personnel-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Adı</FormLabel>
-                    <FormControl>
-                      <Input placeholder="örn: Ali" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Soyadı</FormLabel>
-                    <FormControl>
-                      <Input placeholder="örn: Veli" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="registryNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sicil Numarası</FormLabel>
-                    <FormControl>
-                      <Input placeholder="örn: SN12345" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Statü</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Statü seçin" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="İHS">İHS</SelectItem>
-                        <SelectItem value="399">399</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>E-posta Adresi (Opsiyonel)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="örn: ali.veli@example.com" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefon Numarası (Opsiyonel)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="örn: 0555 123 4567" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="photoUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fotoğraf URL (Opsiyonel)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://ornek.com/fotograf.png" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {currentPhotoUrl && (
-                <div className="mt-2 flex justify-center">
-                  <Image 
-                    src={currentPhotoUrl} 
-                    alt="Personel Fotoğraf Önizleme" 
-                    width={100} 
-                    height={100} 
-                    className="rounded-full object-cover"
-                    data-ai-hint="person avatar"
-                    onError={(e) => { 
-                      const target = e.target as HTMLImageElement;
-                      target.src = 'https://placehold.co/100x100.png'; 
-                      target.alt = 'Geçersiz URL veya yüklenemedi';
-                    }}
-                  />
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-6">
+                    <FormField
+                        control={form.control}
+                        name="firstName"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Adı</FormLabel>
+                            <FormControl>
+                            <Input placeholder="örn: Ali" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="lastName"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Soyadı</FormLabel>
+                            <FormControl>
+                            <Input placeholder="örn: Veli" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="registryNumber"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Sicil Numarası</FormLabel>
+                            <FormControl>
+                            <Input placeholder="örn: SN12345" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Statü</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Statü seçin" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="İHS">İHS</SelectItem>
+                                <SelectItem value="399">399</SelectItem>
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>E-posta (Opsiyonel)</FormLabel>
+                            <FormControl>
+                            <Input placeholder="örn: ali.veli@example.com" {...field} value={field.value ?? ""} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Telefon (Opsiyonel)</FormLabel>
+                            <FormControl>
+                            <Input placeholder="örn: 0555 123 4567" {...field} value={field.value ?? ""} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="photoUrl"
+                        render={({ field }) => (
+                        <FormItem className="sm:col-span-2">
+                            <FormLabel>Fotoğraf URL (Opsiyonel)</FormLabel>
+                            <FormControl>
+                            <Input placeholder="https://ornek.com/fotograf.png" {...field} value={field.value ?? ""} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    {currentPhotoUrl && (
+                        <div className="sm:col-span-2 flex justify-center">
+                            <Image 
+                                src={currentPhotoUrl} 
+                                alt="Personel Fotoğraf Önizleme" 
+                                width={80} 
+                                height={80} 
+                                className="rounded-full object-cover"
+                                data-ai-hint="person avatar"
+                                onError={(e) => { 
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://placehold.co/100x100.png'; 
+                                target.alt = 'Geçersiz URL veya yüklenemedi';
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
-              )}
+                <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => handleDialogClose(false)}>
+                    İptal
+                </Button>
+                <Button type="submit">
+                    {personnelToEdit ? "Değişiklikleri Kaydet" : "Personel Ekle"}
+                </Button>
+                </DialogFooter>
             </form>
-          </Form>
-        </div>
-        <DialogFooter className="pt-4 border-t shrink-0">
-          <Button type="button" variant="outline" onClick={() => handleDialogClose(false)}>
-            İptal
-          </Button>
-          <Button type="submit" form="personnel-form">
-            {personnelToEdit ? "Değişiklikleri Kaydet" : "Personel Ekle"}
-          </Button>
-        </DialogFooter>
+        </Form>
       </DialogContent>
     </Dialog>
   );
