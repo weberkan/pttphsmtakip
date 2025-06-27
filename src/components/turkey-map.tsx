@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -33,42 +32,40 @@ export function TurkeyMap({ data }: TurkeyMapProps) {
   };
   
   return (
-    <div className="relative w-full" style={{ paddingBottom: '44%' /* Aspect ratio from viewBox: 440 / 1000 */ }}>
-      <div className="absolute inset-0">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 1000 440"
-          aria-label="Türkiye Haritası"
-          className="w-full h-full"
-        >
-          <g>
-            {Object.entries(turkeyMapPaths).map(([id, pathData]) => {
-              const provinceInfo = provinceDataMap.get(id);
-              const isHoverable = !!provinceInfo;
-              const isHovered = tooltipData?.province.provinceId === id;
+    <div className="relative w-full">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 1000 440"
+        aria-label="Türkiye Haritası"
+        className="w-full h-auto"
+      >
+        <g>
+          {Object.entries(turkeyMapPaths).map(([id, pathData]) => {
+            const provinceInfo = provinceDataMap.get(id);
+            const isHoverable = !!provinceInfo;
+            const isHovered = tooltipData?.province.provinceId === id;
 
-              return (
-                <path
-                  key={id}
-                  id={id}
-                  d={pathData.d}
-                  className={cn(
-                    'stroke-background stroke-[0.5] transition-colors duration-200',
-                    isHoverable
-                      ? 'fill-muted-foreground/30 hover:fill-primary/80 cursor-pointer'
-                      : 'fill-muted/50 pointer-events-none',
-                    isHovered && '!fill-primary'
-                  )}
-                  onMouseMove={(e) => provinceInfo && handleMouseMove(e, provinceInfo)}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  <title>{pathData.name}</title>
-                </path>
-              );
-            })}
-          </g>
-        </svg>
-      </div>
+            return (
+              <path
+                key={id}
+                id={id}
+                d={pathData.d}
+                className={cn(
+                  'stroke-background stroke-[0.5] transition-colors duration-200',
+                  isHoverable
+                    ? 'fill-muted-foreground/30 hover:fill-primary/80 cursor-pointer'
+                    : 'fill-muted/50 pointer-events-none',
+                  isHovered && '!fill-primary'
+                )}
+                onMouseMove={(e) => provinceInfo && handleMouseMove(e, provinceInfo)}
+                onMouseLeave={handleMouseLeave}
+              >
+                <title>{pathData.name}</title>
+              </path>
+            );
+          })}
+        </g>
+      </svg>
 
       {tooltipData && (
         <div
