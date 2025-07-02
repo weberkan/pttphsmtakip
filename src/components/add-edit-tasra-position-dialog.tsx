@@ -228,8 +228,8 @@ export function AddEditTasraPositionDialog({
                                   <CommandItem
                                     value={city}
                                     key={city}
-                                    onSelect={(currentValue) => {
-                                      form.setValue("unit", currentValue);
+                                    onSelect={() => {
+                                      form.setValue("unit", city);
                                       setUnitOpen(false);
                                     }}
                                   >
@@ -537,3 +537,5 @@ export function AddEditTasraPositionDialog({
     </Dialog>
   );
 }
+
+    
