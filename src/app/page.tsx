@@ -1,11 +1,10 @@
 
+
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useEffect, useRef, Suspense } from "react";
 import * as XLSX from 'xlsx';
 import * as z from "zod";
-import { AppHeader } from "@/components/app-header";
 import { AddEditPositionDialog } from "@/components/add-edit-position-dialog";
 import { AddEditPersonnelDialog } from "@/components/add-edit-personnel-dialog";
 import { PositionFilter, type PositionFilterType } from "@/components/position-filter";
@@ -19,13 +18,12 @@ import { usePositions } from "@/hooks/use-positions";
 import { useTasraPositions } from "@/hooks/use-tasra-positions";
 import type { Position, Personnel, TasraPosition } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, Search } from "lucide-react";
-import { useAuth } from "@/contexts/auth-context";
 import { TasraPositionList } from "@/components/tasra-position-list";
 import { AddEditTasraPositionDialog } from "@/components/add-edit-tasra-position-dialog";
 import { ReportingPanel } from "@/components/reporting-panel";
+import { useSearchParams } from "next/navigation";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -94,11 +92,10 @@ const positionTitleOrder: { [key: string]: number } = {
   "Şube Müdürü": 6,
 };
 
-
-export default function HomePage() {
-  const { user, logout, loading: authLoading } = useAuth();
-  const router = useRouter();
-
+function DashboardPageContent() {
+  const searchParams = useSearchParams();
+  const activeView = searchParams.get('view') || 'merkez-pozisyon';
+  
   // Merkez Teşkilatı Data
   const { 
     positions, 
@@ -153,16 +150,6 @@ export default function HomePage() {
   const [editingTasraPersonnel, setEditingTasraPersonnel] = useState<Personnel | null>(null);
   const [tasraPositionSearchTerm, setTasraPositionSearchTerm] = useState("");
   const [tasraPersonnelSearchTerm, setTasraPersonnelSearchTerm] = useState("");
-
-  const [activeMainTab, setActiveMainTab] = useState<'merkez' | 'tasra' | 'raporlama'>('merkez');
-
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
-
 
   // ---- Merkez Handlers ----
   const handleAddPositionClick = () => {
@@ -260,53 +247,6 @@ export default function HomePage() {
     }
     setIsTasraPersonnelDialogOpen(false);
     setEditingTasraPersonnel(null);
-  }
-
-  const handleClearPersonnel = () => {
-    localStorage.removeItem('positionTrackerApp_personnel');
-    localStorage.removeItem('tasraTrackerApp_personnel');
-
-    const merkezPositionsRaw = localStorage.getItem('positionTrackerApp_positions');
-    if (merkezPositionsRaw) {
-      try {
-        const merkezPositions = JSON.parse(merkezPositionsRaw);
-        if (Array.isArray(merkezPositions)) {
-            const updatedMerkezPositions = merkezPositions.map(p => ({ ...p, assignedPersonnelId: null }));
-            localStorage.setItem('positionTrackerApp_positions', JSON.stringify(updatedMerkezPositions));
-        }
-      } catch (e) { console.error("Could not update merkez positions", e); }
-    }
-    
-    const tasraPositionsRaw = localStorage.getItem('tasraTrackerApp_positions');
-    if (tasraPositionsRaw) {
-      try {
-        const tasraPositions = JSON.parse(tasraPositionsRaw);
-        if (Array.isArray(tasraPositions)) {
-            const updatedTasraPositions = tasraPositions.map(p => ({ ...p, assignedPersonnelId: null }));
-            localStorage.setItem('tasraTrackerApp_positions', JSON.stringify(updatedTasraPositions));
-        }
-      } catch(e) { console.error("Could not update tasra positions", e); }
-    }
-
-
-    toast({
-      title: "Personel Verileri Temizlendi",
-      description: "Tüm personel bilgileri başarıyla silindi. Sayfa yeniden yükleniyor...",
-    });
-    setTimeout(() => {
-      window.location.reload();
-    }, 1500);
-  };
-
-  // --- Header Button Logic ---
-  const handleGenericAddPosition = () => {
-    if (activeMainTab === 'merkez') handleAddPositionClick();
-    else if (activeMainTab === 'tasra') handleAddTasraPositionClick();
-  }
-
-  const handleGenericAddPersonnel = () => {
-    if (activeMainTab === 'merkez') handleAddPersonnelClick();
-    else if (activeMainTab === 'tasra') handleAddTasraPersonnelClick();
   }
 
   const filteredPositions = useMemo(() => {
@@ -518,7 +458,7 @@ export default function HomePage() {
         const errors: { rowIndex: number; message: string; }[] = [];
         let skippedCount = 0;
 
-        const currentPersonnelList = activeMainTab === 'merkez' ? personnel : tasraPersonnel;
+        const currentPersonnelList = activeView.startsWith('merkez') ? personnel : tasraPersonnel;
         const existingRegistryNumbers = new Set(currentPersonnelList.map(p => p.registryNumber));
 
         rows.forEach((rowArray, rowIndex) => {
@@ -573,7 +513,7 @@ export default function HomePage() {
         });
         
         if (personnelToAdd.length > 0) {
-            if (activeMainTab === 'merkez') {
+            if (activeView.startsWith('merkez')) {
                 batchAddPersonnel(personnelToAdd as Omit<Personnel, 'id'>[]);
             } else {
                 batchAddTasraPersonnel(personnelToAdd as Omit<Personnel, 'id'>[]);
@@ -972,76 +912,40 @@ export default function HomePage() {
   };
 
 
-  if (authLoading || !isMerkezInitialized || !isTasraInitialized || !user) {
+  if (!isMerkezInitialized || !isTasraInitialized) {
     return (
-      <div className="flex flex-col min-h-screen bg-background">
-        <AppHeader 
-          user={null} 
-          onAddPosition={() => {}} 
-          onAddPersonnel={() => {}} 
-          onLogout={() => {}}
-          onClearPersonnel={() => {}}
-          activeTab="merkez"
-        />
-        <main className="flex-grow max-w-screen-2xl mx-auto p-4 md:p-6 lg:p-8 w-full">
-          <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
-              <div className="lg:col-span-2 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <Skeleton className="h-6 w-1/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Skeleton className="h-8 w-3/4" />
-                    <Skeleton className="h-40 w-full" />
-                  </CardContent>
-                </Card>
-              </div>
-              <div className="lg:col-span-1 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <Skeleton className="h-6 w-1/3" />
-                    <Skeleton className="h-4 w-3/5" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-64 w-full" />
-                  </CardContent>
-                </Card>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+            <div className="lg:col-span-2 space-y-6">
+            <Card>
+                <CardHeader>
+                <Skeleton className="h-6 w-1/4" />
+                <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-40 w-full" />
+                </CardContent>
+            </Card>
             </div>
-          </div>
-        </main>
-      </div>
+            <div className="lg:col-span-1 space-y-6">
+            <Card>
+                <CardHeader>
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-4 w-3/5" />
+                </CardHeader>
+                <CardContent>
+                <Skeleton className="h-64 w-full" />
+                </CardContent>
+            </Card>
+            </div>
+        </div>
     );
   }
 
-  return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <AppHeader 
-        user={user} 
-        onAddPosition={handleGenericAddPosition} 
-        onAddPersonnel={handleGenericAddPersonnel}
-        onLogout={logout}
-        onClearPersonnel={handleClearPersonnel}
-        activeTab={activeMainTab}
-      />
-      <main className="flex-grow max-w-screen-2xl mx-auto p-4 md:p-6 lg:p-8 w-full">
-        <Tabs defaultValue="merkez" onValueChange={(value) => setActiveMainTab(value as 'merkez' | 'tasra' | 'raporlama')} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6 main-tabs-list">
-            <TabsTrigger value="merkez">Merkez Teşkilatı</TabsTrigger>
-            <TabsTrigger value="tasra">Taşra Teşkilatı</TabsTrigger>
-            <TabsTrigger value="raporlama">Raporlama ve Analiz</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="merkez">
-            <Tabs defaultValue="positions" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6 sub-tabs-list">
-                <TabsTrigger value="positions">Pozisyon Yönetimi</TabsTrigger>
-                <TabsTrigger value="personnel">Personel Yönetimi</TabsTrigger>
-                <TabsTrigger value="org-chart">Organizasyon Şeması</TabsTrigger>
-              </TabsList>
-              <TabsContent value="positions">
+  const renderContent = () => {
+    switch (activeView) {
+        case 'merkez-pozisyon':
+            return (
                 <Card className="shadow-lg">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
@@ -1049,6 +953,9 @@ export default function HomePage() {
                       <CardDescription>Şirket içindeki tüm merkez pozisyonları yönetin ve görüntüleyin.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Button onClick={handleAddPositionClick} size="sm">
+                            Pozisyon Ekle
+                        </Button>
                       <div className="relative w-full sm:w-64">
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
@@ -1060,8 +967,8 @@ export default function HomePage() {
                         />
                       </div>
                       <Button onClick={handleImportPositionsClick} variant="outline" size="sm" className="flex-shrink-0">
-                        <UploadCloud />
-                        (Pozisyon)
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                        Yükle
                       </Button>
                     </div>
                   </CardHeader>
@@ -1075,8 +982,9 @@ export default function HomePage() {
                     />
                   </CardContent>
                 </Card>
-              </TabsContent>
-              <TabsContent value="personnel">
+            );
+        case 'merkez-personel':
+            return (
                 <Card className="shadow-lg">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
@@ -1084,6 +992,9 @@ export default function HomePage() {
                       <CardDescription>Merkez personelini yönetin.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Button onClick={handleAddPersonnelClick} size="sm">
+                           Personel Ekle
+                        </Button>
                       <div className="relative w-full sm:w-64">
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
@@ -1095,8 +1006,8 @@ export default function HomePage() {
                         />
                       </div>
                       <Button onClick={handleImportPersonnelClick} variant="outline" size="sm" className="flex-shrink-0">
-                        <UploadCloud />
-                        (Personel)
+                        <UploadCloud className="mr-2 h-4 w-4"/>
+                        Yükle
                       </Button>
                     </div>
                   </CardHeader>
@@ -1108,8 +1019,9 @@ export default function HomePage() {
                     />
                   </CardContent>
                 </Card>
-              </TabsContent>
-              <TabsContent value="org-chart">
+            );
+        case 'merkez-sema':
+             return (
                 <Card className="shadow-lg">
                   <CardHeader>
                     <CardTitle id="org-chart-heading">Organizasyon Şeması</CardTitle>
@@ -1119,24 +1031,19 @@ export default function HomePage() {
                     <OrgChart positions={positions} allPersonnel={personnel} />
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          <TabsContent value="tasra">
-             <Tabs defaultValue="positions" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 sub-tabs-list">
-                <TabsTrigger value="positions">Pozisyon Yönetimi</TabsTrigger>
-                <TabsTrigger value="personnel">Personel Yönetimi</TabsTrigger>
-              </TabsList>
-               <TabsContent value="positions">
-                <Card className="shadow-lg">
+            );
+        case 'tasra-pozisyon':
+            return (
+                 <Card className="shadow-lg">
                    <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                       <CardTitle id="tasra-positions-heading" className="text-sm font-semibold">Taşra Pozisyonları (Toplam: {filteredTasraPositions.length})</CardTitle>
                       <CardDescription>Şirket içindeki tüm taşra pozisyonları yönetin ve görüntüleyin.</CardDescription>
                     </div>
                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Button onClick={handleAddTasraPositionClick} size="sm">
+                            Pozisyon Ekle
+                        </Button>
                       <div className="relative w-full sm:w-64">
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
@@ -1148,8 +1055,8 @@ export default function HomePage() {
                         />
                       </div>
                       <Button onClick={handleImportTasraPositionsClick} variant="outline" size="sm" className="flex-shrink-0">
-                        <UploadCloud />
-                        (Taşra Pozisyon)
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                        Yükle
                       </Button>
                     </div>
                   </CardHeader>
@@ -1162,8 +1069,9 @@ export default function HomePage() {
                     />
                   </CardContent>
                 </Card>
-              </TabsContent>
-               <TabsContent value="personnel">
+            );
+        case 'tasra-personel':
+            return (
                 <Card className="shadow-lg">
                    <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
@@ -1171,6 +1079,9 @@ export default function HomePage() {
                       <CardDescription>Taşra personelini yönetin.</CardDescription>
                     </div>
                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Button onClick={handleAddTasraPersonnelClick} size="sm">
+                            Personel Ekle
+                        </Button>
                       <div className="relative w-full sm:w-64">
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
@@ -1182,8 +1093,8 @@ export default function HomePage() {
                         />
                       </div>
                       <Button onClick={handleImportPersonnelClick} variant="outline" size="sm" className="flex-shrink-0">
-                        <UploadCloud />
-                        (Taşra Personel)
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                        Yükle
                       </Button>
                     </div>
                   </CardHeader>
@@ -1195,20 +1106,24 @@ export default function HomePage() {
                     />
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
+            );
+        case 'raporlama':
+            return (
+                <ReportingPanel
+                    positions={positions}
+                    personnel={personnel}
+                    tasraPositions={tasraPositions}
+                    tasraPersonnel={tasraPersonnel}
+                />
+            );
+        default:
+            return <p>Görünüm bulunamadı.</p>;
+    }
+  }
 
-          <TabsContent value="raporlama">
-            <ReportingPanel
-              positions={positions}
-              personnel={personnel}
-              tasraPositions={tasraPositions}
-              tasraPersonnel={tasraPersonnel}
-            />
-          </TabsContent>
-        </Tabs>
-      </main>
+  return (
+    <>
+      {renderContent()}
 
       <input
         type="file"
@@ -1263,7 +1178,15 @@ export default function HomePage() {
         personnelToEdit={editingTasraPersonnel}
         onSave={handleSaveTasraPersonnel}
       />
-
-    </div>
+    </>
   );
+}
+
+
+export default function Page() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <DashboardPageContent />
+        </Suspense>
+    )
 }

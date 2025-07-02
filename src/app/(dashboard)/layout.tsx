@@ -1,0 +1,220 @@
+
+"use client";
+
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, Suspense } from 'react';
+import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+import { Users, LogOut, Trash, Menu, Briefcase } from "lucide-react";
+import Image from "next/image";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { SidebarNav } from '@/components/sidebar-nav';
+import { useToast } from "@/hooks/use-toast";
+
+
+const viewTitles: { [key: string]: string } = {
+    'merkez-pozisyon': 'Merkez Pozisyon Yönetimi',
+    'merkez-personel': 'Merkez Personel Yönetimi',
+    'merkez-sema': 'Merkez Organizasyon Şeması',
+    'tasra-pozisyon': 'Taşra Pozisyon Yönetimi',
+    'tasra-personel': 'Taşra Personel Yönetimi',
+    'raporlama': 'Raporlama ve Analiz',
+};
+
+function DashboardLayout({ children }: { children: React.ReactNode }) {
+    const { user, logout, loading } = useAuth();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { toast } = useToast();
+
+    const view = searchParams.get('view') || 'merkez-pozisyon';
+    
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push('/login');
+        }
+    }, [user, loading, router]);
+
+    const handleClearPersonnel = () => {
+        localStorage.removeItem('positionTrackerApp_personnel');
+        localStorage.removeItem('tasraTrackerApp_personnel');
+
+        const merkezPositionsRaw = localStorage.getItem('positionTrackerApp_positions');
+        if (merkezPositionsRaw) {
+            try {
+                const merkezPositions = JSON.parse(merkezPositionsRaw);
+                if (Array.isArray(merkezPositions)) {
+                    const updatedMerkezPositions = merkezPositions.map(p => ({ ...p, assignedPersonnelId: null }));
+                    localStorage.setItem('positionTrackerApp_positions', JSON.stringify(updatedMerkezPositions));
+                }
+            } catch (e) { console.error("Could not update merkez positions", e); }
+        }
+        
+        const tasraPositionsRaw = localStorage.getItem('tasraTrackerApp_positions');
+        if (tasraPositionsRaw) {
+            try {
+                const tasraPositions = JSON.parse(tasraPositionsRaw);
+                if (Array.isArray(tasraPositions)) {
+                    const updatedTasraPositions = tasraPositions.map(p => ({ ...p, assignedPersonnelId: null }));
+                    localStorage.setItem('tasraTrackerApp_positions', JSON.stringify(updatedTasraPositions));
+                }
+            } catch(e) { console.error("Could not update tasra positions", e); }
+        }
+
+        toast({
+            title: "Personel Verileri Temizlendi",
+            description: "Tüm personel bilgileri başarıyla silindi. Sayfa yeniden yükleniyor...",
+        });
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    };
+
+    if (loading || !user) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-background">
+                <p>Yükleniyor...</p>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="grid min-h-screen w-full md:grid-cols-[240px_1fr]">
+            <aside className="hidden border-r bg-muted/40 md:block">
+                <div className="flex h-full max-h-screen flex-col gap-2">
+                    <div className="flex h-14 items-center border-b px-6">
+                        <Link href="/" className="flex items-center gap-2 font-semibold">
+                            <Image
+                                src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
+                                alt="PTT Logo"
+                                width={80}
+                                height={32}
+                                className="object-contain"
+                            />
+                        </Link>
+                    </div>
+                    <div className="flex-1 overflow-auto py-2">
+                        <SidebarNav />
+                    </div>
+                </div>
+            </aside>
+            <div className="flex flex-col">
+                <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6">
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+                                <Menu className="h-5 w-5" />
+                                <span className="sr-only">Navigasyon menüsünü aç/kapa</span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="flex flex-col p-0">
+                           <div className="flex h-14 items-center border-b px-6">
+                                <Link href="/" className="flex items-center gap-2 font-semibold">
+                                    <Image
+                                        src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
+                                        alt="PTT Logo"
+                                        width={80}
+                                        height={32}
+                                        className="object-contain"
+                                    />
+                                </Link>
+                            </div>
+                            <SidebarNav />
+                        </SheetContent>
+                    </Sheet>
+                    
+                    <h1 className="flex-1 text-lg font-semibold">{viewTitles[view] || 'Pozisyon Takip Sistemi'}</h1>
+
+                    <div className="flex items-center gap-4">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                                    <Avatar className="h-10 w-10">
+                                        <AvatarFallback>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" align="end" forceMount>
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
+                                        <p className="text-xs leading-none text-muted-foreground">
+                                            Sicil: {user.registryNumber}
+                                        </p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem
+                                            className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10"
+                                            onSelect={(e) => e.preventDefault()}
+                                        >
+                                            <Trash className="mr-2 h-4 w-4" />
+                                            <span>Tüm Personeli Sil</span>
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Bu işlem geri alınamaz. Sistemdeki tüm merkez ve taşra personeli kalıcı olarak silinecektir. Pozisyonlar silinmeyecek, ancak personel atamaları kaldırılacaktır.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>İptal</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                onClick={handleClearPersonnel}
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                                Evet, Personeli Sil
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={logout}>
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>Çıkış Yap</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </header>
+                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+                    {children}
+                </main>
+            </div>
+        </div>
+    );
+}
+
+
+export default function Layout({children}: {children: React.ReactNode}) {
+    return (
+        <Suspense fallback={<div>Loading Layout...</div>}>
+            <DashboardLayout>{children}</DashboardLayout>
+        </Suspense>
+    )
+}

@@ -1,135 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-"use client";
+@layer base {
+  :root {
+    --background: 210 16% 97%;
+    --foreground: 210 16% 10%;
 
-import { Button } from "@/components/ui/button";
-import { Users, LogOut, Map, Building, Trash } from "lucide-react";
-import Image from "next/image";
-import type { AuthUser } from "@/contexts/auth-context";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "./ui/avatar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+    --card: 210 16% 100%;
+    --card-foreground: 210 16% 10%;
 
+    --popover: 210 16% 100%;
+    --popover-foreground: 210 16% 10%;
 
-interface AppHeaderProps {
-  user: AuthUser | null;
-  onAddPosition: () => void;
-  onAddPersonnel: () => void;
-  onLogout: () => void;
-  onClearPersonnel: () => void;
-  activeTab: 'merkez' | 'tasra' | 'raporlama';
+    --primary: 170 80% 35%;
+    --primary-foreground: 210 16% 98%;
+
+    --secondary: 210 16% 94%;
+    --secondary-foreground: 210 16% 10%;
+
+    --muted: 210 16% 94%;
+    --muted-foreground: 210 10% 45%;
+
+    --accent: 210 16% 90%;
+    --accent-foreground: 210 16% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 16% 88%;
+    --input: 210 16% 90%;
+    --ring: 170 80% 35%;
+    
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+
+    /* Sidebar variables, can remain default or be themed if sidebar is used extensively */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 210 16% 10%;
+    --foreground: 210 16% 95%;
+
+    --card: 210 16% 15%;
+    --card-foreground: 210 16% 95%;
+
+    --popover: 210 16% 15%;
+    --popover-foreground: 210 16% 95%;
+
+    --primary: 170 80% 60%;
+    --primary-foreground: 170 80% 10%;
+
+    --secondary: 210 16% 25%;
+    --secondary-foreground: 210 16% 95%;
+
+    --muted: 210 16% 25%;
+    --muted-foreground: 210 15% 65%;
+
+    --accent: 210 16% 30%;
+    --accent-foreground: 210 16% 95%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 16% 25%;
+    --input: 210 16% 30%;
+    --ring: 170 80% 60%;
+
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
 }
 
-export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout, onClearPersonnel, activeTab }: AppHeaderProps) {
-  const title = activeTab === 'merkez'
-    ? "Merkez Teşkilatı Yönetim Sistemi"
-    : activeTab === 'tasra'
-    ? "Taşra Teşkilatı Yönetim Sistemi"
-    : "Raporlama ve Analiz";
-  
-  const personnelButtonText = activeTab === 'merkez' ? 'Personel Ekle' : 'Taşra Personel Ekle';
-  const positionButtonText = activeTab === 'merkez' ? 'Pozisyon Ekle' : 'Taşra Pozisyon Ekle';
-
-  return (
-    <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
-      <div className="max-w-screen-2xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Image
-            src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
-            alt="PTT Logo"
-            width={100}
-            height={40}
-            className="object-contain"
-          />
-          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          {user && activeTab !== 'raporlama' && (
-            <div className="flex gap-2">
-              <Button onClick={onAddPersonnel} size="sm" variant="outline">
-                <Users className="mr-2 h-4 w-4" />
-                {personnelButtonText}
-              </Button>
-              <Button onClick={onAddPosition} size="sm">
-                {activeTab === 'merkez' ? <Building className="mr-2 h-4 w-4" /> : <Map className="mr-2 h-4 w-4" /> }
-                {positionButtonText}
-              </Button>
-            </div>
-          )}
-
-          {user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      Sicil: {user.registryNumber}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem
-                      className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10"
-                      onSelect={(e) => e.preventDefault()}
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      <span>Tüm Personeli Sil</span>
-                    </DropdownMenuItem>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Bu işlem geri alınamaz. Sistemdeki tüm merkez ve taşra personeli kalıcı olarak silinecektir. Pozisyonlar silinmeyecek, ancak personel atamaları kaldırılacaktır.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>İptal</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={onClearPersonnel}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Evet, Personeli Sil
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Çıkış Yap</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </div>
-    </header>
-  );
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
