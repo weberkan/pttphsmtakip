@@ -53,6 +53,8 @@ Sisteme Excel dosyaları ile toplu olarak personel ve pozisyon ekleyebilirsiniz.
 
 #### Personel Yükleme Formatı (Merkez ve Taşra Ortak)
 
+Hem Merkez hem de Taşra personelini aynı Excel formatını kullanarak sisteme yükleyebilirsiniz. Sistem, dosyayı hangi ekrandan (`Merkez Personel Yönetimi` veya `Taşra Personel Yönetimi`) yüklediğinizi anlar ve personeli doğru listeye ekler.
+
 Personel listesini yüklemek için Excel dosyanızda aşağıdaki sütunlar bulunmalıdır. **Kalın** ile yazılanlar zorunlu alanlardır.
 
 *   **`Adı`** (Alternatif başlıklar: `Ad`)
@@ -129,3 +131,6 @@ _Örnek Taşra Pozisyon Excel Dosyası:_
 | Ankara P.İ.M. | Memur | Asıl | 789012 | | | | |
 | İzmir P.İ.M. | Şef | Boş | | | | | |
 
+
+
+    

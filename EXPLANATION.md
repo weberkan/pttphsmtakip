@@ -53,6 +53,8 @@ Sisteme Excel dosyaları ile toplu olarak personel ve pozisyon ekleyebilirsiniz.
 
 #### Personel Yükleme Formatı (Merkez ve Taşra Ortak)
 
+Hem Merkez hem de Taşra personelini aynı Excel formatını kullanarak sisteme yükleyebilirsiniz. Sistem, dosyayı hangi ekrandan (`Merkez Personel Yönetimi` veya `Taşra Personel Yönetimi`) yüklediğinizi anlar ve personeli doğru listeye ekler.
+
 Personel listesini yüklemek için Excel dosyanızda aşağıdaki sütunlar bulunmalıdır. **Kalın** ile yazılanlar zorunlu alanlardır.
 
 *   **`Adı`** (Alternatif başlıklar: `Ad`)
@@ -120,3 +122,4 @@ _Önemli Notlar:_
 *   `Atanan Personel Sicil` alanına yazdığınız sicil numarasının sistemde (Taşra Personel listesinde) kayıtlı bir personele ait olması gerekir.
 *   Bir pozisyonu güncellemek için (örn: atanan kişiyi değiştirmek), Excel'de `Ünite` ve `Görev Yeri` alanları sistemdekiyle birebir aynı olan bir satır ekleyin. Sistem bu pozisyonu bulup diğer sütunlardaki bilgilerle güncelleyecektir.
 
+    
