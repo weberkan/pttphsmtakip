@@ -39,6 +39,7 @@ import { format, parse, isValid } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Switch } from "./ui/switch";
+import { turkeyCities } from "@/lib/cities";
 
 const positionSchema = z.object({
   unit: z.string().min(2, "Ünite en az 2 karakter olmalıdır."),
@@ -104,6 +105,7 @@ export function AddEditTasraPositionDialog({
   });
 
   const positionStatus = form.watch("status");
+  const [unitOpen, setUnitOpen] = useState(false);
   const [personnelOpen, setPersonnelOpen] = useState(false);
 
   const assignedPersonnelOptions = useMemo(() => [
@@ -198,11 +200,55 @@ export function AddEditTasraPositionDialog({
                   control={form.control}
                   name="unit"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Ünite</FormLabel>
-                      <FormControl>
-                        <Input placeholder="örn: Adana P.İ.M." {...field} />
-                      </FormControl>
+                      <Popover open={unitOpen} onOpenChange={setUnitOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={unitOpen}
+                              className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                            >
+                              <span className="truncate">
+                                {field.value || "Ünite seçin"}
+                              </span>
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                          <Command>
+                            <CommandInput placeholder="İl ara..." />
+                            <CommandList>
+                              <CommandEmpty>İl bulunamadı.</CommandEmpty>
+                              <CommandGroup>
+                                {turkeyCities.map((city) => (
+                                  <CommandItem
+                                    value={city}
+                                    key={city}
+                                    onSelect={(currentValue) => {
+                                      form.setValue("unit", currentValue);
+                                      setUnitOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        field.value === city
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {city}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -491,5 +537,3 @@ export function AddEditTasraPositionDialog({
     </Dialog>
   );
 }
-
-    
