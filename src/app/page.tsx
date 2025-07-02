@@ -50,6 +50,21 @@ const importPositionSchema = z.object({
   startDate: z.date().optional().nullable(),
 });
 
+const importTasraPositionSchema = z.object({
+  unit: z.string().min(1, "Ünite boş olamaz."),
+  dutyLocation: z.string().min(1, "Görev Yeri boş olamaz."),
+  status: z.enum(["Asıl", "Vekalet", "Yürütme", "Boş"], { 
+    errorMap: () => ({ message: "Durum 'Asıl', 'Vekalet', 'Yürütme' veya 'Boş' olmalıdır." }) 
+  }),
+  originalTitle: z.string().optional().nullable().or(z.literal('')),
+  assignedPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
+  startDate: z.date().optional().nullable(),
+  actingAuthority: z.enum(["Başmüdürlük", "Genel Müdürlük"]).optional().nullable(),
+  receivesProxyPay: z.union([z.boolean(), z.string()]).transform(val => ['evet', 'true', '1', 'var', 'alıyor'].includes(String(val).toLowerCase())).optional().default(false),
+  hasDelegatedAuthority: z.union([z.boolean(), z.string()]).transform(val => ['evet', 'true', '1', 'var'].includes(String(val).toLowerCase())).optional().default(false),
+});
+
+
 const positionTitleOrder: { [key: string]: number } = {
   "Genel Müdür": 1,
   "Genel Müdür Yardımcısı": 2,
@@ -97,6 +112,7 @@ export default function HomePage() {
   const { toast } = useToast();
   const personnelFileInputRef = useRef<HTMLInputElement>(null);
   const positionFileInputRef = useRef<HTMLInputElement>(null);
+  const tasraPositionFileInputRef = useRef<HTMLInputElement>(null);
   
   // Merkez States
   const [filter, setFilter] = useState<PositionFilterType>("all");
@@ -341,6 +357,44 @@ export default function HomePage() {
 
   }, [personnel, positions, personnelSearchTerm]);
 
+  const filteredTasraPositions = useMemo(() => {
+    let _filtered = tasraPositions;
+    if (tasraPositionSearchTerm.trim() !== "") {
+      const searchTermLower = tasraPositionSearchTerm.toLowerCase();
+      _filtered = _filtered.filter(p => {
+        const assignedPerson = p.assignedPersonnelId ? tasraPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
+        return (
+          p.unit.toLowerCase().includes(searchTermLower) ||
+          p.dutyLocation.toLowerCase().includes(searchTermLower) ||
+          (p.originalTitle && p.originalTitle.toLowerCase().includes(searchTermLower)) ||
+          (assignedPerson && (
+            assignedPerson.firstName.toLowerCase().includes(searchTermLower) ||
+            assignedPerson.lastName.toLowerCase().includes(searchTermLower) ||
+            assignedPerson.registryNumber.toLowerCase().includes(searchTermLower)
+          ))
+        );
+      });
+    }
+    return _filtered.sort((a,b) => a.unit.localeCompare(b.unit));
+  }, [tasraPositions, tasraPositionSearchTerm, tasraPersonnel]);
+
+  const filteredTasraPersonnel = useMemo(() => {
+    let filtered = tasraPersonnel;
+    if (tasraPersonnelSearchTerm.trim() !== "") {
+        const searchTermLower = tasraPersonnelSearchTerm.toLowerCase();
+        filtered = tasraPersonnel.filter(p => 
+            p.firstName.toLowerCase().includes(searchTermLower) ||
+            p.lastName.toLowerCase().includes(searchTermLower) ||
+            p.registryNumber.toLowerCase().includes(searchTermLower) ||
+            (p.email && p.email.toLowerCase().includes(searchTermLower)) ||
+            (p.phone && p.phone.toLowerCase().includes(searchTermLower))
+        );
+    }
+    return [...filtered].sort((a, b) => 
+        `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+    );
+  }, [tasraPersonnel, tasraPersonnelSearchTerm]);
+
 
   const handleImportPersonnelClick = () => {
     personnelFileInputRef.current?.click();
@@ -348,6 +402,10 @@ export default function HomePage() {
 
   const handleImportPositionsClick = () => {
     positionFileInputRef.current?.click();
+  };
+
+  const handleImportTasraPositionsClick = () => {
+    tasraPositionFileInputRef.current?.click();
   };
 
   const normalizeHeader = (header: string) => header.toLowerCase().replace(/\s+/g, '');
@@ -635,6 +693,162 @@ export default function HomePage() {
     };
     reader.readAsArrayBuffer(file);
   };
+  
+  const handleTasraPositionFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+        if (jsonData.length === 0) {
+          toast({ title: "Hata", description: "Taşra pozisyon Excel dosyası boş.", variant: "destructive" });
+          return;
+        }
+
+        const headers = (jsonData[0] as string[]).map(normalizeHeader);
+        const rows = jsonData.slice(1);
+
+        const headerMapping: { [key: string]: keyof z.infer<typeof importTasraPositionSchema> } = {
+          'ünite': 'unit', 'unite': 'unit',
+          'göremyyeri': 'dutyLocation', 'gorevyeri': 'dutyLocation',
+          'durum': 'status', 
+          'asılünvan': 'originalTitle', 'asilunvan': 'originalTitle',
+          'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber',
+          'başlamatarihi': 'startDate', 'baslamatarihi': 'startDate',
+          'göreviverenmakam': 'actingAuthority', 'goreviverenmakam': 'actingAuthority', 'makam': 'actingAuthority',
+          'vekaletücretialıyormu': 'receivesProxyPay', 'vekaletucretialiyormu': 'receivesProxyPay', 'vekaletücreti': 'receivesProxyPay',
+          'yetkidevrivarmı': 'hasDelegatedAuthority', 'yetkidevri': 'hasDelegatedAuthority',
+        };
+        
+        const positionHeaderMappingReverse: { [key: string]: string } = {
+          'unit': 'Ünite', 'dutyLocation': 'Görev Yeri', 'status': 'Durum', 'originalTitle': 'Asıl Ünvan',
+          'assignedPersonnelRegistryNumber': 'Atanan Personel Sicil', 'startDate': 'Başlama Tarihi',
+          'actingAuthority': 'Görevi Veren Makam', 'receivesProxyPay': 'Vekalet Ücreti Alıyor Mu?', 'hasDelegatedAuthority': 'Yetki Devri Var Mı?',
+        };
+
+        let addedCount = 0;
+        let updatedCount = 0;
+        let errorCount = 0;
+        let warningCount = 0;
+
+        rows.forEach((rowArray, rowIndex) => {
+          const rawRowData: any = {};
+          headers.forEach((header, colIndex) => {
+            const positionKey = headerMapping[header];
+            if (positionKey) {
+              let excelValue = rowArray[colIndex];
+              if (excelValue === null || excelValue === undefined) {
+                rawRowData[positionKey] = null;
+              } else if (typeof excelValue === 'string') {
+                rawRowData[positionKey] = excelValue.trim();
+              } else if (positionKey === 'startDate') {
+                 rawRowData[positionKey] = excelValue instanceof Date ? excelValue : null;
+              } else {
+                 rawRowData[positionKey] = String(excelValue).trim();
+              }
+            }
+          });
+          
+          const validation = importTasraPositionSchema.safeParse(rawRowData);
+
+          if (validation.success) {
+            const validatedData = validation.data;
+            let resolvedAssignedPersonnelId: string | null = null;
+            
+            if (validatedData.assignedPersonnelRegistryNumber && validatedData.status !== "Boş") {
+              const assignee = tasraPersonnel.find(p => p.registryNumber === validatedData.assignedPersonnelRegistryNumber);
+              if (assignee) {
+                resolvedAssignedPersonnelId = assignee.id;
+              } else {
+                 warningCount++;
+                 toast({ title: `Taşra Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı. Personel atanmayacak.`, variant: "default", duration: 4000 + warningCount * 100 });
+              }
+            } else if (validatedData.status === "Boş") {
+                resolvedAssignedPersonnelId = null; 
+            }
+            
+            const isProxyOrActing = validatedData.status === 'Vekalet' || validatedData.status === 'Yürütme';
+            
+            const positionDataFromExcel: Omit<TasraPosition, 'id'> = {
+              unit: validatedData.unit,
+              dutyLocation: validatedData.dutyLocation,
+              originalTitle: isProxyOrActing ? validatedData.originalTitle || null : null,
+              status: validatedData.status,
+              assignedPersonnelId: resolvedAssignedPersonnelId,
+              startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
+              actingAuthority: isProxyOrActing ? validatedData.actingAuthority || null : null,
+              receivesProxyPay: isProxyOrActing ? validatedData.receivesProxyPay || false : false,
+              hasDelegatedAuthority: isProxyOrActing ? validatedData.hasDelegatedAuthority || false : false,
+            };
+            
+            const existingPosition = tasraPositions.find(p => p.unit === positionDataFromExcel.unit && p.dutyLocation === positionDataFromExcel.dutyLocation);
+
+            if (existingPosition) {
+              updateTasraPosition({ ...existingPosition, ...positionDataFromExcel });
+              updatedCount++;
+            } else {
+              addTasraPosition(positionDataFromExcel);
+              addedCount++;
+            }
+
+          } else {
+            errorCount++;
+            const errorMessagesForToast = validation.error.issues.map(issue => {
+              let issuePath = issue.path.join('.');
+              if (issue.path.length === 1 && positionHeaderMappingReverse[issue.path[0] as string]) {
+                issuePath = positionHeaderMappingReverse[issue.path[0] as string];
+              }
+              return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
+            });
+            const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir taşra pozisyonu doğrulama hatası oluştu.";
+
+            console.error(`Taşra Pozisyon Satır ${rowIndex + 2} için doğrulama hatası. Zod issues:`, validation.error.issues);
+            toast({
+              title: `Taşra Pozisyon Satır ${rowIndex + 2} Hatası`,
+              description: errorDescription,
+              variant: "destructive",
+              duration: 5000 + rowIndex * 200
+            });
+          }
+        });
+
+        let summaryMessage = "";
+        if (addedCount > 0) summaryMessage += `${addedCount} pozisyon eklendi. `;
+        if (updatedCount > 0) summaryMessage += `${updatedCount} pozisyon güncellendi. `;
+        if (errorCount > 0) summaryMessage += `${errorCount} pozisyon hatalı veri nedeniyle işlenemedi. `;
+        if (warningCount > 0) summaryMessage += `${warningCount} uyarı oluştu (detaylar için önceki mesajlara bakın).`;
+        
+        if (summaryMessage.trim() === "") {
+            summaryMessage = "İçe aktarılacak yeni veya güncellenecek pozisyon bulunamadı ya da tüm satırlar hatalıydı.";
+        }
+
+        toast({
+          title: "Taşra Pozisyon İçe Aktarma Tamamlandı",
+          description: summaryMessage.trim(),
+        });
+
+      } catch (error: any) {
+        console.error("Taşra Pozisyon Excel dosyası işlenirken hata:", error);
+        if (error.message && error.message.includes("password-protected")) {
+          toast({ title: "Hata", description: "Yüklenen pozisyon dosyası şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
+        } else {
+          toast({ title: "Hata", description: "Taşra Pozisyon Excel dosyası işlenirken bir sorun oluştu.", variant: "destructive" });
+        }
+      } finally {
+        if (event.target) {
+          event.target.value = ""; 
+        }
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
 
   if (authLoading || !isMerkezInitialized || !isTasraInitialized || !user) {
@@ -793,15 +1007,31 @@ export default function HomePage() {
               </TabsList>
                <TabsContent value="positions">
                 <Card className="shadow-lg">
-                  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle id="tasra-positions-heading" className="text-sm font-semibold">Taşra Pozisyonları (Toplam: {tasraPositions.length})</CardTitle>
+                      <CardTitle id="tasra-positions-heading" className="text-sm font-semibold">Taşra Pozisyonları (Toplam: {filteredTasraPositions.length})</CardTitle>
                       <CardDescription>Şirket içindeki tüm taşra pozisyonları yönetin ve görüntüleyin.</CardDescription>
+                    </div>
+                     <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="search"
+                          placeholder="Pozisyonlarda ara..."
+                          className="pl-8 h-9"
+                          value={tasraPositionSearchTerm}
+                          onChange={(e) => setTasraPositionSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      <Button onClick={handleImportTasraPositionsClick} variant="outline" size="sm" className="flex-shrink-0">
+                        <UploadCloud />
+                        (Taşra Pozisyon)
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <TasraPositionList
-                      positions={tasraPositions}
+                      positions={filteredTasraPositions}
                       allPersonnel={tasraPersonnel}
                       onEdit={handleEditTasraPosition}
                       onDelete={handleDeleteTasraPosition}
@@ -811,15 +1041,31 @@ export default function HomePage() {
               </TabsContent>
                <TabsContent value="personnel">
                 <Card className="shadow-lg">
-                  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-sm font-semibold" id="tasra-personnel-heading">Taşra Personel Listesi (Toplam: {tasraPersonnel.length})</CardTitle>
+                      <CardTitle className="text-sm font-semibold" id="tasra-personnel-heading">Taşra Personel Listesi (Toplam: {filteredTasraPersonnel.length})</CardTitle>
                       <CardDescription>Taşra personelini yönetin.</CardDescription>
+                    </div>
+                     <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="search"
+                          placeholder="Personellerde ara..."
+                          className="pl-8 h-9"
+                          value={tasraPersonnelSearchTerm}
+                          onChange={(e) => setTasraPersonnelSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      <Button onClick={handleImportPersonnelClick} variant="outline" size="sm" className="flex-shrink-0">
+                        <UploadCloud />
+                        (Taşra Personel)
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <PersonnelList
-                      personnel={tasraPersonnel}
+                      personnel={filteredTasraPersonnel}
                       onEdit={handleEditTasraPersonnel}
                       onDelete={handleDeleteTasraPersonnel}
                     />
@@ -842,6 +1088,13 @@ export default function HomePage() {
         type="file"
         ref={positionFileInputRef}
         onChange={handlePositionFileChange}
+        accept=".xlsx, .xls, .csv"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={tasraPositionFileInputRef}
+        onChange={handleTasraPositionFileChange}
         accept=".xlsx, .xls, .csv"
         className="hidden"
       />
