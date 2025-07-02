@@ -3,10 +3,10 @@
 
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
+import { useEffect, Suspense, useState } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Trash, Menu, Briefcase } from "lucide-react";
+import { Users, LogOut, Trash, Menu, Briefcase, ChevronsLeft } from "lucide-react";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -31,6 +31,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarNav } from '@/components/sidebar-nav';
 import { useToast } from "@/hooks/use-toast";
+import { cn } from '@/lib/utils';
 
 
 const viewTitles: { [key: string]: string } = {
@@ -47,6 +48,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const view = searchParams.get('view') || 'merkez-pozisyon';
     
@@ -100,22 +102,36 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
     
     return (
-        <div className="grid min-h-screen w-full md:grid-cols-[240px_1fr]">
-            <aside className="hidden border-r bg-muted/40 md:block">
-                <div className="flex h-full max-h-screen flex-col gap-2">
-                    <div className="flex h-14 items-center border-b px-6">
+        <div className={cn(
+            "grid min-h-screen w-full transition-[grid-template-columns] duration-300 ease-in-out",
+            isCollapsed ? "md:grid-cols-[68px_1fr]" : "md:grid-cols-[240px_1fr]"
+        )}>
+            <aside className="hidden border-r bg-muted/40 md:flex md:flex-col">
+                <div className="flex h-full max-h-screen flex-col">
+                    <div className={cn("flex h-14 items-center border-b px-6", isCollapsed && "px-2 justify-center")}>
                         <Link href="/" className="flex items-center gap-2 font-semibold">
                             <Image
                                 src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
                                 alt="PTT Logo"
-                                width={80}
+                                width={isCollapsed ? 40 : 80}
                                 height={32}
-                                className="object-contain"
+                                className="object-contain transition-all duration-300"
                             />
                         </Link>
                     </div>
                     <div className="flex-1 overflow-auto py-2">
-                        <SidebarNav />
+                        <SidebarNav isCollapsed={isCollapsed} />
+                    </div>
+                    <div className="mt-auto border-t p-2">
+                        <Button
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            variant="ghost"
+                            size="icon"
+                            className="w-full h-10"
+                            aria-label={isCollapsed ? "Menüyü genişlet" : "Menüyü daralt"}
+                        >
+                            <ChevronsLeft className={cn("h-5 w-5 transition-transform duration-300", isCollapsed && "rotate-180")} />
+                        </Button>
                     </div>
                 </div>
             </aside>
@@ -140,7 +156,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                                     />
                                 </Link>
                             </div>
-                            <SidebarNav />
+                            <SidebarNav isCollapsed={false} />
                         </SheetContent>
                     </Sheet>
                     
