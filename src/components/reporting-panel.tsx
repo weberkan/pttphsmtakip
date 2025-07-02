@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Download, Calendar as CalendarIcon } from 'lucide-react';
+import { Download, Calendar as CalendarIcon, RotateCcw } from 'lucide-react';
 import type { Position, Personnel, TasraPosition } from '@/lib/types';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -27,28 +27,36 @@ interface ReportingPanelProps {
 
 type DataSource = 'merkez_pozisyon' | 'tasra_pozisyon';
 const ALL_STATUSES: ('Asıl' | 'Vekalet' | 'Yürütme' | 'Boş')[] = ['Asıl', 'Vekalet', 'Yürütme', 'Boş'];
+const ALL_MAKAMLAR: ('Başmüdürlük' | 'Genel Müdürlük')[] = ['Başmüdürlük', 'Genel Müdürlük'];
 
 export function ReportingPanel({ positions, personnel, tasraPositions, tasraPersonnel }: ReportingPanelProps) {
   const [dataSource, setDataSource] = useState<DataSource>('merkez_pozisyon');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   
-  // Tasra Filters
-  const [locationFilters, setLocationFilters] = useState<string[]>([]);
-
   // Merkez Filters
   const [birimFilters, setBirimFilters] = useState<string[]>([]);
   const [gorevYeriFilters, setGorevYeriFilters] = useState<string[]>([]);
   const [unvanFilters, setUnvanFilters] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [merkezDateRange, setMerkezDateRange] = useState<DateRange | undefined>();
 
-  const uniqueTasraLocations = useMemo(() => {
-    const locations = new Set(tasraPositions.map(p => p.dutyLocation));
-    return Array.from(locations).sort();
-  }, [tasraPositions]);
-  
+  // Tasra Filters
+  const [uniteFilters, setUniteFilters] = useState<string[]>([]);
+  const [tasraGorevYeriFilters, setTasraGorevYeriFilters] = useState<string[]>([]);
+  const [asilUnvanFilters, setAsilUnvanFilters] = useState<string[]>([]);
+  const [makamFilters, setMakamFilters] = useState<string[]>([]);
+  const [vekaletUcretiFilter, setVekaletUcretiFilter] = useState<'all' | 'yes' | 'no'>('all');
+  const [yetkiDevriFilter, setYetkiDevriFilter] = useState<'all' | 'yes' | 'no'>('all');
+  const [tasraDateRange, setTasraDateRange] = useState<DateRange | undefined>();
+
+  // Filter Options Data
   const uniqueMerkezBirimler = useMemo(() => Array.from(new Set(positions.map(p => p.department))).sort(), [positions]);
   const uniqueMerkezGorevYerleri = useMemo(() => Array.from(new Set(positions.map(p => p.dutyLocation).filter(Boolean) as string[])).sort(), [positions]);
   const uniqueMerkezUnvanlar = useMemo(() => Array.from(new Set(positions.map(p => p.name))).sort(), [positions]);
+  
+  const uniqueTasraUniteler = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.unit))).sort(), [tasraPositions]);
+  const uniqueTasraGorevYerleri = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.dutyLocation))).sort(), [tasraPositions]);
+  const uniqueTasraAsilUnvanlar = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.originalTitle).filter(Boolean) as string[])).sort(), [tasraPositions]);
+
 
   const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
     setter(prev => 
@@ -74,30 +82,77 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
       if (unvanFilters.length > 0) {
         merkezData = merkezData.filter(p => unvanFilters.includes(p.name));
       }
-      if (dateRange?.from) {
-        const fromDate = dateRange.from;
+      if (merkezDateRange?.from) {
+        const fromDate = merkezDateRange.from;
         fromDate.setHours(0, 0, 0, 0);
         merkezData = merkezData.filter(p => p.startDate && new Date(p.startDate) >= fromDate);
       }
-      if (dateRange?.to) {
-        const toDate = dateRange.to;
+      if (merkezDateRange?.to) {
+        const toDate = merkezDateRange.to;
         toDate.setHours(23, 59, 59, 999);
         merkezData = merkezData.filter(p => p.startDate && new Date(p.startDate) <= toDate);
       }
       data = merkezData;
     } else if (dataSource === 'tasra_pozisyon') {
       let tasraData = tasraPositions;
+
       if (statusFilters.length > 0) {
         tasraData = tasraData.filter(p => statusFilters.includes(p.status));
       }
-      if (locationFilters.length > 0) {
-        tasraData = tasraData.filter(p => locationFilters.includes(p.dutyLocation));
+      if (uniteFilters.length > 0) {
+        tasraData = tasraData.filter(p => uniteFilters.includes(p.unit));
+      }
+      if (tasraGorevYeriFilters.length > 0) {
+        tasraData = tasraData.filter(p => tasraGorevYeriFilters.includes(p.dutyLocation));
+      }
+      if (asilUnvanFilters.length > 0) {
+        tasraData = tasraData.filter(p => p.originalTitle && asilUnvanFilters.includes(p.originalTitle));
+      }
+      if (makamFilters.length > 0) {
+        tasraData = tasraData.filter(p => p.actingAuthority && makamFilters.includes(p.actingAuthority));
+      }
+      if (vekaletUcretiFilter !== 'all') {
+        const filterValue = vekaletUcretiFilter === 'yes';
+        tasraData = tasraData.filter(p => p.receivesProxyPay === filterValue);
+      }
+      if (yetkiDevriFilter !== 'all') {
+        const filterValue = yetkiDevriFilter === 'yes';
+        tasraData = tasraData.filter(p => p.hasDelegatedAuthority === filterValue);
+      }
+      if (tasraDateRange?.from) {
+        const fromDate = tasraDateRange.from;
+        fromDate.setHours(0, 0, 0, 0);
+        tasraData = tasraData.filter(p => p.startDate && new Date(p.startDate) >= fromDate);
+      }
+      if (tasraDateRange?.to) {
+        const toDate = tasraDateRange.to;
+        toDate.setHours(23, 59, 59, 999);
+        tasraData = tasraData.filter(p => p.startDate && new Date(p.startDate) <= toDate);
       }
       data = tasraData;
     }
     return data;
-  }, [dataSource, statusFilters, locationFilters, birimFilters, gorevYeriFilters, unvanFilters, dateRange, positions, tasraPositions]);
+  }, [
+    dataSource, statusFilters, birimFilters, gorevYeriFilters, unvanFilters, merkezDateRange, 
+    uniteFilters, tasraGorevYeriFilters, asilUnvanFilters, makamFilters, vekaletUcretiFilter, yetkiDevriFilter, tasraDateRange,
+    positions, tasraPositions
+  ]);
 
+
+  const handleResetFilters = () => {
+    setStatusFilters([]);
+    setBirimFilters([]);
+    setGorevYeriFilters([]);
+    setUnvanFilters([]);
+    setMerkezDateRange(undefined);
+    setUniteFilters([]);
+    setTasraGorevYeriFilters([]);
+    setAsilUnvanFilters([]);
+    setMakamFilters([]);
+    setVekaletUcretiFilter('all');
+    setYetkiDevriFilter('all');
+    setTasraDateRange(undefined);
+  };
 
   const handleExportToExcel = () => {
     const dataToExport = filteredData.map(item => {
@@ -239,12 +294,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
             <Label htmlFor="data-source">1. Adım: Veri Kaynağı Seçin</Label>
             <Select value={dataSource} onValueChange={(val) => {
                 setDataSource(val as DataSource);
-                setStatusFilters([]);
-                setLocationFilters([]);
-                setBirimFilters([]);
-                setGorevYeriFilters([]);
-                setUnvanFilters([]);
-                setDateRange(undefined);
+                handleResetFilters();
             }}>
               <SelectTrigger id="data-source" className="mt-2">
                 <SelectValue placeholder="Veri kaynağı seçin..." />
@@ -257,19 +307,25 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
           </div>
           
           <div className='space-y-2'>
-            <Label>2. Adım: Filtreleri Uygulayın</Label>
+            <div className='flex items-center justify-between'>
+                <Label>2. Adım: Filtreleri Uygulayın</Label>
+                <Button variant="ghost" size="sm" onClick={handleResetFilters}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Filtreleri Temizle
+                </Button>
+            </div>
             {dataSource === 'merkez_pozisyon' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 pt-2">
                 <div className="space-y-2">
                     <Label className='text-xs font-semibold'>Pozisyon Durumu</Label>
-                    <div className="flex flex-col space-y-2">
+                    <ScrollArea className="h-32 w-full rounded-md border p-2">
                         {ALL_STATUSES.map(status => (
-                            <div key={status} className="flex items-center space-x-2">
+                            <div key={status} className="flex items-center space-x-2 py-1">
                                 <Checkbox id={`status-${status}`} checked={statusFilters.includes(status)} onCheckedChange={() => handleFilterChange(setStatusFilters)(status)} />
-                                <Label htmlFor={`status-${status}`} className="font-normal">{status}</Label>
+                                <Label htmlFor={`status-${status}`} className="font-normal text-sm">{status}</Label>
                             </div>
                         ))}
-                    </div>
+                    </ScrollArea>
                 </div>
                 <div className="space-y-2">
                     <Label className='text-xs font-semibold'>Birim</Label>
@@ -311,47 +367,119 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
                         <Button
                             id="date"
                             variant={"outline"}
-                            className={cn("w-full justify-start text-left font-normal h-10", !dateRange && "text-muted-foreground" )}
+                            className={cn("w-full justify-start text-left font-normal h-10", !merkezDateRange && "text-muted-foreground" )}
                         >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {dateRange?.from ? (
-                                dateRange.to ? ( <> {format(dateRange.from, "dd.MM.y")} - {format(dateRange.to, "dd.MM.y")} </> ) 
-                                : ( format(dateRange.from, "dd.MM.y") )
+                            {merkezDateRange?.from ? (
+                                merkezDateRange.to ? ( <> {format(merkezDateRange.from, "dd.MM.y")} - {format(merkezDateRange.to, "dd.MM.y")} </> ) 
+                                : ( format(merkezDateRange.from, "dd.MM.y") )
                             ) : ( <span>Tarih aralığı seçin</span> )}
                         </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
+                            <Calendar initialFocus mode="range" defaultMonth={merkezDateRange?.from} selected={merkezDateRange} onSelect={setMerkezDateRange} numberOfMonths={2} />
                         </PopoverContent>
                     </Popover>
                 </div>
               </div>
             )}
             {dataSource === 'tasra_pozisyon' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
                     <div className="space-y-2">
                         <Label className='text-xs font-semibold'>Pozisyon Durumu</Label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <ScrollArea className="h-32 w-full rounded-md border p-2">
                             {ALL_STATUSES.map(status => (
-                                <div key={status} className="flex items-center space-x-2">
-                                    <Checkbox id={`status-${status}`} checked={statusFilters.includes(status)} onCheckedChange={() => handleFilterChange(setStatusFilters)(status)} />
-                                    <Label htmlFor={`status-${status}`} className="font-normal">{status}</Label>
+                                <div key={`tasra-status-${status}`} className="flex items-center space-x-2 py-1">
+                                    <Checkbox id={`tasra-status-${status}`} checked={statusFilters.includes(status)} onCheckedChange={() => handleFilterChange(setStatusFilters)(status)} />
+                                    <Label htmlFor={`tasra-status-${status}`} className="font-normal text-sm">{status}</Label>
                                 </div>
                             ))}
-                        </div>
+                        </ScrollArea>
                     </div>
                     <div className="space-y-2">
-                        <Label className='text-xs font-semibold'>Görev Yeri (İl)</Label>
+                        <Label className='text-xs font-semibold'>Ünite</Label>
                         <ScrollArea className="h-32 w-full rounded-md border p-2">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {uniqueTasraLocations.map(location => (
-                                <div key={location} className="flex items-center space-x-2">
-                                    <Checkbox id={`loc-${location}`} checked={locationFilters.includes(location)} onCheckedChange={() => handleFilterChange(setLocationFilters)(location)} />
-                                    <Label htmlFor={`loc-${location}`} className="font-normal">{location}</Label>
+                            {uniqueTasraUniteler.map(item => (
+                                <div key={`unite-${item}`} className="flex items-center space-x-2 py-1">
+                                    <Checkbox id={`unite-${item}`} checked={uniteFilters.includes(item)} onCheckedChange={() => handleFilterChange(setUniteFilters)(item)} />
+                                    <Label htmlFor={`unite-${item}`} className="font-normal text-sm">{item}</Label>
                                 </div>
                             ))}
-                            </div>
                         </ScrollArea>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className='text-xs font-semibold'>Görev Yeri</Label>
+                        <ScrollArea className="h-32 w-full rounded-md border p-2">
+                            {uniqueTasraGorevYerleri.map(item => (
+                                <div key={`tasra-gorev-${item}`} className="flex items-center space-x-2 py-1">
+                                    <Checkbox id={`tasra-gorev-${item}`} checked={tasraGorevYeriFilters.includes(item)} onCheckedChange={() => handleFilterChange(setTasraGorevYeriFilters)(item)} />
+                                    <Label htmlFor={`tasra-gorev-${item}`} className="font-normal text-sm">{item}</Label>
+                                </div>
+                            ))}
+                        </ScrollArea>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className='text-xs font-semibold'>Asıl Ünvan</Label>
+                        <ScrollArea className="h-32 w-full rounded-md border p-2">
+                            {uniqueTasraAsilUnvanlar.map(item => (
+                                <div key={`asil-unvan-${item}`} className="flex items-center space-x-2 py-1">
+                                    <Checkbox id={`asil-unvan-${item}`} checked={asilUnvanFilters.includes(item)} onCheckedChange={() => handleFilterChange(setAsilUnvanFilters)(item)} />
+                                    <Label htmlFor={`asil-unvan-${item}`} className="font-normal text-sm">{item}</Label>
+                                </div>
+                            ))}
+                        </ScrollArea>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className='text-xs font-semibold'>Görevi Veren Makam</Label>
+                        <ScrollArea className="h-32 w-full rounded-md border p-2">
+                            {ALL_MAKAMLAR.map(makam => (
+                                <div key={`makam-${makam}`} className="flex items-center space-x-2 py-1">
+                                    <Checkbox id={`makam-${makam}`} checked={makamFilters.includes(makam)} onCheckedChange={() => handleFilterChange(setMakamFilters)(makam)} />
+                                    <Label htmlFor={`makam-${makam}`} className="font-normal text-sm">{makam}</Label>
+                                </div>
+                            ))}
+                        </ScrollArea>
+                    </div>
+                    <div className="flex flex-col space-y-4">
+                        <div className="space-y-2">
+                            <Label className='text-xs font-semibold'>Vekalet Ücreti</Label>
+                            <Select value={vekaletUcretiFilter} onValueChange={(val) => setVekaletUcretiFilter(val as any)}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tümü</SelectItem>
+                                    <SelectItem value="yes">Alıyor</SelectItem>
+                                    <SelectItem value="no">Almıyor</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className='text-xs font-semibold'>Yetki Devri</Label>
+                            <Select value={yetkiDevriFilter} onValueChange={(val) => setYetkiDevriFilter(val as any)}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tümü</SelectItem>
+                                    <SelectItem value="yes">Var</SelectItem>
+                                    <SelectItem value="no">Yok</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-1">
+                        <Label className='text-xs font-semibold'>Başlama Tarihi Aralığı</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button id="tasra-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-10", !tasraDateRange && "text-muted-foreground" )}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {tasraDateRange?.from ? (
+                                        tasraDateRange.to ? ( <> {format(tasraDateRange.from, "dd.MM.y")} - {format(tasraDateRange.to, "dd.MM.y")} </> ) 
+                                        : ( format(tasraDateRange.from, "dd.MM.y") )
+                                    ) : ( <span>Tarih aralığı seçin</span> )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar initialFocus mode="range" defaultMonth={tasraDateRange?.from} selected={tasraDateRange} onSelect={setTasraDateRange} numberOfMonths={2} />
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </div>
             )}
@@ -368,7 +496,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
             </Button>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-36rem)]">
+        <ScrollArea className="h-[calc(100vh-42rem)]">
              <div className="rounded-md border">
                 {renderTable()}
             </div>
