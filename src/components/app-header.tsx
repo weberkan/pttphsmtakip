@@ -33,13 +33,15 @@ interface AppHeaderProps {
   onAddPersonnel: () => void;
   onLogout: () => void;
   onClearPersonnel: () => void;
-  activeTab: 'merkez' | 'tasra';
+  activeTab: 'merkez' | 'tasra' | 'raporlama';
 }
 
 export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout, onClearPersonnel, activeTab }: AppHeaderProps) {
   const title = activeTab === 'merkez'
     ? "Merkez Teşkilatı Yönetim Sistemi"
-    : "Taşra Teşkilatı Yönetim Sistemi";
+    : activeTab === 'tasra'
+    ? "Taşra Teşkilatı Yönetim Sistemi"
+    : "Raporlama ve Analiz";
   
   const personnelButtonText = activeTab === 'merkez' ? 'Personel Ekle' : 'Taşra Personel Ekle';
   const positionButtonText = activeTab === 'merkez' ? 'Pozisyon Ekle' : 'Taşra Pozisyon Ekle';
@@ -58,7 +60,7 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout, onCle
           <h1 className="text-xl font-semibold text-foreground">{title}</h1>
         </div>
         <div className="flex items-center gap-4">
-          {user && (
+          {user && activeTab !== 'raporlama' && (
             <div className="flex gap-2">
               <Button onClick={onAddPersonnel} size="sm" variant="outline">
                 <Users className="mr-2 h-4 w-4" />

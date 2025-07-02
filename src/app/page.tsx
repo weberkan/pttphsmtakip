@@ -25,6 +25,7 @@ import { UploadCloud, Search } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { TasraPositionList } from "@/components/tasra-position-list";
 import { AddEditTasraPositionDialog } from "@/components/add-edit-tasra-position-dialog";
+import { ReportingPanel } from "@/components/reporting-panel";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -153,7 +154,7 @@ export default function HomePage() {
   const [tasraPositionSearchTerm, setTasraPositionSearchTerm] = useState("");
   const [tasraPersonnelSearchTerm, setTasraPersonnelSearchTerm] = useState("");
 
-  const [activeMainTab, setActiveMainTab] = useState<'merkez' | 'tasra'>('merkez');
+  const [activeMainTab, setActiveMainTab] = useState<'merkez' | 'tasra' | 'raporlama'>('merkez');
 
 
   useEffect(() => {
@@ -300,12 +301,12 @@ export default function HomePage() {
   // --- Header Button Logic ---
   const handleGenericAddPosition = () => {
     if (activeMainTab === 'merkez') handleAddPositionClick();
-    else handleAddTasraPositionClick();
+    else if (activeMainTab === 'tasra') handleAddTasraPositionClick();
   }
 
   const handleGenericAddPersonnel = () => {
     if (activeMainTab === 'merkez') handleAddPersonnelClick();
-    else handleAddTasraPersonnelClick();
+    else if (activeMainTab === 'tasra') handleAddTasraPersonnelClick();
   }
 
   const filteredPositions = useMemo(() => {
@@ -658,7 +659,7 @@ export default function HomePage() {
 
         const existingPositionMap = new Map<string, Position>(
           positions.map(p => {
-            const key = `${(p.department || '').toLowerCase()}|${(p.name || '').toLowerCase()}|${(p.dutyLocation || '').toLowerCase()}`;
+            const key = `${(p.department || '').trim().toLowerCase()}|${(p.name || '').trim().toLowerCase()}|${(p.dutyLocation || '').trim().toLowerCase()}`;
             return [key, p];
           })
         );
@@ -729,14 +730,13 @@ export default function HomePage() {
                 startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
               };
               
-              const key = `${(positionDataFromExcel.department || '').toLowerCase()}|${(positionDataFromExcel.name || '').toLowerCase()}|${(positionDataFromExcel.dutyLocation || '').toLowerCase()}`;
+              const key = `${(positionDataFromExcel.department || '').trim().toLowerCase()}|${(positionDataFromExcel.name || '').trim().toLowerCase()}|${(positionDataFromExcel.dutyLocation || '').trim().toLowerCase()}`;
               const existingPosition = existingPositionMap.get(key);
 
               if (existingPosition) {
                 positionsToUpdate.push({ ...existingPosition, ...positionDataFromExcel, id: existingPosition.id });
               } else {
                 positionsToAdd.push(positionDataFromExcel);
-                existingPositionMap.set(key, { ...positionDataFromExcel, id: crypto.randomUUID() });
               }
 
             } else {
@@ -761,7 +761,7 @@ export default function HomePage() {
         let summaryMessage = "";
         if (positionsToAdd.length > 0) summaryMessage += `${positionsToAdd.length} pozisyon eklendi. `;
         if (positionsToUpdate.length > 0) summaryMessage += `${positionsToUpdate.length} pozisyon güncellendi. `;
-        if (errors.length > 0) summaryMessage += `${errors.length} pozisyon hatalı. `;
+        if (errors.length > 0) summaryMessage += `${errors.length} satır hatalı. `;
         if (warnings.length > 0) summaryMessage += `${warnings.length} uyarı oluştu.`;
         
         if (summaryMessage.trim() === "") {
@@ -844,7 +844,7 @@ export default function HomePage() {
         
         const existingPositionMap = new Map<string, TasraPosition>(
           tasraPositions.map(p => {
-            const key = `${(p.unit || '').toLowerCase()}|${(p.dutyLocation || '').toLowerCase()}`;
+            const key = `${(p.unit || '').trim().toLowerCase()}|${(p.dutyLocation || '').trim().toLowerCase()}`;
             return [key, p];
           })
         );
@@ -903,14 +903,13 @@ export default function HomePage() {
                 hasDelegatedAuthority: isProxyOrActing ? validatedData.hasDelegatedAuthority || false : false,
               };
               
-              const key = `${(positionDataFromExcel.unit || '').toLowerCase()}|${(positionDataFromExcel.dutyLocation || '').toLowerCase()}`;
+              const key = `${(positionDataFromExcel.unit || '').trim().toLowerCase()}|${(positionDataFromExcel.dutyLocation || '').trim().toLowerCase()}`;
               const existingPosition = existingPositionMap.get(key);
 
               if (existingPosition) {
                 positionsToUpdate.push({ ...existingPosition, ...positionDataFromExcel, id: existingPosition.id });
               } else {
                 positionsToAdd.push(positionDataFromExcel);
-                existingPositionMap.set(key, { ...positionDataFromExcel, id: crypto.randomUUID() });
               }
 
             } else {
@@ -935,7 +934,7 @@ export default function HomePage() {
         let summaryMessage = "";
         if (positionsToAdd.length > 0) summaryMessage += `${positionsToAdd.length} pozisyon eklendi. `;
         if (positionsToUpdate.length > 0) summaryMessage += `${positionsToUpdate.length} pozisyon güncellendi. `;
-        if (errors.length > 0) summaryMessage += `${errors.length} pozisyon hatalı. `;
+        if (errors.length > 0) summaryMessage += `${errors.length} satır hatalı. `;
         if (warnings.length > 0) summaryMessage += `${warnings.length} uyarı oluştu.`;
         
         if (summaryMessage.trim() === "") {
@@ -1028,10 +1027,11 @@ export default function HomePage() {
         activeTab={activeMainTab}
       />
       <main className="flex-grow max-w-screen-2xl mx-auto p-4 md:p-6 lg:p-8 w-full">
-        <Tabs defaultValue="merkez" onValueChange={(value) => setActiveMainTab(value as 'merkez' | 'tasra')} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6 main-tabs-list">
+        <Tabs defaultValue="merkez" onValueChange={(value) => setActiveMainTab(value as 'merkez' | 'tasra' | 'raporlama')} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6 main-tabs-list">
             <TabsTrigger value="merkez">Merkez Teşkilatı</TabsTrigger>
             <TabsTrigger value="tasra">Taşra Teşkilatı</TabsTrigger>
+            <TabsTrigger value="raporlama">Raporlama ve Analiz</TabsTrigger>
           </TabsList>
           
           <TabsContent value="merkez">
@@ -1197,6 +1197,15 @@ export default function HomePage() {
                 </Card>
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          <TabsContent value="raporlama">
+            <ReportingPanel
+              positions={positions}
+              personnel={personnel}
+              tasraPositions={tasraPositions}
+              tasraPersonnel={tasraPersonnel}
+            />
           </TabsContent>
         </Tabs>
       </main>
