@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Network, LogIn } from "lucide-react";
+import Image from "next/image";
 
 const loginSchema = z.object({
   registryNumber: z.string().min(1, "Sicil numarası boş bırakılamaz."),
@@ -99,10 +100,16 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Network className="h-8 w-8 text-primary" />
+          <div className="mx-auto mb-4 flex h-16 items-center justify-center">
+            <Image
+              src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
+              alt="Logo"
+              width={120}
+              height={48}
+              className="object-contain"
+            />
           </div>
-          <CardTitle>Pozisyon Takip Sistemi</CardTitle>
+          <CardTitle>Personel Hareketleri Takip Sistemi</CardTitle>
           <CardDescription>Devam etmek için giriş yapın</CardDescription>
         </CardHeader>
         <CardContent>
