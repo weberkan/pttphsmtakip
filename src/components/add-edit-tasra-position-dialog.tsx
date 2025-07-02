@@ -50,6 +50,22 @@ const positionSchema = z.object({
   actingAuthority: z.enum(["Başmüdürlük", "Genel Müdürlük"]).nullable(),
   receivesProxyPay: z.boolean().default(false),
   hasDelegatedAuthority: z.boolean().default(false),
+}).superRefine((data, ctx) => {
+    if ((data.status === 'Vekalet' || data.status === 'Yürütme')) {
+        if (!data.originalTitle || data.originalTitle.trim() === '') {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['originalTitle'],
+                message: 'Bu durum için Asıl Ünvan zorunludur.',
+            });
+        } else if (["Vekalet", "Yürütme"].includes(data.originalTitle)) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["originalTitle"],
+                message: "Asıl Ünvan 'Vekalet' veya 'Yürütme' olamaz.",
+            });
+        }
+    }
 });
 
 type PositionFormData = z.infer<typeof positionSchema>;
@@ -475,3 +491,5 @@ export function AddEditTasraPositionDialog({
     </Dialog>
   );
 }
+
+    
