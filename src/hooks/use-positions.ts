@@ -4,12 +4,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Position, Personnel } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
+import { initialPositionsData, initialPersonnelData } from '@/lib/initial-data';
 
 const LOCAL_STORAGE_POSITIONS_KEY = 'positionTrackerApp_positions';
 const LOCAL_STORAGE_PERSONNEL_KEY = 'positionTrackerApp_personnel';
 
-const initialPersonnelData: Personnel[] = [];
-const initialPositionsData: Position[] = [];
 
 export function usePositions() {
   const { user } = useAuth();
@@ -38,17 +37,18 @@ export function usePositions() {
           const parsedPersonnel = JSON.parse(storedPersonnel).map((p: Personnel) => ({
             ...p,
             status: p.status || 'İHS',
+            dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth) : null,
             lastModifiedAt: p.lastModifiedAt ? new Date(p.lastModifiedAt) : null,
           }));
           setPersonnel(parsedPersonnel);
         } else {
-          setPersonnel(initialPersonnelData.map(p => ({...p, status: p.status || 'İHS'})));
+          setPersonnel(initialPersonnelData.map(p => ({...p, status: p.status || 'İHS', dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth) : null })));
           localStorage.setItem(LOCAL_STORAGE_PERSONNEL_KEY, JSON.stringify(initialPersonnelData));
         }
       } catch (error) {
         console.error("Error accessing localStorage:", error);
         setPositions(initialPositionsData.map(p => ({...p, startDate: p.startDate ? new Date(p.startDate) : null }))); 
-        setPersonnel(initialPersonnelData.map(p => ({...p, status: p.status || 'İHS'})));
+        setPersonnel(initialPersonnelData.map(p => ({...p, status: p.status || 'İHS', dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth) : null })));
       }
       setIsInitialized(true);
     }
@@ -56,8 +56,17 @@ export function usePositions() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && isInitialized) {
+      const positionMap = new Map(positions.map(p => [p.id, p]));
+      const updatedPositions = positions.map(p => {
+        if (p.reportsTo && !positionMap.has(p.reportsTo)) {
+          console.warn(`Position "${p.name}" (${p.id}) has an invalid reportsTo ID: ${p.reportsTo}. Setting to null.`);
+          return { ...p, reportsTo: null };
+        }
+        return p;
+      });
+
       try {
-        localStorage.setItem(LOCAL_STORAGE_POSITIONS_KEY, JSON.stringify(positions));
+        localStorage.setItem(LOCAL_STORAGE_POSITIONS_KEY, JSON.stringify(updatedPositions));
       } catch (error) {
         console.error("Error saving positions to localStorage:", error);
       }
@@ -109,9 +118,16 @@ export function usePositions() {
           lastModifiedBy: user?.registryNumber,
           lastModifiedAt: new Date(),
       }));
-      const updateMap = new Map(updatesWithAudit.map(p => [p.id, p]));
-      setPositions(prev => prev.map(p => updateMap.get(p.id) || p));
-  }, [user]);
+      
+      const positionMap = new Map(positions.map(p => [p.id, p]));
+      
+      updatesWithAudit.forEach(update => {
+          positionMap.set(update.id, update);
+      });
+
+      setPositions(Array.from(positionMap.values()));
+
+  }, [user, positions]);
 
   const deletePosition = useCallback((positionId: string) => {
     setPositions(prev => {
