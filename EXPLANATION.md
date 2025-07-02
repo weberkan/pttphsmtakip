@@ -67,10 +67,10 @@ Personel listesini yüklemek için Excel dosyanızda aşağıdaki sütunlar bulu
 
 _Örnek Personel Excel Dosyası:_
 
-| Adı      | Soyadı    | Sicil Numarası | Statü | Ünvan | Doğum Tarihi |
-|----------|-----------|----------------|-------|-------|--------------|
-| Ali      | Yılmaz    | 215812         | İHS   | Uzman | 15.03.1985   |
-| Ayşe     | Kaya      | 123456         | 399   | Başmüdür| 20.08.1979   |
+| Adı      | Soyadı    | Sicil Numarası | Statü | Ünvan | Doğum Tarihi | E-posta | Telefon | Fotoğraf URL |
+|----------|-----------|----------------|-------|-------|--------------|-----------------------|--------------|------------------------------------|
+| Ali      | Yılmaz    | 215812         | İHS   | Uzman | 15.03.1985   | ali.yilmaz@ptt.gov.tr | 555-555-6677 | https://placehold.co/100x100.png   |
+| Ayşe     | Kaya      | 123456         | 399   | Başmüdür| 20.08.1979 | ayse.kaya@ptt.gov.tr  | 555-111-2233 | https://placehold.co/100x100.png   |
 
 ---
 
@@ -119,3 +119,4 @@ Taşra pozisyon listesini yüklemek için Excel dosyanızda aşağıdaki sütunl
 _Önemli Notlar:_
 *   `Atanan Personel Sicil` alanına yazdığınız sicil numarasının sistemde (Taşra Personel listesinde) kayıtlı bir personele ait olması gerekir.
 *   Bir pozisyonu güncellemek için (örn: atanan kişiyi değiştirmek), Excel'de `Ünite` ve `Görev Yeri` alanları sistemdekiyle birebir aynı olan bir satır ekleyin. Sistem bu pozisyonu bulup diğer sütunlardaki bilgilerle güncelleyecektir.
+

@@ -68,10 +68,10 @@ Personel listesini yüklemek için Excel dosyanızda aşağıdaki sütunlar bulu
 
 _Örnek Personel Excel Dosyası:_
 
-| Adı      | Soyadı    | Sicil Numarası | Statü | Ünvan | Doğum Tarihi |
-|----------|-----------|----------------|-------|-------|--------------|
-| Ali      | Yılmaz    | 215812         | İHS   | Uzman | 15.03.1985   |
-| Ayşe     | Kaya      | 123456         | 399   | Başmüdür| 20.08.1979   |
+| Adı      | Soyadı    | Sicil Numarası | Statü | Ünvan | Doğum Tarihi | E-posta | Telefon | Fotoğraf URL |
+|----------|-----------|----------------|-------|-------|--------------|-----------------------|--------------|------------------------------------|
+| Ali      | Yılmaz    | 215812         | İHS   | Uzman | 15.03.1985   | ali.yilmaz@ptt.gov.tr | 555-555-6677 | https://placehold.co/100x100.png   |
+| Ayşe     | Kaya      | 123456         | 399   | Başmüdür| 20.08.1979 | ayse.kaya@ptt.gov.tr  | 555-111-2233 | https://placehold.co/100x100.png   |
 
 ---
 
@@ -128,3 +128,4 @@ _Örnek Taşra Pozisyon Excel Dosyası:_
 | Adana P.İ.M. | Müdür | Vekalet | 123456 | Başdağıtıcı | Başmüdürlük | Evet | Hayır |
 | Ankara P.İ.M. | Memur | Asıl | 789012 | | | | |
 | İzmir P.İ.M. | Şef | Boş | | | | | |
+
