@@ -37,3 +37,84 @@ Kısacası, "Kim hangi pozisyonda?", "Bu pozisyona kim vekalet ediyor?", "Hangi 
 6.  **Organizasyon Şeması** sekmesinde, şirketin görsel hiyerarşisini inceleyebilirsiniz.
 7.  Sağ üstteki **"Personel Ekle"** veya **"Pozisyon Ekle"** butonlarıyla yeni kayıtlar oluşturabilirsiniz.
 8.  Listelerin üzerindeki **"Yükle"** butonları ile Excel dosyalarından toplu veri aktarımı yapabilirsiniz.
+
+### 5. Excel ile Toplu Veri Yükleme Formatı
+
+Sisteme Excel dosyaları ile toplu olarak personel ve pozisyon ekleyebilirsiniz. Bu özellik, manuel veri girişine harcanan zamanı önemli ölçüde azaltır. Yükleyeceğiniz dosyanın doğru formatta olması, verilerin sorunsuz bir şekilde aktarılması için kritiktir.
+
+**Genel Kurallar:**
+
+*   Excel dosyanızın ilk satırı **başlık satırı** olmalıdır.
+*   Sütunların sırası önemli değildir. Sistem, başlık isimlerine göre doğru alanı tanıyacaktır.
+*   Başlık isimlerinde büyük/küçük harf veya boşluk karakterleri önemli değildir (örn: "Sicil Numarası" ile "sicilnumarasi" aynı kabul edilir).
+*   Dosya `.xlsx`, `.xls` veya `.csv` formatında olabilir.
+
+---
+
+#### Personel Yükleme Formatı (Merkez ve Taşra Ortak)
+
+Personel listesini yüklemek için Excel dosyanızda aşağıdaki sütunlar bulunmalıdır. **Kalın** ile yazılanlar zorunlu alanlardır.
+
+*   **`Adı`** (Alternatif başlıklar: `Ad`)
+*   **`Soyadı`** (Alternatif başlıklar: `Soyad`)
+*   **`Sicil Numarası`** (Alternatif başlıklar: `Sicil No`, `Sicil`)
+*   **`Statü`** (Değerler: `İHS` veya `399` olmalıdır)
+*   `Ünvan` (Opsiyonel. Personelin kadro unvanı. Alternatif: `Kadro Ünvanı`)
+*   `E-posta` (Opsiyonel, geçerli bir e-posta formatı olmalıdır. Alternatif başlıklar: `Mail`)
+*   `Telefon` (Opsiyonel)
+*   `Fotoğraf URL` (Opsiyonel, geçerli bir URL olmalıdır. Alternatif başlıklar: `Foto URL`, `Foto`)
+
+_Örnek Personel Excel Dosyası:_
+
+| Adı      | Soyadı    | Sicil Numarası | Statü | Ünvan |
+|----------|-----------|----------------|-------|-------|
+| Ali      | Yılmaz    | 215812         | İHS   | Uzman |
+| Ayşe     | Kaya      | 123456         | 399   | Başmüdür |
+
+---
+
+#### Merkez Pozisyon Yükleme Formatı
+
+Pozisyon listesini yüklemek için Excel dosyanızda aşağıdaki sütunlar bulunmalıdır. **Kalın** ile yazılanlar zorunlu alanlardır.
+
+*   **`Ünvan`** (Alternatif başlıklar: `Unvan`)
+*   **`Birim`**
+*   **`Durum`** (Değerler: `Asıl`, `Vekalet`, `Yürütme` veya `Boş` olmalıdır)
+*   `Görev Yeri` (Opsiyonel. Alternatif başlıklar: `Gorevyeri`)
+*   `Asıl Ünvan` (Opsiyonel, genellikle `Vekalet` veya `Yürütme` durumlarında kullanılır. Alternatif başlıklar: `Asil Unvan`)
+*   `Bağlı Olduğu Personel Sicil` (Opsiyonel. Üst pozisyondaki kişinin sicil numarası. Alternatif: `Raporladığı Sicil`)
+*   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin sicil numarası. `Durum` "Boş" ise bu alan dikkate alınmaz.)
+*   `Başlama Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında. `Durum` "Boş" ise dikkate alınmaz.)
+
+_Önemli Notlar:_
+*   `Bağlı Olduğu Personel Sicil` alanına yazdığınız sicil numarasının sistemde kayıtlı bir personele ait olması ve o personelin bir pozisyona atanmış olması gerekir.
+*   `Atanan Personel Sicil` alanına yazdığınız sicil numarasının sistemde kayıtlı bir personele ait olması gerekir.
+*   Bir pozisyonu güncellemek için (örn: atanan kişiyi değiştirmek), Excel'de `Ünvan`, `Birim` ve `Görev Yeri` alanları sistemdekiyle birebir aynı olan bir satır ekleyin. Sistem bu pozisyonu bulup diğer sütunlardaki bilgilerle güncelleyecektir.
+
+_Örnek Merkez Pozisyon Excel Dosyası:_
+
+| Birim                   | Ünvan            | Durum   | Atanan Personel Sicil | Bağlı Olduğu Personel Sicil |
+|-------------------------|------------------|---------|-----------------------|-----------------------------|
+| Bilgi Teknolojileri D.B | Daire Başkanı    | Asıl    | 240637                | 239089                      |
+| İnsan Kaynakları D.B.   | Şube Müdürü      | Vekalet | 215812                | 248143                      |
+| Destek Hizmetleri D.B.  | Uzman            | Boş     |                       | 251469                      |
+
+---
+
+#### Taşra Pozisyon Yükleme Formatı
+
+Taşra pozisyon listesini yüklemek için Excel dosyanızda aşağıdaki sütunlar bulunmalıdır. **Kalın** ile yazılanlar zorunlu alanlardır.
+
+*   **`Ünite`**
+*   **`Görev Yeri`**
+*   **`Durum`** (Değerler: `Asıl`, `Vekalet`, `Yürütme` veya `Boş` olmalıdır)
+*   `Asıl Ünvan` (Opsiyonel, genellikle `Vekalet` veya `Yürütme` durumlarında kullanılır)
+*   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin sicil numarası. `Durum` "Boş" ise bu alan dikkate alınmaz.)
+*   `Başlama Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında. `Durum` "Boş" ise dikkate alınmaz.)
+*   `Görevi Veren Makam` (Opsiyonel. Değerler: `Başmüdürlük` veya `Genel Müdürlük`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
+*   `Vekalet Ücreti Alıyor Mu?` (Opsiyonel. Değerler: `Evet`, `Hayır`, `True`, `False`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
+*   `Yetki Devri Var Mı?` (Opsiyonel. Değerler: `Evet`, `Hayır`, `True`, `False`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
+
+_Önemli Notlar:_
+*   `Atanan Personel Sicil` alanına yazdığınız sicil numarasının sistemde (Taşra Personel listesinde) kayıtlı bir personele ait olması gerekir.
+*   Bir pozisyonu güncellemek için (örn: atanan kişiyi değiştirmek), Excel'de `Ünite` ve `Görev Yeri` alanları sistemdekiyle birebir aynı olan bir satır ekleyin. Sistem bu pozisyonu bulup diğer sütunlardaki bilgilerle güncelleyecektir.
