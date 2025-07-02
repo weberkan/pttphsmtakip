@@ -1,12 +1,10 @@
-
 "use client";
 
 import type { Position, Personnel, TasraPosition } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { Users, Briefcase } from 'lucide-react';
-import { TurkeyMapInteractive } from './turkey-map-interactive';
 
 interface DashboardHomeProps {
   positions: Position[];
@@ -20,6 +18,7 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
   const merkezStats = {
     total: positions.length,
     dolu: positions.filter(p => p.status !== 'Boş').length,
+    asil: positions.filter(p => p.status === 'Asıl').length,
     vekalet: positions.filter(p => p.status === 'Vekalet').length,
     yurutme: positions.filter(p => p.status === 'Yürütme').length,
     bos: positions.filter(p => p.status === 'Boş').length,
@@ -29,6 +28,7 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
   const tasraStats = {
     total: tasraPositions.length,
     dolu: tasraPositions.filter(p => p.status !== 'Boş').length,
+    asil: tasraPositions.filter(p => p.status === 'Asıl').length,
     vekalet: tasraPositions.filter(p => p.status === 'Vekalet').length,
     yurutme: tasraPositions.filter(p => p.status === 'Yürütme').length,
     bos: tasraPositions.filter(p => p.status === 'Boş').length,
@@ -36,10 +36,17 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
   };
 
   const merkezChartData = [
-    { name: 'Asıl', value: positions.filter(p => p.status === 'Asıl').length, fill: 'hsl(var(--chart-1))' },
+    { name: 'Asıl', value: merkezStats.asil, fill: 'hsl(var(--chart-1))' },
     { name: 'Vekalet', value: merkezStats.vekalet, fill: 'hsl(var(--chart-2))' },
     { name: 'Yürütme', value: merkezStats.yurutme, fill: 'hsl(var(--chart-3))' },
     { name: 'Boş', value: merkezStats.bos, fill: 'hsl(var(--chart-4))' },
+  ];
+
+  const tasraPieChartData = [
+    { name: 'Asıl', value: tasraStats.asil, fill: 'hsl(var(--chart-1))' },
+    { name: 'Vekalet', value: tasraStats.vekalet, fill: 'hsl(var(--chart-2))' },
+    { name: 'Yürütme', value: tasraStats.yurutme, fill: 'hsl(var(--chart-3))' },
+    { name: 'Boş', value: tasraStats.bos, fill: 'hsl(var(--chart-4))' },
   ];
   
   const chartConfig = {
@@ -95,15 +102,15 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
         </Card>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-3">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+        <Card>
           <CardHeader>
             <CardTitle>Merkez Pozisyon Durumları</CardTitle>
              <CardDescription>Merkezdeki pozisyonların durumlarına göre dağılımı.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <ChartContainer config={chartConfig} className="h-[250px] w-full">
-              <BarChart accessibilityLayer data={merkezChartData} layout="vertical" margin={{ left: 10 }}>
+            <ChartContainer config={chartConfig} className="h-[300px] w-full">
+              <BarChart accessibilityLayer data={merkezChartData} layout="vertical" margin={{ left: 10, right: 20 }}>
                  <CartesianGrid horizontal={false} />
                 <YAxis
                   dataKey="name"
@@ -114,7 +121,7 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                 />
-                <XAxis dataKey="value" type="number" hide />
+                <XAxis dataKey="value" type="number" />
                 <ChartTooltip
                   cursor={false}
                   content={<ChartTooltipContent hideLabel />}
@@ -124,14 +131,33 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
             </ChartContainer>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>Türkiye Başmüdürlük Haritası</CardTitle>
-            <CardDescription>Başmüdürlük bilgilerini görmek için illerin üzerine gelin.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 flex items-center justify-center h-[250px]">
-             <TurkeyMapInteractive />
-          </CardContent>
+        <Card>
+            <CardHeader>
+                <CardTitle>Taşra Pozisyon Durumları</CardTitle>
+                <CardDescription>Taşradaki pozisyonların durumlarına göre dağılımı.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                    <PieChart>
+                        <ChartTooltip content={<ChartTooltipContent nameKey="value" hideLabel />} />
+                        <Pie data={tasraPieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
+                            const RADIAN = Math.PI / 180;
+                            const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                            return (
+                                <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+                                    {`${(percent * 100).toFixed(0)}%`}
+                                </text>
+                            );
+                        }}>
+                             {tasraPieChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                        </Pie>
+                    </PieChart>
+                </ChartContainer>
+            </CardContent>
         </Card>
       </div>
 
