@@ -69,37 +69,51 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     const dataToExport = filteredData.map(item => {
       if (dataSource === 'merkez_pozisyon') {
         const p = item as Position;
-        const assignedPerson = personnel.find(per => per.id === p.assignedPersonnelId);
-        const reportsToPosition = positions.find(pos => pos.id === p.reportsTo);
-        const reportsToPerson = reportsToPosition ? personnel.find(per => per.id === reportsToPosition.assignedPersonnelId) : null;
+        const assignedPerson = p.assignedPersonnelId ? personnel.find(per => per.id === p.assignedPersonnelId) : null;
+        const reportsToPosition = p.reportsTo ? positions.find(pos => pos.id === p.reportsTo) : null;
+        const reportsToPerson = reportsToPosition?.assignedPersonnelId ? personnel.find(per => per.id === reportsToPosition.assignedPersonnelId) : null;
+        
         return {
           'Birim': p.department,
           'Görev Yeri': p.dutyLocation || '',
           'Ünvan': p.name,
-          'Personel': assignedPerson ? `${assignedPerson.firstName} ${assignedPerson.lastName}` : 'Atanmamış',
-          'Sicil': assignedPerson?.registryNumber || '',
-          'Personel Statü': assignedPerson?.status || '',
           'Durum': p.status,
-          'Asıl Ünvan': p.originalTitle || '',
-          'Başlama Tarihi': p.startDate ? format(p.startDate, 'dd.MM.yyyy') : '',
+          'Başlama Tarihi': p.startDate ? format(new Date(p.startDate), 'dd.MM.yyyy') : '',
+          'Asıl Ünvan (Vekalet/Yürütme)': p.originalTitle || '',
           'Bağlı Olduğu Pozisyon': reportsToPosition ? `${reportsToPosition.department} - ${reportsToPosition.name}` : 'Yok',
           'Bağlı Olduğu Yönetici': reportsToPerson ? `${reportsToPerson.firstName} ${reportsToPerson.lastName}` : (reportsToPosition ? 'Boş' : 'Yok'),
+          'Atanan Personel': assignedPerson ? `${assignedPerson.firstName} ${assignedPerson.lastName}` : 'Atanmamış',
+          'Personel Sicil': assignedPerson?.registryNumber || '',
+          'Personel Statü': assignedPerson?.status || '',
+          'Personel Kadro Ünvanı': assignedPerson?.unvan || '',
+          'Personel E-posta': assignedPerson?.email || '',
+          'Personel Telefon': assignedPerson?.phone || '',
+          'Personel Doğum Tarihi': assignedPerson?.dateOfBirth ? format(new Date(assignedPerson.dateOfBirth), 'dd.MM.yyyy') : '',
+          'Pozisyon Son Değişiklik Yapan Sicil': p.lastModifiedBy || '',
+          'Pozisyon Son Değişiklik Tarihi': p.lastModifiedAt ? format(new Date(p.lastModifiedAt), 'dd.MM.yyyy HH:mm') : '',
         };
       } else { // tasra_pozisyon
         const p = item as TasraPosition;
-        const assignedPerson = tasraPersonnel.find(per => per.id === p.assignedPersonnelId);
+        const assignedPerson = p.assignedPersonnelId ? tasraPersonnel.find(per => per.id === p.assignedPersonnelId) : null;
+
         return {
           'Ünite': p.unit,
           'Görev Yeri': p.dutyLocation,
-          'Personel': assignedPerson ? `${assignedPerson.firstName} ${assignedPerson.lastName}` : 'Atanmamış',
-          'Sicil': assignedPerson?.registryNumber || '',
-          'Personel Statü': assignedPerson?.status || '',
-          'Asıl Ünvan': (p.status === 'Asıl' && assignedPerson?.unvan) ? assignedPerson.unvan : p.originalTitle || '',
           'Durum': p.status,
+          'Başlama Tarihi': p.startDate ? format(new Date(p.startDate), 'dd.MM.yyyy') : '',
+          'Asıl Ünvan (Vekalet/Yürütme)': p.originalTitle || '',
           'Görevi Veren Makam': p.actingAuthority || '',
-          'Başlama Tarihi': p.startDate ? format(p.startDate, 'dd.MM.yyyy') : '',
           'Vekalet Ücreti Alıyor Mu?': p.receivesProxyPay ? 'Evet' : 'Hayır',
           'Yetki Devri Var Mı?': p.hasDelegatedAuthority ? 'Evet' : 'Hayır',
+          'Atanan Personel': assignedPerson ? `${assignedPerson.firstName} ${assignedPerson.lastName}` : 'Atanmamış',
+          'Personel Sicil': assignedPerson?.registryNumber || '',
+          'Personel Statü': assignedPerson?.status || '',
+          'Personel Kadro Ünvanı': assignedPerson?.unvan || '',
+          'Personel E-posta': assignedPerson?.email || '',
+          'Personel Telefon': assignedPerson?.phone || '',
+          'Personel Doğum Tarihi': assignedPerson?.dateOfBirth ? format(new Date(assignedPerson.dateOfBirth), 'dd.MM.yyyy') : '',
+          'Pozisyon Son Değişiklik Yapan Sicil': p.lastModifiedBy || '',
+          'Pozisyon Son Değişiklik Tarihi': p.lastModifiedAt ? format(new Date(p.lastModifiedAt), 'dd.MM.yyyy HH:mm') : '',
         };
       }
     });
@@ -112,7 +126,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Rapor');
-    XLSX.writeFile(workbook, `PozisyonRaporu_${new Date().toLocaleDateString()}.xlsx`);
+    XLSX.writeFile(workbook, `Rapor_${dataSource}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   const renderTable = () => {
