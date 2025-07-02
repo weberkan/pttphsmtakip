@@ -202,7 +202,7 @@ export function AddEditTasraPositionDialog({
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Ünite</FormLabel>
-                      <Popover open={unitOpen} onOpenChange={setUnitOpen}>
+                      <Popover open={unitOpen} onOpenChange={setUnitOpen} modal={false}>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
@@ -310,7 +310,7 @@ export function AddEditTasraPositionDialog({
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Atanan Personel</FormLabel>
-                      <Popover open={personnelOpen} onOpenChange={setPersonnelOpen}>
+                      <Popover open={personnelOpen} onOpenChange={setPersonnelOpen} modal={false}>
                         <PopoverTrigger asChild>
                           <FormControl>
                              <Button
@@ -537,5 +537,3 @@ export function AddEditTasraPositionDialog({
     </Dialog>
   );
 }
-
-    

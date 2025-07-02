@@ -423,7 +423,7 @@ export function AddEditPositionDialog({
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Bağlı Olduğu Pozisyon (Opsiyonel)</FormLabel>
-                      <Popover open={reportsToOpen} onOpenChange={setReportsToOpen}>
+                      <Popover open={reportsToOpen} onOpenChange={setReportsToOpen} modal={false}>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
@@ -482,7 +482,7 @@ export function AddEditPositionDialog({
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Atanan Personel (Opsiyonel)</FormLabel>
-                      <Popover open={personnelOpen} onOpenChange={setPersonnelOpen}>
+                      <Popover open={personnelOpen} onOpenChange={setPersonnelOpen} modal={false}>
                         <PopoverTrigger asChild>
                           <FormControl>
                              <Button
