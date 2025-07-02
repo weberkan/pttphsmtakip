@@ -32,6 +32,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarNav } from '@/components/sidebar-nav';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 
 const viewTitles: { [key: string]: string } = {
@@ -164,6 +165,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <h1 className="flex-1 text-lg font-semibold">{viewTitles[view] || 'Pozisyon Takip Sistemi'}</h1>
 
                     <div className="flex items-center gap-4">
+                        <ThemeToggle />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -176,6 +178,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
                                         <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
+
                                         <p className="text-xs leading-none text-muted-foreground">
                                             Sicil: {user.registryNumber}
                                         </p>
