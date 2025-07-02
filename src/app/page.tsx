@@ -430,7 +430,20 @@ export default function HomePage() {
     tasraPositionFileInputRef.current?.click();
   };
 
-  const normalizeHeader = (header: string) => header.toLowerCase().replace(/\s+/g, '');
+  const normalizeHeader = (header: string) => {
+    if (!header) return '';
+    return header
+      .replace(/İ/g, 'i')
+      .toLowerCase()
+      .replace(/ı/g, 'i')
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ş/g, 's')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c')
+      .replace(/\s+/g, '')
+      .replace(/[^a-z0-9]/gi, '');
+  }
 
   const handlePersonnelFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -454,14 +467,14 @@ export default function HomePage() {
         const rows = jsonData.slice(1);
 
         const headerMapping: { [key: string]: keyof Omit<Personnel, 'id'> } = {
-          'adı': 'firstName', 'ad': 'firstName',
-          'soyadı': 'lastName', 'soyad': 'lastName',
-          'ünvan': 'unvan', 'unvan': 'unvan', 'kadrounvanı': 'unvan',
-          'sicilnumarası': 'registryNumber', 'sicilno': 'registryNumber', 'sicil': 'registryNumber',
-          'statü': 'status', 'statu': 'status',
+          'adi': 'firstName', 'ad': 'firstName',
+          'soyadi': 'lastName', 'soyad': 'lastName',
+          'unvan': 'unvan', 'kadrounvani': 'unvan',
+          'sicilnumarasi': 'registryNumber', 'sicilno': 'registryNumber', 'sicil': 'registryNumber',
+          'statu': 'status',
           'eposta': 'email', 'mail': 'email',
           'telefon': 'phone', 'tel': 'phone',
-          'fotoğrafurl': 'photoUrl', 'fotourl': 'photoUrl', 'foto': 'photoUrl',
+          'fotografurl': 'photoUrl', 'fotourl': 'photoUrl', 'foto': 'photoUrl',
         };
         
         const personnelToAdd: (Omit<Personnel, 'id'> & { status: 'İHS' | '399' })[] = [];
@@ -582,14 +595,14 @@ export default function HomePage() {
         const rows = jsonData.slice(1);
 
         const headerMapping: { [key: string]: keyof z.infer<typeof importPositionSchema> } = {
-          'ünvan': 'name', 'unvan': 'name',
+          'unvan': 'name',
           'birim': 'department',
-          'göremyyeri': 'dutyLocation', 'gorevyeri': 'dutyLocation',
-          'asılünvan': 'originalTitle', 'asilunvan': 'originalTitle',
+          'gorevyeri': 'dutyLocation',
+          'asilunvan': 'originalTitle',
           'durum': 'status', 
-          'bağlıolduğupersonelsicil': 'reportsToPersonnelRegistryNumber', 'baglioldugupersonelsicil': 'reportsToPersonnelRegistryNumber', 'raporladiğisicil': 'reportsToPersonnelRegistryNumber',
+          'baglioldugupersonelsicil': 'reportsToPersonnelRegistryNumber', 'raporladigisicil': 'reportsToPersonnelRegistryNumber',
           'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber',
-          'başlamatarihi': 'startDate', 'baslamatarihi': 'startDate',
+          'baslamatarihi': 'startDate',
         };
         
         const positionHeaderMappingReverse: { [key: string]: string } = {
@@ -755,15 +768,15 @@ export default function HomePage() {
         const rows = jsonData.slice(1);
 
         const headerMapping: { [key: string]: keyof z.infer<typeof importTasraPositionSchema> } = {
-          'ünite': 'unit', 'unite': 'unit',
-          'göremyyeri': 'dutyLocation', 'gorevyeri': 'dutyLocation',
+          'unite': 'unit',
+          'gorevyeri': 'dutyLocation',
           'durum': 'status', 
-          'asılünvan': 'originalTitle', 'asilunvan': 'originalTitle',
+          'asilunvan': 'originalTitle',
           'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber',
-          'başlamatarihi': 'startDate', 'baslamatarihi': 'startDate',
-          'göreviverenmakam': 'actingAuthority', 'goreviverenmakam': 'actingAuthority', 'makam': 'actingAuthority',
-          'vekaletücretialıyormu': 'receivesProxyPay', 'vekaletucretialiyormu': 'receivesProxyPay', 'vekaletücreti': 'receivesProxyPay',
-          'yetkidevrivarmı': 'hasDelegatedAuthority', 'yetkidevri': 'hasDelegatedAuthority',
+          'baslamatarihi': 'startDate',
+          'goreviverenmakam': 'actingAuthority', 'makam': 'actingAuthority',
+          'vekaletucretialiyormu': 'receivesProxyPay', 'vekaletucreti': 'receivesProxyPay',
+          'yetkidevrivarmi': 'hasDelegatedAuthority', 'yetkidevri': 'hasDelegatedAuthority',
         };
         
         const positionHeaderMappingReverse: { [key: string]: string } = {
@@ -1178,5 +1191,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

@@ -46,7 +46,7 @@ Sisteme Excel dosyaları ile toplu olarak personel ve pozisyon ekleyebilirsiniz.
 
 *   Excel dosyanızın ilk satırı **başlık satırı** olmalıdır.
 *   Sütunların sırası önemli değildir. Sistem, başlık isimlerine göre doğru alanı tanıyacaktır.
-*   Başlık isimlerinde büyük/küçük harf veya boşluk karakterleri önemli değildir (örn: "Sicil Numarası" ile "sicilnumarasi" aynı kabul edilir).
+*   Başlık isimlerinde büyük/küçük harf veya boşluk karakterleri önemli değildir (örn: "Sicil Numarası" ile "sicilnumarasi" veya "sicil no" aynı kabul edilir).
 *   Dosya `.xlsx`, `.xls` veya `.csv` formatında olabilir.
 
 ---
@@ -108,7 +108,7 @@ Taşra pozisyon listesini yüklemek için Excel dosyanızda aşağıdaki sütunl
 *   **`Ünite`**
 *   **`Görev Yeri`**
 *   **`Durum`** (Değerler: `Asıl`, `Vekalet`, `Yürütme` veya `Boş` olmalıdır)
-*   `Asıl Ünvan` (Opsiyonel, genellikle `Vekalet` veya `Yürütme` durumlarında kullanılır)
+*   `Asıl Ünvan` (Opsiyonel. `Durum` "Vekalet" veya "Yürütme" ise zorunludur ve geçerli bir kadro ünvanı olmalıdır.)
 *   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin sicil numarası. `Durum` "Boş" ise bu alan dikkate alınmaz.)
 *   `Başlama Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında. `Durum` "Boş" ise dikkate alınmaz.)
 *   `Görevi Veren Makam` (Opsiyonel. Değerler: `Başmüdürlük` veya `Genel Müdürlük`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
@@ -118,3 +118,11 @@ Taşra pozisyon listesini yüklemek için Excel dosyanızda aşağıdaki sütunl
 _Önemli Notlar:_
 *   `Atanan Personel Sicil` alanına yazdığınız sicil numarasının sistemde (Taşra Personel listesinde) kayıtlı bir personele ait olması gerekir.
 *   Bir pozisyonu güncellemek için (örn: atanan kişiyi değiştirmek), Excel'de `Ünite` ve `Görev Yeri` alanları sistemdekiyle birebir aynı olan bir satır ekleyin. Sistem bu pozisyonu bulup diğer sütunlardaki bilgilerle güncelleyecektir.
+
+_Örnek Taşra Pozisyon Excel Dosyası:_
+
+| Ünite | Görev Yeri | Durum | Atanan Personel Sicil | Asıl Ünvan | Görevi Veren Makam | Vekalet Ücreti Alıyor Mu? | Yetki Devri Var Mı? |
+|---|---|---|---|---|---|---|---|
+| Adana P.İ.M. | Müdür | Vekalet | 123456 | Başdağıtıcı | Başmüdürlük | Evet | Hayır |
+| Ankara P.İ.M. | Memur | Asıl | 789012 | | | | |
+| İzmir P.İ.M. | Şef | Boş | | | | | |
