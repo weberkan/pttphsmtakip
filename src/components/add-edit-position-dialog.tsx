@@ -449,10 +449,10 @@ export function AddEditPositionDialog({
                               <CommandGroup>
                                 {reportsToOptions.map((option) => (
                                   <CommandItem
-                                    value={option.label}
+                                    value={option.value}
                                     key={option.value}
-                                    onSelect={() => {
-                                      form.setValue("reportsTo", option.value === PLACEHOLDER_FOR_NULL_VALUE ? null : option.value)
+                                    onSelect={(currentValue) => {
+                                      form.setValue("reportsTo", currentValue === PLACEHOLDER_FOR_NULL_VALUE ? null : currentValue)
                                       setReportsToOpen(false)
                                     }}
                                   >
@@ -509,10 +509,10 @@ export function AddEditPositionDialog({
                               <CommandGroup>
                                 {assignedPersonnelOptions.map((option) => (
                                   <CommandItem
-                                    value={option.label}
+                                    value={option.value}
                                     key={option.value}
-                                    onSelect={() => {
-                                       form.setValue("assignedPersonnelId", option.value === PLACEHOLDER_FOR_NULL_VALUE ? null : option.value)
+                                    onSelect={(currentValue) => {
+                                       form.setValue("assignedPersonnelId", currentValue === PLACEHOLDER_FOR_NULL_VALUE ? null : currentValue)
                                        setPersonnelOpen(false)
                                     }}
                                   >

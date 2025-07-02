@@ -275,10 +275,10 @@ export function AddEditTasraPositionDialog({
                               <CommandGroup>
                                 {assignedPersonnelOptions.map((option) => (
                                   <CommandItem
-                                    value={option.label}
+                                    value={option.value}
                                     key={option.value}
-                                    onSelect={() => {
-                                       form.setValue("assignedPersonnelId", option.value === PLACEHOLDER_FOR_NULL_VALUE ? null : option.value)
+                                    onSelect={(currentValue) => {
+                                       form.setValue("assignedPersonnelId", currentValue === PLACEHOLDER_FOR_NULL_VALUE ? null : currentValue)
                                        setPersonnelOpen(false)
                                     }}
                                   >
