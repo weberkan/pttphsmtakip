@@ -110,7 +110,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
             <aside className="hidden border-r bg-muted/40 md:flex md:flex-col">
                 <div className="flex h-full max-h-screen flex-col">
                     <div className={cn("flex h-14 items-center border-b px-6", isCollapsed && "px-2 justify-center")}>
-                        <Link href="/" className="flex items-center gap-2 font-semibold">
+                        <Link href="/?view=dashboard" className="flex items-center gap-2 font-semibold">
                             <Image
                                 src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
                                 alt="PTT Logo"
@@ -147,7 +147,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                         </SheetTrigger>
                         <SheetContent side="left" className="flex flex-col p-0">
                            <div className="flex h-14 items-center border-b px-6">
-                                <Link href="/" className="flex items-center gap-2 font-semibold">
+                                <Link href="/?view=dashboard" className="flex items-center gap-2 font-semibold">
                                     <Image
                                         src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
                                         alt="PTT Logo"

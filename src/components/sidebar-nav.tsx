@@ -10,12 +10,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import * as React from 'react';
 
 const menuItems = [
-   {
-    id: 'dashboard',
-    title: 'Anasayfa',
-    icon: LayoutDashboard,
-    href: 'dashboard',
-  },
   {
     id: 'merkez',
     title: 'Merkez Teşkilatı',
