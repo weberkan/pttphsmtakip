@@ -490,7 +490,6 @@ export default function HomePage() {
             });
             const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir personel doğrulama hatası oluştu.";
             
-            console.error(`Personel Satır ${rowIndex + 2} için doğrulama hatası. Zod issues:`, validation.error.issues);
             toast({
               title: `Personel Satır ${rowIndex + 2} Hatası`,
               description: errorDescription,
@@ -510,7 +509,6 @@ export default function HomePage() {
         });
 
       } catch (error: any) {
-        console.error("Excel dosyası işlenirken hata:", error);
         if (error.message && error.message.includes("password-protected")) {
           toast({ title: "Hata", description: "Yüklenen dosya şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
         } else {
@@ -653,7 +651,6 @@ export default function HomePage() {
             });
             const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir pozisyon doğrulama hatası oluştu.";
 
-            console.error(`Pozisyon Satır ${rowIndex + 2} için doğrulama hatası. Zod issues:`, validation.error.issues);
             toast({
               title: `Pozisyon Satır ${rowIndex + 2} Hatası`,
               description: errorDescription,
@@ -679,7 +676,6 @@ export default function HomePage() {
         });
 
       } catch (error: any) {
-        console.error("Pozisyon Excel dosyası işlenirken hata:", error);
         if (error.message && error.message.includes("password-protected")) {
           toast({ title: "Hata", description: "Yüklenen pozisyon dosyası şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
         } else {
@@ -809,7 +805,6 @@ export default function HomePage() {
             });
             const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir taşra pozisyonu doğrulama hatası oluştu.";
 
-            console.error(`Taşra Pozisyon Satır ${rowIndex + 2} için doğrulama hatası. Zod issues:`, validation.error.issues);
             toast({
               title: `Taşra Pozisyon Satır ${rowIndex + 2} Hatası`,
               description: errorDescription,
@@ -835,7 +830,6 @@ export default function HomePage() {
         });
 
       } catch (error: any) {
-        console.error("Taşra Pozisyon Excel dosyası işlenirken hata:", error);
         if (error.message && error.message.includes("password-protected")) {
           toast({ title: "Hata", description: "Yüklenen pozisyon dosyası şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
         } else {
