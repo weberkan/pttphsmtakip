@@ -62,14 +62,16 @@ Personel listesini yüklemek için Excel dosyanızda aşağıdaki sütunlar bulu
 *   `Ünvan` (Opsiyonel. Personelin kadro unvanı. Alternatif: `Kadro Ünvanı`)
 *   `E-posta` (Opsiyonel, geçerli bir e-posta formatı olmalıdır. Alternatif başlıklar: `Mail`)
 *   `Telefon` (Opsiyonel)
-*   `Fotoğraf URL` (Opsiyonel, geçerli bir URL olmalıdır. Alternatif başlıklar: `Foto URL`, `Foto`)
+*   `Fotoğraf URL` (Opsiyonel, geçerli bir URL olmalıdır. Alternatif başlıklar: `Foto URL`, `Foto`, `Url`)
+*   `Doğum Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında olmalıdır.)
+
 
 _Örnek Personel Excel Dosyası:_
 
-| Adı      | Soyadı    | Sicil Numarası | Statü | Ünvan |
-|----------|-----------|----------------|-------|-------|
-| Ali      | Yılmaz    | 215812         | İHS   | Uzman |
-| Ayşe     | Kaya      | 123456         | 399   | Başmüdür |
+| Adı      | Soyadı    | Sicil Numarası | Statü | Ünvan | Doğum Tarihi |
+|----------|-----------|----------------|-------|-------|--------------|
+| Ali      | Yılmaz    | 215812         | İHS   | Uzman | 15.03.1985   |
+| Ayşe     | Kaya      | 123456         | 399   | Başmüdür| 20.08.1979   |
 
 ---
 

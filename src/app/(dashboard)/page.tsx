@@ -34,6 +34,7 @@ const importPersonnelSchema = z.object({
   photoUrl: z.string().url("Geçerli bir URL girin.").optional().nullable().or(z.literal('')),
   email: z.string().email("Geçerli bir e-posta adresi girin.").optional().nullable().or(z.literal('')),
   phone: z.string().optional().nullable().or(z.literal('')),
+  dateOfBirth: z.date().optional().nullable(),
 });
 
 const importPositionSchema = z.object({
@@ -430,7 +431,8 @@ function DashboardPageContent() {
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
@@ -443,7 +445,7 @@ function DashboardPageContent() {
         const headers = (jsonData[0] as string[]).map(normalizeHeader);
         const rows = jsonData.slice(1);
 
-        const headerMapping: { [key: string]: keyof Omit<Personnel, 'id'> } = {
+        const headerMapping: { [key: string]: keyof z.infer<typeof importPersonnelSchema> } = {
           'adi': 'firstName', 'ad': 'firstName',
           'soyadi': 'lastName', 'soyad': 'lastName',
           'unvan': 'unvan', 'kadrounvani': 'unvan',
@@ -451,10 +453,11 @@ function DashboardPageContent() {
           'statu': 'status',
           'eposta': 'email', 'mail': 'email',
           'telefon': 'phone', 'tel': 'phone',
-          'fotografurl': 'photoUrl', 'fotourl': 'photoUrl', 'foto': 'photoUrl',
+          'fotografurl': 'photoUrl', 'fotourl': 'photoUrl', 'foto': 'photoUrl', 'url': 'photoUrl',
+          'dogumtarihi': 'dateOfBirth',
         };
         
-        const personnelToAdd: (Omit<Personnel, 'id'> & { status: 'İHS' | '399' })[] = [];
+        const personnelToAdd: Omit<Personnel, 'id'>[] = [];
         const errors: { rowIndex: number; message: string; }[] = [];
         let skippedCount = 0;
 
@@ -473,6 +476,8 @@ function DashboardPageContent() {
                 let excelValue = rowArray[colIndex];
                 if (excelValue === null || excelValue === undefined) {
                   rawRow[personnelKey] = null;
+                } else if (personnelKey === 'dateOfBirth') {
+                  rawRow[personnelKey] = excelValue instanceof Date ? excelValue : null;
                 } else if (typeof excelValue === 'string') {
                   rawRow[personnelKey] = excelValue.trim();
                 } else {
@@ -484,7 +489,7 @@ function DashboardPageContent() {
             const validation = importPersonnelSchema.safeParse(rawRow);
 
             if (validation.success) {
-              const newPerson = validation.data as Omit<Personnel, 'id'> & { status: 'İHS' | '399' };
+              const newPerson = validation.data as Omit<Personnel, 'id'>;
               
               if (existingRegistryNumbers.has(newPerson.registryNumber)) {
                 skippedCount++;
@@ -496,6 +501,7 @@ function DashboardPageContent() {
               const personnelHeaderMappingReverse: { [key: string]: string } = {
                 'firstName': 'Adı', 'lastName': 'Soyadı', 'registryNumber': 'Sicil Numarası', 'unvan': 'Ünvan',
                 'status': 'Statü', 'email': 'E-posta', 'phone': 'Telefon', 'photoUrl': 'Fotoğraf URL',
+                'dateOfBirth': 'Doğum Tarihi',
               };
               const errorMessagesForToast = validation.error.issues.map(issue => {
                 let issuePath = issue.path.join('.');
@@ -514,9 +520,9 @@ function DashboardPageContent() {
         
         if (personnelToAdd.length > 0) {
             if (activeView.startsWith('merkez')) {
-                batchAddPersonnel(personnelToAdd as Omit<Personnel, 'id'>[]);
+                batchAddPersonnel(personnelToAdd);
             } else {
-                batchAddTasraPersonnel(personnelToAdd as Omit<Personnel, 'id'>[]);
+                batchAddTasraPersonnel(personnelToAdd);
             }
         }
         
