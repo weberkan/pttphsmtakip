@@ -87,9 +87,12 @@ export default function HomePage() {
     positions, 
     personnel,
     addPosition, 
+    batchAddPositions,
+    batchUpdatePositions,
     updatePosition, 
     deletePosition, 
     addPersonnel,
+    batchAddPersonnel,
     updatePersonnel,
     deletePersonnel,
     isInitialized: isMerkezInitialized 
@@ -100,9 +103,12 @@ export default function HomePage() {
     tasraPositions,
     tasraPersonnel,
     addTasraPosition,
+    batchAddTasraPosition,
+    batchUpdateTasraPosition,
     updateTasraPosition,
     deleteTasraPosition,
     addTasraPersonnel,
+    batchAddTasraPersonnel,
     updateTasraPersonnel,
     deleteTasraPersonnel,
     isInitialized: isTasraInitialized
@@ -423,8 +429,8 @@ export default function HomePage() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
         
-        if (jsonData.length === 0) {
-          toast({ title: "Hata", description: "Excel dosyası boş.", variant: "destructive" });
+        if (jsonData.length < 2) {
+          toast({ title: "Hata", description: "Excel dosyası boş veya sadece başlık satırı içeriyor.", variant: "destructive" });
           return;
         }
 
@@ -442,11 +448,17 @@ export default function HomePage() {
           'fotoğrafurl': 'photoUrl', 'fotourl': 'photoUrl', 'foto': 'photoUrl',
         };
         
-        let importedCount = 0;
+        const personnelToAdd: (Omit<Personnel, 'id'> & { status: 'İHS' | '399' })[] = [];
+        const errors: { rowIndex: number; message: string; }[] = [];
         let skippedCount = 0;
-        let errorCount = 0;
+
+        const currentPersonnelList = activeMainTab === 'merkez' ? personnel : tasraPersonnel;
+        const existingRegistryNumbers = new Set(currentPersonnelList.map(p => p.registryNumber));
 
         rows.forEach((rowArray, rowIndex) => {
+          if (rowArray.every(cell => cell === null || cell === '')) {
+              return; // Skip empty rows
+          }
           const rawRow: any = {};
           headers.forEach((header, colIndex) => {
             const personnelKey = headerMapping[header];
@@ -466,17 +478,14 @@ export default function HomePage() {
 
           if (validation.success) {
             const newPerson = validation.data as Omit<Personnel, 'id'> & { status: 'İHS' | '399' };
-            const personnelList = activeMainTab === 'merkez' ? personnel : tasraPersonnel;
-            const addFunc = activeMainTab === 'merkez' ? addPersonnel : addTasraPersonnel;
-
-            if (personnelList.some(p => p.registryNumber === newPerson.registryNumber)) {
+            
+            if (existingRegistryNumbers.has(newPerson.registryNumber)) {
               skippedCount++;
             } else {
-              addFunc(newPerson);
-              importedCount++;
+              personnelToAdd.push(newPerson);
+              existingRegistryNumbers.add(newPerson.registryNumber);
             }
           } else {
-            errorCount++;
             const personnelHeaderMappingReverse: { [key: string]: string } = {
               'firstName': 'Adı', 'lastName': 'Soyadı', 'registryNumber': 'Sicil Numarası', 'unvan': 'Ünvan',
               'status': 'Statü', 'email': 'E-posta', 'phone': 'Telefon', 'photoUrl': 'Fotoğraf URL',
@@ -489,30 +498,42 @@ export default function HomePage() {
               return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
             });
             const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir personel doğrulama hatası oluştu.";
-            
-            toast({
-              title: `Personel Satır ${rowIndex + 2} Hatası`,
-              description: errorDescription,
-              variant: "destructive",
-              duration: 5000 + rowIndex * 200 
-            });
+            errors.push({ rowIndex: rowIndex + 2, message: errorDescription });
           }
         });
-
-        let summaryMessage = `${importedCount} personel başarıyla içe aktarıldı.`;
+        
+        if (personnelToAdd.length > 0) {
+            if (activeMainTab === 'merkez') {
+                batchAddPersonnel(personnelToAdd as Omit<Personnel, 'id'>[]);
+            } else {
+                batchAddTasraPersonnel(personnelToAdd as Omit<Personnel, 'id'>[]);
+            }
+        }
+        
+        let summaryMessage = `${personnelToAdd.length} personel başarıyla içe aktarıldı.`;
         if (skippedCount > 0) summaryMessage += ` ${skippedCount} personel (sicil no mevcut) atlandı.`;
-        if (errorCount > 0) summaryMessage += ` ${errorCount} personel hatalı veri nedeniyle eklenemedi.`;
+        if (errors.length > 0) summaryMessage += ` ${errors.length} personel hatalı veri nedeniyle eklenemedi.`;
         
         toast({
           title: "Personel İçe Aktarma Tamamlandı",
           description: summaryMessage,
+          duration: 7000
         });
 
+        if (errors.length > 0) {
+            const errorDetails = errors.slice(0, 5).map(e => `Satır ${e.rowIndex}: ${e.message}`).join('\n');
+            toast({
+                title: `Toplam ${errors.length} Hatalı Satır Bulundu`,
+                description: errorDetails + (errors.length > 5 ? `\n...ve ${errors.length - 5} daha fazla hata.` : ''),
+                variant: "destructive",
+                duration: 15000,
+            });
+        }
       } catch (error: any) {
         if (error.message && error.message.includes("password-protected")) {
           toast({ title: "Hata", description: "Yüklenen dosya şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
         } else {
-          toast({ title: "Hata", description: "Excel dosyası işlenirken bir sorun oluştu.", variant: "destructive" });
+          toast({ title: "Hata", description: `Excel dosyası işlenirken bir sorun oluştu: ${error.message}`, variant: "destructive" });
         }
       } finally {
         if (event.target) {
@@ -536,8 +557,8 @@ export default function HomePage() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
-        if (jsonData.length === 0) {
-          toast({ title: "Hata", description: "Pozisyon Excel dosyası boş.", variant: "destructive" });
+        if (jsonData.length < 2) {
+          toast({ title: "Hata", description: "Pozisyon Excel dosyası boş veya sadece başlık satırı içeriyor.", variant: "destructive" });
           return;
         }
 
@@ -561,12 +582,15 @@ export default function HomePage() {
           'assignedPersonnelRegistryNumber': 'Atanan Personel Sicil', 'startDate': 'Başlama Tarihi',
         };
 
-        let addedCount = 0;
-        let updatedCount = 0;
-        let errorCount = 0;
-        let warningCount = 0;
+        const positionsToAdd: Omit<Position, 'id'>[] = [];
+        const positionsToUpdate: Position[] = [];
+        const errors: { rowIndex: number; message: string; }[] = [];
+        const warnings: { rowIndex: number; message: string; }[] = [];
 
         rows.forEach((rowArray, rowIndex) => {
+           if (rowArray.every(cell => cell === null || cell === '')) {
+              return; // Skip empty rows
+          }
           const rawRowData: any = {};
           headers.forEach((header, colIndex) => {
             const positionKey = headerMapping[header];
@@ -598,12 +622,10 @@ export default function HomePage() {
                 if (parentPosition) {
                   resolvedReportsToId = parentPosition.id;
                 } else {
-                  warningCount++;
-                  toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `'${validatedData.reportsToPersonnelRegistryNumber}' sicilli personelin bağlı olduğu pozisyon bulunamadı. 'Bağlı olduğu pozisyon' boş bırakılacak.`, variant: "default", duration: 4000 + warningCount * 100 });
+                  warnings.push({ rowIndex: rowIndex + 2, message: `'${validatedData.reportsToPersonnelRegistryNumber}' sicilli personelin bağlı olduğu pozisyon bulunamadı. 'Bağlı olduğu pozisyon' boş bırakılacak.` });
                 }
               } else {
-                warningCount++;
-                toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Bağlı olduğu personel için '${validatedData.reportsToPersonnelRegistryNumber}' sicil no bulunamadı. 'Bağlı olduğu pozisyon' boş bırakılacak.`, variant: "default", duration: 4000 + warningCount * 100 });
+                warnings.push({ rowIndex: rowIndex + 2, message: `Bağlı olduğu personel için '${validatedData.reportsToPersonnelRegistryNumber}' sicil no bulunamadı. 'Bağlı olduğu pozisyon' boş bırakılacak.` });
               }
             }
 
@@ -612,8 +634,7 @@ export default function HomePage() {
               if (assignee) {
                 resolvedAssignedPersonnelId = assignee.id;
               } else {
-                 warningCount++;
-                 toast({ title: `Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı. Personel atanmayacak.`, variant: "default", duration: 4000 + warningCount * 100 });
+                 warnings.push({ rowIndex: rowIndex + 2, message: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı. Personel atanmayacak.` });
               }
             } else if (validatedData.status === "Boş") {
                 resolvedAssignedPersonnelId = null; 
@@ -633,15 +654,12 @@ export default function HomePage() {
             const existingPosition = positions.find(p => p.name === positionDataFromExcel.name && p.department === positionDataFromExcel.department && p.dutyLocation === positionDataFromExcel.dutyLocation);
 
             if (existingPosition) {
-              updatePosition({ ...existingPosition, ...positionDataFromExcel });
-              updatedCount++;
+              positionsToUpdate.push({ ...existingPosition, ...positionDataFromExcel });
             } else {
-              addPosition(positionDataFromExcel);
-              addedCount++;
+              positionsToAdd.push(positionDataFromExcel);
             }
 
           } else {
-            errorCount++;
             const errorMessagesForToast = validation.error.issues.map(issue => {
               let issuePath = issue.path.join('.');
               if (issue.path.length === 1 && positionHeaderMappingReverse[issue.path[0] as string]) {
@@ -650,21 +668,18 @@ export default function HomePage() {
               return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
             });
             const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir pozisyon doğrulama hatası oluştu.";
-
-            toast({
-              title: `Pozisyon Satır ${rowIndex + 2} Hatası`,
-              description: errorDescription,
-              variant: "destructive",
-              duration: 5000 + rowIndex * 200
-            });
+            errors.push({ rowIndex: rowIndex + 2, message: errorDescription });
           }
         });
 
+        if (positionsToAdd.length > 0) batchAddPositions(positionsToAdd);
+        if (positionsToUpdate.length > 0) batchUpdatePositions(positionsToUpdate);
+        
         let summaryMessage = "";
-        if (addedCount > 0) summaryMessage += `${addedCount} pozisyon eklendi. `;
-        if (updatedCount > 0) summaryMessage += `${updatedCount} pozisyon güncellendi. `;
-        if (errorCount > 0) summaryMessage += `${errorCount} pozisyon hatalı veri nedeniyle işlenemedi. `;
-        if (warningCount > 0) summaryMessage += `${warningCount} uyarı oluştu (detaylar için önceki mesajlara bakın).`;
+        if (positionsToAdd.length > 0) summaryMessage += `${positionsToAdd.length} pozisyon eklendi. `;
+        if (positionsToUpdate.length > 0) summaryMessage += `${positionsToUpdate.length} pozisyon güncellendi. `;
+        if (errors.length > 0) summaryMessage += `${errors.length} pozisyon hatalı. `;
+        if (warnings.length > 0) summaryMessage += `${warnings.length} uyarı oluştu.`;
         
         if (summaryMessage.trim() === "") {
             summaryMessage = "İçe aktarılacak yeni veya güncellenecek pozisyon bulunamadı ya da tüm satırlar hatalıydı.";
@@ -674,12 +689,24 @@ export default function HomePage() {
           title: "Pozisyon İçe Aktarma Tamamlandı",
           description: summaryMessage.trim(),
         });
+        
+        if (errors.length > 0 || warnings.length > 0) {
+            const errorDetails = errors.slice(0, 3).map(e => `Hata Satır ${e.rowIndex}: ${e.message}`).join('\n');
+            const warningDetails = warnings.slice(0, 2).map(w => `Uyarı Satır ${w.rowIndex}: ${w.message}`).join('\n');
+            toast({
+              title: "İçe Aktarma Detayları",
+              description: `${errorDetails}${errors.length > 3 ? '\n...daha fazla hata mevcut.' : ''}\n\n${warningDetails}${warnings.length > 2 ? '\n...daha fazla uyarı mevcut.' : ''}`,
+              variant: "destructive",
+              duration: 15000,
+            })
+        }
+
 
       } catch (error: any) {
         if (error.message && error.message.includes("password-protected")) {
           toast({ title: "Hata", description: "Yüklenen pozisyon dosyası şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
         } else {
-          toast({ title: "Hata", description: "Pozisyon Excel dosyası işlenirken bir sorun oluştu.", variant: "destructive" });
+          toast({ title: "Hata", description: `Pozisyon Excel dosyası işlenirken bir sorun oluştu: ${error.message}`, variant: "destructive" });
         }
       } finally {
         if (event.target) {
@@ -703,8 +730,8 @@ export default function HomePage() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
-        if (jsonData.length === 0) {
-          toast({ title: "Hata", description: "Taşra pozisyon Excel dosyası boş.", variant: "destructive" });
+        if (jsonData.length < 2) {
+          toast({ title: "Hata", description: "Taşra pozisyon Excel dosyası boş veya sadece başlık satırı içeriyor.", variant: "destructive" });
           return;
         }
 
@@ -729,12 +756,15 @@ export default function HomePage() {
           'actingAuthority': 'Görevi Veren Makam', 'receivesProxyPay': 'Vekalet Ücreti Alıyor Mu?', 'hasDelegatedAuthority': 'Yetki Devri Var Mı?',
         };
 
-        let addedCount = 0;
-        let updatedCount = 0;
-        let errorCount = 0;
-        let warningCount = 0;
+        const positionsToAdd: Omit<TasraPosition, 'id'>[] = [];
+        const positionsToUpdate: TasraPosition[] = [];
+        const errors: { rowIndex: number; message: string; }[] = [];
+        const warnings: { rowIndex: number; message: string; }[] = [];
 
         rows.forEach((rowArray, rowIndex) => {
+           if (rowArray.every(cell => cell === null || cell === '')) {
+              return; // Skip empty rows
+          }
           const rawRowData: any = {};
           headers.forEach((header, colIndex) => {
             const positionKey = headerMapping[header];
@@ -763,8 +793,7 @@ export default function HomePage() {
               if (assignee) {
                 resolvedAssignedPersonnelId = assignee.id;
               } else {
-                 warningCount++;
-                 toast({ title: `Taşra Pozisyon Satır ${rowIndex + 2} Uyarısı`, description: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı. Personel atanmayacak.`, variant: "default", duration: 4000 + warningCount * 100 });
+                 warnings.push({ rowIndex: rowIndex + 2, message: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı. Personel atanmayacak.` });
               }
             } else if (validatedData.status === "Boş") {
                 resolvedAssignedPersonnelId = null; 
@@ -787,15 +816,12 @@ export default function HomePage() {
             const existingPosition = tasraPositions.find(p => p.unit === positionDataFromExcel.unit && p.dutyLocation === positionDataFromExcel.dutyLocation);
 
             if (existingPosition) {
-              updateTasraPosition({ ...existingPosition, ...positionDataFromExcel });
-              updatedCount++;
+              positionsToUpdate.push({ ...existingPosition, ...positionDataFromExcel });
             } else {
-              addTasraPosition(positionDataFromExcel);
-              addedCount++;
+              positionsToAdd.push(positionDataFromExcel);
             }
 
           } else {
-            errorCount++;
             const errorMessagesForToast = validation.error.issues.map(issue => {
               let issuePath = issue.path.join('.');
               if (issue.path.length === 1 && positionHeaderMappingReverse[issue.path[0] as string]) {
@@ -804,21 +830,18 @@ export default function HomePage() {
               return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
             });
             const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir taşra pozisyonu doğrulama hatası oluştu.";
-
-            toast({
-              title: `Taşra Pozisyon Satır ${rowIndex + 2} Hatası`,
-              description: errorDescription,
-              variant: "destructive",
-              duration: 5000 + rowIndex * 200
-            });
+            errors.push({ rowIndex: rowIndex + 2, message: errorDescription });
           }
         });
 
+        if (positionsToAdd.length > 0) batchAddTasraPosition(positionsToAdd);
+        if (positionsToUpdate.length > 0) batchUpdateTasraPosition(positionsToUpdate);
+        
         let summaryMessage = "";
-        if (addedCount > 0) summaryMessage += `${addedCount} pozisyon eklendi. `;
-        if (updatedCount > 0) summaryMessage += `${updatedCount} pozisyon güncellendi. `;
-        if (errorCount > 0) summaryMessage += `${errorCount} pozisyon hatalı veri nedeniyle işlenemedi. `;
-        if (warningCount > 0) summaryMessage += `${warningCount} uyarı oluştu (detaylar için önceki mesajlara bakın).`;
+        if (positionsToAdd.length > 0) summaryMessage += `${positionsToAdd.length} pozisyon eklendi. `;
+        if (positionsToUpdate.length > 0) summaryMessage += `${positionsToUpdate.length} pozisyon güncellendi. `;
+        if (errors.length > 0) summaryMessage += `${errors.length} pozisyon hatalı. `;
+        if (warnings.length > 0) summaryMessage += `${warnings.length} uyarı oluştu.`;
         
         if (summaryMessage.trim() === "") {
             summaryMessage = "İçe aktarılacak yeni veya güncellenecek pozisyon bulunamadı ya da tüm satırlar hatalıydı.";
@@ -829,11 +852,22 @@ export default function HomePage() {
           description: summaryMessage.trim(),
         });
 
+        if (errors.length > 0 || warnings.length > 0) {
+            const errorDetails = errors.slice(0, 3).map(e => `Hata Satır ${e.rowIndex}: ${e.message}`).join('\n');
+            const warningDetails = warnings.slice(0, 2).map(w => `Uyarı Satır ${w.rowIndex}: ${w.message}`).join('\n');
+            toast({
+              title: "İçe Aktarma Detayları",
+              description: `${errorDetails}${errors.length > 3 ? '\n...daha fazla hata mevcut.' : ''}\n\n${warningDetails}${warnings.length > 2 ? '\n...daha fazla uyarı mevcut.' : ''}`,
+              variant: "destructive",
+              duration: 15000,
+            })
+        }
+
       } catch (error: any) {
         if (error.message && error.message.includes("password-protected")) {
           toast({ title: "Hata", description: "Yüklenen pozisyon dosyası şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
         } else {
-          toast({ title: "Hata", description: "Taşra Pozisyon Excel dosyası işlenirken bir sorun oluştu.", variant: "destructive" });
+          toast({ title: "Hata", description: `Taşra Pozisyon Excel dosyası işlenirken bir sorun oluştu: ${error.message}`, variant: "destructive" });
         }
       } finally {
         if (event.target) {

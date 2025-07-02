@@ -84,6 +84,16 @@ export function usePositions() {
     setPositions(prev => [...prev, newPosition]);
   }, [user]);
 
+  const batchAddPositions = useCallback((positionList: Omit<Position, 'id'>[]) => {
+      const newPositions = positionList.map(p => ({
+          ...p,
+          id: crypto.randomUUID(),
+          lastModifiedBy: user?.registryNumber,
+          lastModifiedAt: new Date(),
+      }));
+      setPositions(prev => [...prev, ...newPositions]);
+  }, [user]);
+
   const updatePosition = useCallback((updatedPosition: Position) => {
     const positionWithAudit = {
       ...updatedPosition,
@@ -91,6 +101,16 @@ export function usePositions() {
       lastModifiedAt: new Date(),
     };
     setPositions(prev => prev.map(p => p.id === updatedPosition.id ? positionWithAudit : p));
+  }, [user]);
+
+  const batchUpdatePositions = useCallback((positionList: Position[]) => {
+      const updatesWithAudit = positionList.map(p => ({
+          ...p,
+          lastModifiedBy: user?.registryNumber,
+          lastModifiedAt: new Date(),
+      }));
+      const updateMap = new Map(updatesWithAudit.map(p => [p.id, p]));
+      setPositions(prev => prev.map(p => updateMap.get(p.id) || p));
   }, [user]);
 
   const deletePosition = useCallback((positionId: string) => {
@@ -112,6 +132,16 @@ export function usePositions() {
       lastModifiedAt: new Date(),
     };
     setPersonnel(prev => [...prev, newPersonnel]);
+  }, [user]);
+
+  const batchAddPersonnel = useCallback((personnelList: Omit<Personnel, 'id'>[]) => {
+    const newPersonnelList = personnelList.map(p => ({
+      ...p,
+      id: crypto.randomUUID(),
+      lastModifiedBy: user?.registryNumber,
+      lastModifiedAt: new Date(),
+    }));
+    setPersonnel(prev => [...prev, ...newPersonnelList]);
   }, [user]);
 
   const updatePersonnel = useCallback((updatedPersonnel: Personnel) => {
@@ -143,9 +173,12 @@ export function usePositions() {
     positions, 
     personnel,
     addPosition, 
+    batchAddPositions,
     updatePosition, 
+    batchUpdatePositions,
     deletePosition, 
     addPersonnel,
+    batchAddPersonnel,
     updatePersonnel,
     deletePersonnel,
     isInitialized 

@@ -85,6 +85,16 @@ export function useTasraPositions() {
     setTasraPositions(prev => [...prev, newPosition]);
   }, [user]);
 
+  const batchAddTasraPosition = useCallback((positionList: Omit<TasraPosition, 'id'>[]) => {
+      const newPositions = positionList.map(p => ({
+          ...p,
+          id: crypto.randomUUID(),
+          lastModifiedBy: user?.registryNumber,
+          lastModifiedAt: new Date(),
+      }));
+      setTasraPositions(prev => [...prev, ...newPositions]);
+  }, [user]);
+
   const updateTasraPosition = useCallback((updatedPosition: TasraPosition) => {
     const positionWithAudit = {
       ...updatedPosition,
@@ -92,6 +102,16 @@ export function useTasraPositions() {
       lastModifiedAt: new Date(),
     };
     setTasraPositions(prev => prev.map(p => p.id === updatedPosition.id ? positionWithAudit : p));
+  }, [user]);
+
+   const batchUpdateTasraPosition = useCallback((positionList: TasraPosition[]) => {
+      const updatesWithAudit = positionList.map(p => ({
+          ...p,
+          lastModifiedBy: user?.registryNumber,
+          lastModifiedAt: new Date(),
+      }));
+      const updateMap = new Map(updatesWithAudit.map(p => [p.id, p]));
+      setTasraPositions(prev => prev.map(p => updateMap.get(p.id) || p));
   }, [user]);
 
   const deleteTasraPosition = useCallback((positionId: string) => {
@@ -106,6 +126,16 @@ export function useTasraPositions() {
       lastModifiedAt: new Date(),
     };
     setTasraPersonnel(prev => [...prev, newPersonnel]);
+  }, [user]);
+
+  const batchAddTasraPersonnel = useCallback((personnelList: Omit<Personnel, 'id'>[]) => {
+      const newPersonnelList = personnelList.map(p => ({
+          ...p,
+          id: crypto.randomUUID(),
+          lastModifiedBy: user?.registryNumber,
+          lastModifiedAt: new Date(),
+      }));
+      setTasraPersonnel(prev => [...prev, ...newPersonnelList]);
   }, [user]);
 
   const updateTasraPersonnel = useCallback((updatedPersonnel: Personnel) => {
@@ -137,9 +167,12 @@ export function useTasraPositions() {
     tasraPositions, 
     tasraPersonnel,
     addTasraPosition, 
+    batchAddTasraPosition,
     updateTasraPosition, 
+    batchUpdateTasraPosition,
     deleteTasraPosition, 
     addTasraPersonnel,
+    batchAddTasraPersonnel,
     updateTasraPersonnel,
     deleteTasraPersonnel,
     isInitialized 
