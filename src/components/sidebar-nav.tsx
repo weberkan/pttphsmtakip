@@ -4,12 +4,18 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Building, Users, BarChart2, Map, Folder, Briefcase } from 'lucide-react';
+import { Building, Users, BarChart2, Map, Folder, Briefcase, LayoutDashboard } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import * as React from 'react';
 
 const menuItems = [
+   {
+    id: 'dashboard',
+    title: 'Anasayfa',
+    icon: LayoutDashboard,
+    href: 'dashboard',
+  },
   {
     id: 'merkez',
     title: 'Merkez Teşkilatı',
@@ -44,9 +50,9 @@ interface SidebarNavProps {
 
 export function SidebarNav({ isCollapsed }: SidebarNavProps) {
   const searchParams = useSearchParams();
-  const currentView = searchParams.get('view') || 'merkez-pozisyon';
+  const currentView = searchParams.get('view') || 'dashboard';
   
-  const defaultOpenAccordion = menuItems.find(item => item.subItems?.some(sub => sub.href === currentView))?.id || 'merkez';
+  const defaultOpenAccordion = menuItems.find(item => item.subItems?.some(sub => sub.href === currentView))?.id;
 
   if (isCollapsed) {
     const allLinks = menuItems.flatMap(item => 
@@ -85,7 +91,7 @@ export function SidebarNav({ isCollapsed }: SidebarNavProps) {
 
   return (
     <nav className="flex flex-col gap-2 px-4">
-       <Accordion type="multiple" defaultValue={[defaultOpenAccordion]} className="w-full">
+       <Accordion type="multiple" defaultValue={defaultOpenAccordion ? [defaultOpenAccordion] : []} className="w-full">
         {menuItems.map((item) => (
           item.subItems ? (
             <AccordionItem key={item.id} value={item.id} className="border-b-0">

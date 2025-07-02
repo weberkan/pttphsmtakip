@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils';
 
 
 const viewTitles: { [key: string]: string } = {
+    'dashboard': 'Anasayfa',
     'merkez-pozisyon': 'Merkez Pozisyon Yönetimi',
     'merkez-personel': 'Merkez Personel Yönetimi',
     'merkez-sema': 'Merkez Organizasyon Şeması',
@@ -50,7 +51,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
     const [isCollapsed, setIsCollapsed] = useState(false);
 
-    const view = searchParams.get('view') || 'merkez-pozisyon';
+    const view = searchParams.get('view') || 'dashboard';
     
     useEffect(() => {
         if (!loading && !user) {

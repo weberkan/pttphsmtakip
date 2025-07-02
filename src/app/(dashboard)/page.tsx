@@ -23,6 +23,7 @@ import { TasraPositionList } from "@/components/tasra-position-list";
 import { AddEditTasraPositionDialog } from "@/components/add-edit-tasra-position-dialog";
 import { ReportingPanel } from "@/components/reporting-panel";
 import { useSearchParams } from "next/navigation";
+import { DashboardHome } from "@/components/dashboard-home";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -93,7 +94,7 @@ const positionTitleOrder: { [key: string]: number } = {
 
 function DashboardPageContent() {
   const searchParams = useSearchParams();
-  const activeView = searchParams.get('view') || 'merkez-pozisyon';
+  const activeView = searchParams.get('view') || 'dashboard';
   
   // Merkez Teşkilatı Data
   const { 
@@ -943,6 +944,15 @@ function DashboardPageContent() {
 
   const renderContent = () => {
     switch (activeView) {
+        case 'dashboard':
+            return (
+                <DashboardHome
+                    positions={positions}
+                    personnel={personnel}
+                    tasraPositions={tasraPositions}
+                    tasraPersonnel={tasraPersonnel}
+                />
+            );
         case 'merkez-pozisyon':
             return (
                 <Card className="shadow-lg">
@@ -1116,7 +1126,14 @@ function DashboardPageContent() {
                 />
             );
         default:
-            return <p>Görünüm bulunamadı.</p>;
+            return (
+                 <DashboardHome
+                    positions={positions}
+                    personnel={personnel}
+                    tasraPositions={tasraPositions}
+                    tasraPersonnel={tasraPersonnel}
+                />
+            );
     }
   }
 
