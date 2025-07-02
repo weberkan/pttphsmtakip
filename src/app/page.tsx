@@ -485,49 +485,53 @@ export default function HomePage() {
         const existingRegistryNumbers = new Set(currentPersonnelList.map(p => p.registryNumber));
 
         rows.forEach((rowArray, rowIndex) => {
-          if (rowArray.every(cell => cell === null || cell === '')) {
-              return; // Skip empty rows
-          }
-          const rawRow: any = {};
-          headers.forEach((header, colIndex) => {
-            const personnelKey = headerMapping[header];
-            if (personnelKey) {
-              let excelValue = rowArray[colIndex];
-              if (excelValue === null || excelValue === undefined) {
-                rawRow[personnelKey] = null;
-              } else if (typeof excelValue === 'string') {
-                rawRow[personnelKey] = excelValue.trim();
-              } else {
-                rawRow[personnelKey] = String(excelValue).trim();
-              }
+          try {
+            if (rowArray.every(cell => cell === null || cell === '')) {
+                return; // Skip empty rows
             }
-          });
-
-          const validation = importPersonnelSchema.safeParse(rawRow);
-
-          if (validation.success) {
-            const newPerson = validation.data as Omit<Personnel, 'id'> & { status: 'İHS' | '399' };
-            
-            if (existingRegistryNumbers.has(newPerson.registryNumber)) {
-              skippedCount++;
-            } else {
-              personnelToAdd.push(newPerson);
-              existingRegistryNumbers.add(newPerson.registryNumber);
-            }
-          } else {
-            const personnelHeaderMappingReverse: { [key: string]: string } = {
-              'firstName': 'Adı', 'lastName': 'Soyadı', 'registryNumber': 'Sicil Numarası', 'unvan': 'Ünvan',
-              'status': 'Statü', 'email': 'E-posta', 'phone': 'Telefon', 'photoUrl': 'Fotoğraf URL',
-            };
-            const errorMessagesForToast = validation.error.issues.map(issue => {
-              let issuePath = issue.path.join('.');
-              if (issue.path.length === 1 && personnelHeaderMappingReverse[issue.path[0] as string]) {
-                issuePath = personnelHeaderMappingReverse[issue.path[0] as string];
+            const rawRow: any = {};
+            headers.forEach((header, colIndex) => {
+              const personnelKey = headerMapping[header];
+              if (personnelKey) {
+                let excelValue = rowArray[colIndex];
+                if (excelValue === null || excelValue === undefined) {
+                  rawRow[personnelKey] = null;
+                } else if (typeof excelValue === 'string') {
+                  rawRow[personnelKey] = excelValue.trim();
+                } else {
+                  rawRow[personnelKey] = String(excelValue).trim();
+                }
               }
-              return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
             });
-            const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir personel doğrulama hatası oluştu.";
-            errors.push({ rowIndex: rowIndex + 2, message: errorDescription });
+
+            const validation = importPersonnelSchema.safeParse(rawRow);
+
+            if (validation.success) {
+              const newPerson = validation.data as Omit<Personnel, 'id'> & { status: 'İHS' | '399' };
+              
+              if (existingRegistryNumbers.has(newPerson.registryNumber)) {
+                skippedCount++;
+              } else {
+                personnelToAdd.push(newPerson);
+                existingRegistryNumbers.add(newPerson.registryNumber);
+              }
+            } else {
+              const personnelHeaderMappingReverse: { [key: string]: string } = {
+                'firstName': 'Adı', 'lastName': 'Soyadı', 'registryNumber': 'Sicil Numarası', 'unvan': 'Ünvan',
+                'status': 'Statü', 'email': 'E-posta', 'phone': 'Telefon', 'photoUrl': 'Fotoğraf URL',
+              };
+              const errorMessagesForToast = validation.error.issues.map(issue => {
+                let issuePath = issue.path.join('.');
+                if (issue.path.length === 1 && personnelHeaderMappingReverse[issue.path[0] as string]) {
+                  issuePath = personnelHeaderMappingReverse[issue.path[0] as string];
+                }
+                return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
+              });
+              const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir personel doğrulama hatası oluştu.";
+              errors.push({ rowIndex: rowIndex + 2, message: errorDescription });
+            }
+          } catch(e: any) {
+              errors.push({ rowIndex: rowIndex + 2, message: `Beklenmedik bir hata oluştu: ${e.message}` });
           }
         });
         
@@ -616,88 +620,102 @@ export default function HomePage() {
         const errors: { rowIndex: number; message: string; }[] = [];
         const warnings: { rowIndex: number; message: string; }[] = [];
 
+        const existingPositionMap = new Map<string, Position>(
+          positions.map(p => {
+            const key = `${(p.department || '').toLowerCase()}|${(p.name || '').toLowerCase()}|${(p.dutyLocation || '').toLowerCase()}`;
+            return [key, p];
+          })
+        );
+        const personnelByRegistry = new Map<string, Personnel>(personnel.map(p => [p.registryNumber, p]));
+
         rows.forEach((rowArray, rowIndex) => {
-           if (rowArray.every(cell => cell === null || cell === '')) {
-              return; // Skip empty rows
-          }
-          const rawRowData: any = {};
-          headers.forEach((header, colIndex) => {
-            const positionKey = headerMapping[header];
-            if (positionKey) {
-              let excelValue = rowArray[colIndex];
-              if (excelValue === null || excelValue === undefined) {
-                rawRowData[positionKey] = null;
-              } else if (typeof excelValue === 'string') {
-                rawRowData[positionKey] = excelValue.trim();
-              } else if (positionKey === 'startDate') {
-                 rawRowData[positionKey] = excelValue instanceof Date ? excelValue : null;
-              } else {
-                 rawRowData[positionKey] = String(excelValue).trim();
-              }
+          try {
+            if (rowArray.every(cell => cell === null || cell === '')) {
+                return; // Skip empty rows
             }
-          });
-          
-          const validation = importPositionSchema.safeParse(rawRowData);
-
-          if (validation.success) {
-            const validatedData = validation.data;
-            let resolvedReportsToId: string | null = null;
-            let resolvedAssignedPersonnelId: string | null = null;
-
-            if (validatedData.reportsToPersonnelRegistryNumber) {
-              const parentAssignee = personnel.find(p => p.registryNumber === validatedData.reportsToPersonnelRegistryNumber);
-              if (parentAssignee) {
-                const parentPosition = positions.find(pos => pos.assignedPersonnelId === parentAssignee.id);
-                if (parentPosition) {
-                  resolvedReportsToId = parentPosition.id;
+            const rawRowData: any = {};
+            headers.forEach((header, colIndex) => {
+              const positionKey = headerMapping[header];
+              if (positionKey) {
+                let excelValue = rowArray[colIndex];
+                if (excelValue === null || excelValue === undefined) {
+                  rawRowData[positionKey] = null;
+                } else if (typeof excelValue === 'string') {
+                  rawRowData[positionKey] = excelValue.trim();
+                } else if (positionKey === 'startDate') {
+                   rawRowData[positionKey] = excelValue instanceof Date ? excelValue : null;
                 } else {
-                  warnings.push({ rowIndex: rowIndex + 2, message: `'${validatedData.reportsToPersonnelRegistryNumber}' sicilli personelin bağlı olduğu pozisyon bulunamadı. 'Bağlı olduğu pozisyon' boş bırakılacak.` });
+                   rawRowData[positionKey] = String(excelValue).trim();
                 }
-              } else {
-                warnings.push({ rowIndex: rowIndex + 2, message: `Bağlı olduğu personel için '${validatedData.reportsToPersonnelRegistryNumber}' sicil no bulunamadı. 'Bağlı olduğu pozisyon' boş bırakılacak.` });
               }
-            }
-
-            if (validatedData.assignedPersonnelRegistryNumber && validatedData.status !== "Boş") {
-              const assignee = personnel.find(p => p.registryNumber === validatedData.assignedPersonnelRegistryNumber);
-              if (assignee) {
-                resolvedAssignedPersonnelId = assignee.id;
-              } else {
-                 warnings.push({ rowIndex: rowIndex + 2, message: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı. Personel atanmayacak.` });
-              }
-            } else if (validatedData.status === "Boş") {
-                resolvedAssignedPersonnelId = null; 
-            }
-            
-            const positionDataFromExcel: Omit<Position, 'id'> = {
-              name: validatedData.name,
-              department: validatedData.department,
-              dutyLocation: validatedData.dutyLocation || null,
-              originalTitle: validatedData.originalTitle || null,
-              status: validatedData.status,
-              reportsTo: resolvedReportsToId,
-              assignedPersonnelId: resolvedAssignedPersonnelId,
-              startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
-            };
-            
-            const existingPosition = positions.find(p => p.name === positionDataFromExcel.name && p.department === positionDataFromExcel.department && p.dutyLocation === positionDataFromExcel.dutyLocation);
-
-            if (existingPosition) {
-              positionsToUpdate.push({ ...existingPosition, ...positionDataFromExcel });
-            } else {
-              positionsToAdd.push(positionDataFromExcel);
-            }
-
-          } else {
-            const errorMessagesForToast = validation.error.issues.map(issue => {
-              let issuePath = issue.path.join('.');
-              if (issue.path.length === 1 && positionHeaderMappingReverse[issue.path[0] as string]) {
-                issuePath = positionHeaderMappingReverse[issue.path[0] as string];
-              }
-              return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
             });
-            const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir pozisyon doğrulama hatası oluştu.";
-            errors.push({ rowIndex: rowIndex + 2, message: errorDescription });
+            
+            const validation = importPositionSchema.safeParse(rawRowData);
+
+            if (validation.success) {
+              const validatedData = validation.data;
+              let resolvedReportsToId: string | null = null;
+              let resolvedAssignedPersonnelId: string | null = null;
+
+              if (validatedData.reportsToPersonnelRegistryNumber) {
+                const parentAssignee = personnelByRegistry.get(validatedData.reportsToPersonnelRegistryNumber);
+                if (parentAssignee) {
+                  const parentPosition = positions.find(pos => pos.assignedPersonnelId === parentAssignee.id);
+                  if (parentPosition) {
+                    resolvedReportsToId = parentPosition.id;
+                  } else {
+                    warnings.push({ rowIndex: rowIndex + 2, message: `'${validatedData.reportsToPersonnelRegistryNumber}' sicilli personelin bağlı olduğu pozisyon bulunamadı. 'Bağlı olduğu pozisyon' boş bırakılacak.` });
+                  }
+                } else {
+                  warnings.push({ rowIndex: rowIndex + 2, message: `Bağlı olduğu personel için '${validatedData.reportsToPersonnelRegistryNumber}' sicil no bulunamadı. 'Bağlı olduğu pozisyon' boş bırakılacak.` });
+                }
+              }
+
+              if (validatedData.assignedPersonnelRegistryNumber && validatedData.status !== "Boş") {
+                const assignee = personnelByRegistry.get(validatedData.assignedPersonnelRegistryNumber);
+                if (assignee) {
+                  resolvedAssignedPersonnelId = assignee.id;
+                } else {
+                   warnings.push({ rowIndex: rowIndex + 2, message: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı. Personel atanmayacak.` });
+                }
+              } else if (validatedData.status === "Boş") {
+                  resolvedAssignedPersonnelId = null; 
+              }
+              
+              const positionDataFromExcel: Omit<Position, 'id'> = {
+                name: validatedData.name,
+                department: validatedData.department,
+                dutyLocation: validatedData.dutyLocation || null,
+                originalTitle: validatedData.originalTitle || null,
+                status: validatedData.status,
+                reportsTo: resolvedReportsToId,
+                assignedPersonnelId: resolvedAssignedPersonnelId,
+                startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
+              };
+              
+              const key = `${(positionDataFromExcel.department || '').toLowerCase()}|${(positionDataFromExcel.name || '').toLowerCase()}|${(positionDataFromExcel.dutyLocation || '').toLowerCase()}`;
+              const existingPosition = existingPositionMap.get(key);
+
+              if (existingPosition) {
+                positionsToUpdate.push({ ...existingPosition, ...positionDataFromExcel, id: existingPosition.id });
+              } else {
+                positionsToAdd.push(positionDataFromExcel);
+                existingPositionMap.set(key, { ...positionDataFromExcel, id: crypto.randomUUID() });
+              }
+
+            } else {
+              const errorMessagesForToast = validation.error.issues.map(issue => {
+                let issuePath = issue.path.join('.');
+                if (issue.path.length === 1 && positionHeaderMappingReverse[issue.path[0] as string]) {
+                  issuePath = positionHeaderMappingReverse[issue.path[0] as string];
+                }
+                return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
+              });
+              const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir pozisyon doğrulama hatası oluştu.";
+              errors.push({ rowIndex: rowIndex + 2, message: errorDescription });
+            }
+          } catch (e: any) {
+              errors.push({ rowIndex: rowIndex + 2, message: `Beklenmedik bir hata oluştu: ${e.message}` });
           }
         });
 
@@ -729,8 +747,6 @@ export default function HomePage() {
               duration: 15000,
             })
         }
-
-
       } catch (error: any) {
         if (error.message && error.message.includes("password-protected")) {
           toast({ title: "Hata", description: "Yüklenen pozisyon dosyası şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
@@ -789,77 +805,91 @@ export default function HomePage() {
         const positionsToUpdate: TasraPosition[] = [];
         const errors: { rowIndex: number; message: string; }[] = [];
         const warnings: { rowIndex: number; message: string; }[] = [];
+        
+        const existingPositionMap = new Map<string, TasraPosition>(
+          tasraPositions.map(p => {
+            const key = `${(p.unit || '').toLowerCase()}|${(p.dutyLocation || '').toLowerCase()}`;
+            return [key, p];
+          })
+        );
+        const personnelByRegistry = new Map<string, Personnel>(tasraPersonnel.map(p => [p.registryNumber, p]));
 
         rows.forEach((rowArray, rowIndex) => {
-           if (rowArray.every(cell => cell === null || cell === '')) {
-              return; // Skip empty rows
-          }
-          const rawRowData: any = {};
-          headers.forEach((header, colIndex) => {
-            const positionKey = headerMapping[header];
-            if (positionKey) {
-              let excelValue = rowArray[colIndex];
-              if (excelValue === null || excelValue === undefined) {
-                rawRowData[positionKey] = null;
-              } else if (typeof excelValue === 'string') {
-                rawRowData[positionKey] = excelValue.trim();
-              } else if (positionKey === 'startDate') {
-                 rawRowData[positionKey] = excelValue instanceof Date ? excelValue : null;
-              } else {
-                 rawRowData[positionKey] = String(excelValue).trim();
-              }
+          try {
+            if (rowArray.every(cell => cell === null || cell === '')) {
+                return; // Skip empty rows
             }
-          });
-          
-          const validation = importTasraPositionSchema.safeParse(rawRowData);
-
-          if (validation.success) {
-            const validatedData = validation.data;
-            let resolvedAssignedPersonnelId: string | null = null;
-            
-            if (validatedData.assignedPersonnelRegistryNumber && validatedData.status !== "Boş") {
-              const assignee = tasraPersonnel.find(p => p.registryNumber === validatedData.assignedPersonnelRegistryNumber);
-              if (assignee) {
-                resolvedAssignedPersonnelId = assignee.id;
-              } else {
-                 warnings.push({ rowIndex: rowIndex + 2, message: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı. Personel atanmayacak.` });
+            const rawRowData: any = {};
+            headers.forEach((header, colIndex) => {
+              const positionKey = headerMapping[header];
+              if (positionKey) {
+                let excelValue = rowArray[colIndex];
+                if (excelValue === null || excelValue === undefined) {
+                  rawRowData[positionKey] = null;
+                } else if (typeof excelValue === 'string') {
+                  rawRowData[positionKey] = excelValue.trim();
+                } else if (positionKey === 'startDate') {
+                   rawRowData[positionKey] = excelValue instanceof Date ? excelValue : null;
+                } else {
+                   rawRowData[positionKey] = String(excelValue).trim();
+                }
               }
-            } else if (validatedData.status === "Boş") {
-                resolvedAssignedPersonnelId = null; 
-            }
-            
-            const isProxyOrActing = validatedData.status === 'Vekalet' || validatedData.status === 'Yürütme';
-            
-            const positionDataFromExcel: Omit<TasraPosition, 'id'> = {
-              unit: validatedData.unit,
-              dutyLocation: validatedData.dutyLocation,
-              originalTitle: isProxyOrActing ? validatedData.originalTitle || null : null,
-              status: validatedData.status,
-              assignedPersonnelId: resolvedAssignedPersonnelId,
-              startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
-              actingAuthority: isProxyOrActing ? validatedData.actingAuthority || null : null,
-              receivesProxyPay: isProxyOrActing ? validatedData.receivesProxyPay || false : false,
-              hasDelegatedAuthority: isProxyOrActing ? validatedData.hasDelegatedAuthority || false : false,
-            };
-            
-            const existingPosition = tasraPositions.find(p => p.unit === positionDataFromExcel.unit && p.dutyLocation === positionDataFromExcel.dutyLocation);
-
-            if (existingPosition) {
-              positionsToUpdate.push({ ...existingPosition, ...positionDataFromExcel });
-            } else {
-              positionsToAdd.push(positionDataFromExcel);
-            }
-
-          } else {
-            const errorMessagesForToast = validation.error.issues.map(issue => {
-              let issuePath = issue.path.join('.');
-              if (issue.path.length === 1 && positionHeaderMappingReverse[issue.path[0] as string]) {
-                issuePath = positionHeaderMappingReverse[issue.path[0] as string];
-              }
-              return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
             });
-            const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir taşra pozisyonu doğrulama hatası oluştu.";
-            errors.push({ rowIndex: rowIndex + 2, message: errorDescription });
+            
+            const validation = importTasraPositionSchema.safeParse(rawRowData);
+
+            if (validation.success) {
+              const validatedData = validation.data;
+              let resolvedAssignedPersonnelId: string | null = null;
+              
+              if (validatedData.assignedPersonnelRegistryNumber && validatedData.status !== "Boş") {
+                const assignee = personnelByRegistry.get(validatedData.assignedPersonnelRegistryNumber);
+                if (assignee) {
+                  resolvedAssignedPersonnelId = assignee.id;
+                } else {
+                   warnings.push({ rowIndex: rowIndex + 2, message: `Atanacak personel için '${validatedData.assignedPersonnelRegistryNumber}' sicil no bulunamadı. Personel atanmayacak.` });
+                }
+              } else if (validatedData.status === "Boş") {
+                  resolvedAssignedPersonnelId = null; 
+              }
+              
+              const isProxyOrActing = validatedData.status === 'Vekalet' || validatedData.status === 'Yürütme';
+              
+              const positionDataFromExcel: Omit<TasraPosition, 'id'> = {
+                unit: validatedData.unit,
+                dutyLocation: validatedData.dutyLocation,
+                originalTitle: isProxyOrActing ? validatedData.originalTitle || null : null,
+                status: validatedData.status,
+                assignedPersonnelId: resolvedAssignedPersonnelId,
+                startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
+                actingAuthority: isProxyOrActing ? validatedData.actingAuthority || null : null,
+                receivesProxyPay: isProxyOrActing ? validatedData.receivesProxyPay || false : false,
+                hasDelegatedAuthority: isProxyOrActing ? validatedData.hasDelegatedAuthority || false : false,
+              };
+              
+              const key = `${(positionDataFromExcel.unit || '').toLowerCase()}|${(positionDataFromExcel.dutyLocation || '').toLowerCase()}`;
+              const existingPosition = existingPositionMap.get(key);
+
+              if (existingPosition) {
+                positionsToUpdate.push({ ...existingPosition, ...positionDataFromExcel, id: existingPosition.id });
+              } else {
+                positionsToAdd.push(positionDataFromExcel);
+                existingPositionMap.set(key, { ...positionDataFromExcel, id: crypto.randomUUID() });
+              }
+
+            } else {
+              const errorMessagesForToast = validation.error.issues.map(issue => {
+                let issuePath = issue.path.join('.');
+                if (issue.path.length === 1 && positionHeaderMappingReverse[issue.path[0] as string]) {
+                  issuePath = positionHeaderMappingReverse[issue.path[0] as string];
+                }
+                return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
+              });
+              const errorDescription = errorMessagesForToast.join('; ') || "Bilinmeyen bir taşra pozisyonu doğrulama hatası oluştu.";
+              errors.push({ rowIndex: rowIndex + 2, message: errorDescription });
+            }
+          } catch(e: any) {
+              errors.push({ rowIndex: rowIndex + 2, message: `Beklenmedik bir hata oluştu: ${e.message}` });
           }
         });
 
@@ -891,7 +921,6 @@ export default function HomePage() {
               duration: 15000,
             })
         }
-
       } catch (error: any) {
         if (error.message && error.message.includes("password-protected")) {
           toast({ title: "Hata", description: "Yüklenen pozisyon dosyası şifre korumalı. Lütfen şifresiz bir dosya seçin.", variant: "destructive" });
@@ -1190,4 +1219,4 @@ export default function HomePage() {
 
     </div>
   );
-}
+
