@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarNav } from '@/components/sidebar-nav';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
@@ -147,6 +147,10 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="flex flex-col p-0">
+                           <SheetHeader className="sr-only">
+                             <SheetTitle>Navigasyon Menüsü</SheetTitle>
+                             <SheetDescription>Uygulamanın ana bölümlerine gitmek için bu menüyü kullanın.</SheetDescription>
+                           </SheetHeader>
                            <div className="flex h-14 items-center border-b px-6">
                                 <Link href="/?view=dashboard" className="flex items-center gap-2 font-semibold">
                                     <Image
