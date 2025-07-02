@@ -2,7 +2,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Users, LogOut, Map, Building } from "lucide-react";
+import { Users, LogOut, Map, Building, Trash } from "lucide-react";
 import Image from "next/image";
 import type { AuthUser } from "@/contexts/auth-context";
 import {
@@ -14,6 +14,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 
 interface AppHeaderProps {
@@ -21,10 +32,11 @@ interface AppHeaderProps {
   onAddPosition: () => void;
   onAddPersonnel: () => void;
   onLogout: () => void;
+  onClearPersonnel: () => void;
   activeTab: 'merkez' | 'tasra';
 }
 
-export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout, activeTab }: AppHeaderProps) {
+export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout, onClearPersonnel, activeTab }: AppHeaderProps) {
   const title = activeTab === 'merkez'
     ? "Merkez Teşkilatı Yönetim Sistemi"
     : "Taşra Teşkilatı Yönetim Sistemi";
@@ -77,6 +89,35 @@ export function AppHeader({ user, onAddPosition, onAddPersonnel, onLogout, activ
                     </p>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10"
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      <Trash className="mr-2 h-4 w-4" />
+                      <span>Tüm Personeli Sil</span>
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Bu işlem geri alınamaz. Sistemdeki tüm merkez ve taşra personeli kalıcı olarak silinecektir. Pozisyonlar silinmeyecek, ancak personel atamaları kaldırılacaktır.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>İptal</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={onClearPersonnel}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Evet, Personeli Sil
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onLogout}>
                   <LogOut className="mr-2 h-4 w-4" />

@@ -261,6 +261,42 @@ export default function HomePage() {
     setEditingTasraPersonnel(null);
   }
 
+  const handleClearPersonnel = () => {
+    localStorage.removeItem('positionTrackerApp_personnel');
+    localStorage.removeItem('tasraTrackerApp_personnel');
+
+    const merkezPositionsRaw = localStorage.getItem('positionTrackerApp_positions');
+    if (merkezPositionsRaw) {
+      try {
+        const merkezPositions = JSON.parse(merkezPositionsRaw);
+        if (Array.isArray(merkezPositions)) {
+            const updatedMerkezPositions = merkezPositions.map(p => ({ ...p, assignedPersonnelId: null }));
+            localStorage.setItem('positionTrackerApp_positions', JSON.stringify(updatedMerkezPositions));
+        }
+      } catch (e) { console.error("Could not update merkez positions", e); }
+    }
+    
+    const tasraPositionsRaw = localStorage.getItem('tasraTrackerApp_positions');
+    if (tasraPositionsRaw) {
+      try {
+        const tasraPositions = JSON.parse(tasraPositionsRaw);
+        if (Array.isArray(tasraPositions)) {
+            const updatedTasraPositions = tasraPositions.map(p => ({ ...p, assignedPersonnelId: null }));
+            localStorage.setItem('tasraTrackerApp_positions', JSON.stringify(updatedTasraPositions));
+        }
+      } catch(e) { console.error("Could not update tasra positions", e); }
+    }
+
+
+    toast({
+      title: "Personel Verileri Temizlendi",
+      description: "Tüm personel bilgileri başarıyla silindi. Sayfa yeniden yükleniyor...",
+    });
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  };
+
   // --- Header Button Logic ---
   const handleGenericAddPosition = () => {
     if (activeMainTab === 'merkez') handleAddPositionClick();
@@ -945,6 +981,7 @@ export default function HomePage() {
           onAddPosition={() => {}} 
           onAddPersonnel={() => {}} 
           onLogout={() => {}}
+          onClearPersonnel={() => {}}
           activeTab="merkez"
         />
         <main className="flex-grow max-w-screen-2xl mx-auto p-4 md:p-6 lg:p-8 w-full">
@@ -987,6 +1024,7 @@ export default function HomePage() {
         onAddPosition={handleGenericAddPosition} 
         onAddPersonnel={handleGenericAddPersonnel}
         onLogout={logout}
+        onClearPersonnel={handleClearPersonnel}
         activeTab={activeMainTab}
       />
       <main className="flex-grow max-w-screen-2xl mx-auto p-4 md:p-6 lg:p-8 w-full">
@@ -1219,4 +1257,4 @@ export default function HomePage() {
 
     </div>
   );
-
+}
