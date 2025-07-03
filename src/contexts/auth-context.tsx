@@ -114,7 +114,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signInWithEmailAndPassword(auth, email, password);
       return { success: true };
     } catch (error: any) {
-      console.error("Login error:", error.code, error.message);
       let message = "Beklenmedik bir hata oluştu.";
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
           message = "E-posta veya şifre hatalı.";
@@ -142,7 +141,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
 
     } catch (error: any) {
-      console.error("Signup error:", error);
       let message = "Kayıt sırasında bir hata oluştu.";
       if (error.code === 'auth/email-already-in-use') {
         message = "Bu e-posta adresi zaten kullanılıyor.";
