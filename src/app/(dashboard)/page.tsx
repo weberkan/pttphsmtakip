@@ -103,7 +103,8 @@ function DashboardPageContent() {
     personnel,
     addPosition, 
     batchAddPositions,
-    updatePosition, 
+    updatePosition,
+    batchUpdatePositions,
     deletePosition, 
     addPersonnel,
     batchAddPersonnel,
@@ -119,6 +120,7 @@ function DashboardPageContent() {
     addTasraPosition,
     batchAddTasraPosition,
     updateTasraPosition,
+    batchUpdateTasraPosition,
     deleteTasraPosition,
     addTasraPersonnel,
     batchAddTasraPersonnel,
@@ -274,13 +276,10 @@ function DashboardPageContent() {
   }, [positions, filter, positionSearchTerm, personnel]);
 
   const sortedAndFilteredPersonnel = useMemo(() => {
-    // 1. De-duplicate first to prevent count/render mismatches.
-    const uniquePersonnel = Array.from(new Map(personnel.map(p => [p.id, p])).values());
-
-    let filtered = uniquePersonnel;
+    let filtered = personnel;
     if (personnelSearchTerm.trim() !== "") {
         const searchTermLower = personnelSearchTerm.toLowerCase();
-        filtered = uniquePersonnel.filter(p => 
+        filtered = personnel.filter(p => 
             (p.firstName || '').toLowerCase().includes(searchTermLower) ||
             (p.lastName || '').toLowerCase().includes(searchTermLower) ||
             (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
@@ -380,13 +379,10 @@ function DashboardPageContent() {
   }, [tasraPositions, tasraPositionSearchTerm, tasraPersonnel]);
 
   const filteredTasraPersonnel = useMemo(() => {
-    // 1. De-duplicate first to solve count and phantom deletion issues.
-    const uniquePersonnel = Array.from(new Map(tasraPersonnel.map(p => [p.id, p])).values());
-    
-    let filtered = uniquePersonnel;
+    let filtered = tasraPersonnel;
     if (tasraPersonnelSearchTerm.trim() !== "") {
         const searchTermLower = tasraPersonnelSearchTerm.toLowerCase();
-        filtered = uniquePersonnel.filter(p => 
+        filtered = filtered.filter(p => 
             (p.firstName || '').toLowerCase().includes(searchTermLower) ||
             (p.lastName || '').toLowerCase().includes(searchTermLower) ||
             (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
@@ -1216,5 +1212,3 @@ export default function Page() {
         </Suspense>
     )
 }
-
-    

@@ -9,7 +9,6 @@ import {
   collection, 
   onSnapshot, 
   addDoc, 
-  updateDoc, 
   deleteDoc, 
   doc, 
   writeBatch,
@@ -19,9 +18,7 @@ import {
 } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 
-const LOCAL_STORAGE_POSITIONS_KEY = 'tasraTrackerApp_positions';
-const LOCAL_STORAGE_PERSONNEL_KEY = 'tasraTrackerApp_personnel';
-const MIGRATION_KEY = 'tasraTrackerApp_firestoreMigrationComplete';
+const MIGRATION_KEY = 'tasraTrackerApp_firestoreMigrationComplete_v2';
 
 export function useTasraPositions() {
   const { user } = useAuth();
@@ -45,8 +42,8 @@ export function useTasraPositions() {
       const personnelSnapshot = await getDocs(personnelCollectionRef);
 
       if (positionsSnapshot.empty && personnelSnapshot.empty) {
-        const localPositionsStr = localStorage.getItem(LOCAL_STORAGE_POSITIONS_KEY);
-        const localPersonnelStr = localStorage.getItem(LOCAL_STORAGE_PERSONNEL_KEY);
+        const localPositionsStr = localStorage.getItem('tasraTrackerApp_positions'); // Old key
+        const localPersonnelStr = localStorage.getItem('tasraTrackerApp_personnel'); // Old key
 
         const localPositions = localPositionsStr ? JSON.parse(localPositionsStr) : [];
         const localPersonnel = localPersonnelStr ? JSON.parse(localPersonnelStr) : [];
@@ -56,7 +53,7 @@ export function useTasraPositions() {
           const batch = writeBatch(db);
 
           localPositions.forEach((p: any) => {
-            const docRef = doc(positionsCollectionRef);
+            const docRef = doc(positionsCollectionRef, p.id); // Use existing ID
             batch.set(docRef, {
               ...p,
               startDate: p.startDate ? Timestamp.fromDate(new Date(p.startDate)) : null,
@@ -64,7 +61,7 @@ export function useTasraPositions() {
           });
 
           localPersonnel.forEach((p: any) => {
-            const docRef = doc(personnelCollectionRef);
+            const docRef = doc(personnelCollectionRef, p.id); // Use existing ID
             batch.set(docRef, {
               ...p,
               status: p.status || 'İHS',
@@ -78,8 +75,8 @@ export function useTasraPositions() {
       }
       
       localStorage.setItem(MIGRATION_KEY, 'true');
-      localStorage.removeItem(LOCAL_STORAGE_POSITIONS_KEY);
-      localStorage.removeItem(LOCAL_STORAGE_PERSONNEL_KEY);
+      localStorage.removeItem('tasraTrackerApp_positions');
+      localStorage.removeItem('tasraTrackerApp_personnel');
     } catch(error) {
       console.error("Tasra migration check failed. This could be due to Firestore security rules. The app will proceed, but old data might not be migrated.", error);
     }
@@ -98,7 +95,8 @@ export function useTasraPositions() {
               lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
             } as TasraPosition;
           });
-          setTasraPositions(fetchedPositions);
+          const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
+          setTasraPositions(uniquePositions);
           setIsInitialized(true);
         }, (error) => {
             console.error("Error fetching tasra positions:", error);
@@ -115,7 +113,8 @@ export function useTasraPositions() {
               lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
             } as Personnel;
           });
-          setTasraPersonnel(fetchedPersonnel);
+          const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
+          setTasraPersonnel(uniquePersonnel);
           setIsInitialized(true);
         }, (error) => {
             console.error("Error fetching tasra personnel:", error);
@@ -185,6 +184,11 @@ export function useTasraPositions() {
 
   const deleteTasraPosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
+    
+    // Optimistic UI Update
+    const originalPositions = tasraPositions;
+    setTasraPositions(prev => prev.filter(p => p.id !== positionId));
+    
     try {
       await deleteDoc(doc(db, 'tasra-positions', positionId));
       toast({
@@ -193,13 +197,14 @@ export function useTasraPositions() {
       });
     } catch (error) {
       console.error("Error deleting Tasra position:", error);
+      setTasraPositions(originalPositions); // Revert on error
       toast({
         variant: "destructive",
         title: "Hata",
         description: "Pozisyon silinirken bir hata oluştu.",
       });
     }
-  }, [user, toast]);
+  }, [user, db, tasraPositions, toast]);
 
   const addTasraPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id'>) => {
     if (!user || !db) return;
@@ -236,13 +241,22 @@ export function useTasraPositions() {
 
   const deleteTasraPersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
+    
+    // Optimistic UI Update
+    const originalPersonnel = tasraPersonnel;
+    const originalPositions = tasraPositions;
+    setTasraPersonnel(prev => prev.filter(p => p.id !== personnelId));
+    setTasraPositions(prev => prev.map(p => 
+        p.assignedPersonnelId === personnelId ? { ...p, assignedPersonnelId: null } : p
+    ));
+    
     try {
       const batch = writeBatch(db);
 
       const personnelRef = doc(db, 'tasra-personnel', personnelId);
       batch.delete(personnelRef);
 
-      const assignedPositions = tasraPositions.filter(p => p.assignedPersonnelId === personnelId);
+      const assignedPositions = originalPositions.filter(p => p.assignedPersonnelId === personnelId);
       assignedPositions.forEach(pos => {
         const posRef = doc(db, 'tasra-positions', pos.id);
         batch.set(posRef, {
@@ -259,13 +273,15 @@ export function useTasraPositions() {
       });
     } catch (error) {
       console.error("Error deleting Tasra personnel:", error);
+      setTasraPersonnel(originalPersonnel); // Revert on error
+      setTasraPositions(originalPositions);
       toast({
         variant: "destructive",
         title: "Hata",
         description: "Personel silinirken bir hata oluştu.",
       });
     }
-  }, [user, tasraPositions, toast]);
+  }, [user, tasraPersonnel, tasraPositions, db, toast]);
 
   return { 
     tasraPositions, 

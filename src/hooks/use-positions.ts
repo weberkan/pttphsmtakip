@@ -9,7 +9,6 @@ import {
   collection, 
   onSnapshot, 
   addDoc, 
-  updateDoc, 
   deleteDoc, 
   doc, 
   writeBatch,
@@ -20,9 +19,7 @@ import {
 import { initialPositionsData, initialPersonnelData } from '@/lib/initial-data';
 import { useToast } from '@/hooks/use-toast';
 
-const LOCAL_STORAGE_POSITIONS_KEY = 'positionTrackerApp_positions';
-const LOCAL_STORAGE_PERSONNEL_KEY = 'positionTrackerApp_personnel';
-const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete';
+const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete_v2';
 
 export function usePositions() {
   const { user } = useAuth();
@@ -46,8 +43,8 @@ export function usePositions() {
       const personnelSnapshot = await getDocs(personnelCollectionRef);
 
       if (positionsSnapshot.empty && personnelSnapshot.empty) {
-        const localPositionsStr = localStorage.getItem(LOCAL_STORAGE_POSITIONS_KEY);
-        const localPersonnelStr = localStorage.getItem(LOCAL_STORAGE_PERSONNEL_KEY);
+        const localPositionsStr = localStorage.getItem('positionTrackerApp_positions'); // Old key
+        const localPersonnelStr = localStorage.getItem('positionTrackerApp_personnel'); // Old key
         
         const localPositions = localPositionsStr ? JSON.parse(localPositionsStr) : initialPositionsData;
         const localPersonnel = localPersonnelStr ? JSON.parse(localPersonnelStr) : initialPersonnelData;
@@ -57,7 +54,7 @@ export function usePositions() {
           const batch = writeBatch(db);
 
           localPositions.forEach((p: any) => {
-            const docRef = doc(positionsCollectionRef);
+            const docRef = doc(positionsCollectionRef, p.id); // Use existing ID
             batch.set(docRef, {
                 ...p,
                 startDate: p.startDate ? Timestamp.fromDate(new Date(p.startDate)) : null,
@@ -65,7 +62,7 @@ export function usePositions() {
           });
 
           localPersonnel.forEach((p: any) => {
-            const docRef = doc(personnelCollectionRef);
+            const docRef = doc(personnelCollectionRef, p.id); // Use existing ID
             batch.set(docRef, {
                 ...p,
                 status: p.status || 'İHS',
@@ -79,8 +76,8 @@ export function usePositions() {
       }
       
       localStorage.setItem(MIGRATION_KEY, 'true');
-      localStorage.removeItem(LOCAL_STORAGE_POSITIONS_KEY);
-      localStorage.removeItem(LOCAL_STORAGE_PERSONNEL_KEY);
+      localStorage.removeItem('positionTrackerApp_positions');
+      localStorage.removeItem('positionTrackerApp_personnel');
 
     } catch (error) {
       console.error("Merkez migration check failed. This could be due to Firestore security rules. The app will proceed, but old data might not be migrated.", error);
@@ -100,7 +97,8 @@ export function usePositions() {
               lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
             } as Position;
           });
-          setPositions(fetchedPositions);
+          const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
+          setPositions(uniquePositions);
           setIsInitialized(true);
         }, (error) => {
           console.error("Error fetching merkez positions:", error);
@@ -117,7 +115,8 @@ export function usePositions() {
               lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
             } as Personnel;
           });
-          setPersonnel(fetchedPersonnel);
+          const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
+          setPersonnel(uniquePersonnel);
           setIsInitialized(true);
         }, (error) => {
             console.error("Error fetching merkez personnel:", error);
@@ -187,14 +186,24 @@ export function usePositions() {
 
   const deletePosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
+
+    // Optimistic UI Update
+    const originalPositions = positions;
+    const childPositionsToUpdate = positions.filter(p => p.reportsTo === positionId);
+    setPositions(prev => {
+        const withoutDeleted = prev.filter(p => p.id !== positionId);
+        return withoutDeleted.map(p => 
+            p.reportsTo === positionId ? { ...p, reportsTo: null } : p
+        );
+    });
+
     try {
       const batch = writeBatch(db);
       
       const positionRef = doc(db, 'merkez-positions', positionId);
       batch.delete(positionRef);
       
-      const childPositions = positions.filter(p => p.reportsTo === positionId);
-      childPositions.forEach(child => {
+      childPositionsToUpdate.forEach(child => {
           const childRef = doc(db, 'merkez-positions', child.id);
           batch.set(childRef, { 
               reportsTo: null,
@@ -210,13 +219,14 @@ export function usePositions() {
       });
     } catch (error) {
       console.error("Error deleting Merkez position:", error);
+      setPositions(originalPositions); // Revert on error
       toast({
         variant: "destructive",
         title: "Hata",
         description: "Pozisyon silinirken bir hata oluştu.",
       });
     }
-  }, [user, positions, toast]);
+  }, [user, positions, db, toast]);
 
 
   const addPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id' | 'status'> & { status: 'İHS' | '399' }) => {
@@ -255,13 +265,21 @@ export function usePositions() {
   const deletePersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
     
+    // Optimistic UI Update
+    const originalPersonnel = personnel;
+    const originalPositions = positions;
+    setPersonnel(prev => prev.filter(p => p.id !== personnelId));
+    setPositions(prev => prev.map(p => 
+        p.assignedPersonnelId === personnelId ? { ...p, assignedPersonnelId: null } : p
+    ));
+
     try {
       const batch = writeBatch(db);
       
       const personnelRef = doc(db, 'merkez-personnel', personnelId);
       batch.delete(personnelRef);
       
-      const assignedPositions = positions.filter(p => p.assignedPersonnelId === personnelId);
+      const assignedPositions = originalPositions.filter(p => p.assignedPersonnelId === personnelId);
       assignedPositions.forEach(pos => {
         const posRef = doc(db, 'merkez-positions', pos.id);
         batch.set(posRef, {
@@ -278,13 +296,15 @@ export function usePositions() {
       });
     } catch (error) {
       console.error("Error deleting Merkez personnel:", error);
+      setPersonnel(originalPersonnel); // Revert on error
+      setPositions(originalPositions);
       toast({
         variant: "destructive",
         title: "Hata",
         description: "Personel silinirken bir hata oluştu.",
       });
     }
-  }, [user, positions, toast]);
+  }, [user, personnel, positions, db, toast]);
 
   return { 
     positions, 
