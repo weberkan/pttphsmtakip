@@ -41,67 +41,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // This useEffect handles session persistence on page reloads
+  // This useEffect handles session persistence on page reloads and is the
+  // single source of truth for the user's authentication state.
   useEffect(() => {
     if (!auth || !db) {
       setLoading(false);
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser && !user) { // Check !user to avoid re-fetching on login/signup
+      if (firebaseUser) {
         try {
           const email = firebaseUser.email;
+          let appUser: AuthUser | null = null;
+
           if (email) {
             // Check merkez-personnel
             const merkezQuery = query(collection(db, "merkez-personnel"), where("email", "==", email));
             const merkezSnapshot = await getDocs(merkezQuery);
             if (!merkezSnapshot.empty) {
               const appUserData = merkezSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-              setUser({
+              appUser = {
                 registryNumber: appUserData.registryNumber,
                 firstName: appUserData.firstName,
                 lastName: appUserData.lastName,
                 email: appUserData.email || '',
-              });
-              setLoading(false);
-              return;
-            }
-
-            // Check tasra-personnel
-            const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", email));
-            const tasraSnapshot = await getDocs(tasraQuery);
-            if (!tasraSnapshot.empty) {
-              const appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-              setUser({
-                registryNumber: appUserData.registryNumber,
-                firstName: appUserData.firstName,
-                lastName: appUserData.lastName,
-                email: appUserData.email || '',
-              });
-              setLoading(false);
-              return;
+              };
+            } else {
+              // Check tasra-personnel if not in merkez
+              const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", email));
+              const tasraSnapshot = await getDocs(tasraQuery);
+              if (!tasraSnapshot.empty) {
+                const appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
+                appUser = {
+                  registryNumber: appUserData.registryNumber,
+                  firstName: appUserData.firstName,
+                  lastName: appUserData.lastName,
+                  email: appUserData.email || '',
+                };
+              }
             }
           }
-          // If user exists in Firebase Auth but not in our DB, or has no email
-          await signOut(auth);
-          setUser(null);
+
+          if (appUser) {
+            setUser(appUser);
+          } else {
+            // User exists in Firebase Auth but not in our DB (or has no email), which is an inconsistent state.
+            // Sign them out to be safe.
+            await signOut(auth);
+            setUser(null);
+          }
         } catch (error) {
           console.error("Error restoring session:", error);
           if (auth) await signOut(auth);
           setUser(null);
+        } finally {
+          // This block is now guaranteed to run, ending the loading state.
+          setLoading(false);
         }
-      } else if (!firebaseUser) {
+      } else { // No firebaseUser
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []); // Run only once on mount to check initial auth state
+  }, []);
 
-  // This useEffect handles redirection logic
+  // This useEffect handles redirection logic based on the auth state.
   useEffect(() => {
-    if (loading) return;
+    if (loading) return; // Wait until loading is finished
 
     const isAuthPage = pathname === '/login';
 
@@ -113,55 +121,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loading, pathname, router]);
 
   const login = useCallback(async (email: string, password: string): Promise<{success: boolean, message?: string}> => {
-    if (!auth || !db) return { success: false, message: "Sistem başlatılamadı." };
+    if (!auth) return { success: false, message: "Kimlik doğrulama sistemi başlatılamadı." };
     
-    setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
-      const emailToSearch = userCredential.user.email;
-      if (!emailToSearch) {
-        throw new Error("Kullanıcının e-posta adresi bulunamadı.");
-      }
-
-      // Look for user in Firestore
-      const merkezQuery = query(collection(db, "merkez-personnel"), where("email", "==", emailToSearch));
-      const merkezSnapshot = await getDocs(merkezQuery);
-      if (!merkezSnapshot.empty) {
-        const appUserData = merkezSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-        setUser({
-          registryNumber: appUserData.registryNumber,
-          firstName: appUserData.firstName,
-          lastName: appUserData.lastName,
-          email: appUserData.email || '',
-        });
-        return { success: true };
-      }
-
-      const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", emailToSearch));
-      const tasraSnapshot = await getDocs(tasraQuery);
-      if (!tasraSnapshot.empty) {
-        const appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-        setUser({
-          registryNumber: appUserData.registryNumber,
-          firstName: appUserData.firstName,
-          lastName: appUserData.lastName,
-          email: appUserData.email || '',
-        });
-        return { success: true };
-      }
-
-      // If we are here, user is in Auth but not in our DB.
-      await signOut(auth);
-      return { success: false, message: "Giriş bilgileri doğrulandı fakat personel kaydı sistemde bulunamadı." };
-
+      // Attempt to sign in. The onAuthStateChanged listener will handle all state updates if successful.
+      await signInWithEmailAndPassword(auth, email, password);
+      return { success: true };
     } catch (error: any) {
       console.error("Login process error:", error);
       let message = "Beklenmedik bir hata oluştu.";
-      if (error.code) {
+       if (error.code) {
           switch (error.code) {
               case 'auth/invalid-credential':
-                  message = "E-posta veya şifre hatalı.";
+                  message = "E-posta veya şifre hatalı. Lütfen kontrol edin.";
                   break;
               case 'permission-denied':
                   message = "Veritabanına erişim izni yok. Lütfen Firestore güvenlik kurallarınızı kontrol edin.";
@@ -171,8 +143,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
       }
       return { success: false, message };
-    } finally {
-        setLoading(false);
     }
   }, []);
 
@@ -183,9 +153,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, message };
     }
     
-    setLoading(true);
     try {
-      // Check for duplicate registry number in both collections
+      // Check for duplicate registry number in both collections to ensure data integrity
       const merkezRegQuery = query(collection(db, "merkez-personnel"), where("registryNumber", "==", data.registryNumber));
       const tasraRegQuery = query(collection(db, "tasra-personnel"), where("registryNumber", "==", data.registryNumber));
       
@@ -198,8 +167,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { success: false, message: "Bu sicil numarası zaten sistemde kayıtlı." };
       }
 
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      // Create the user in Firebase Auth. onAuthStateChanged will then fire.
+      await createUserWithEmailAndPassword(auth, data.email, data.password);
       
+      // After successful auth creation, create the user's profile in the personnel database.
+      // The user is added to 'merkez-personnel' by default upon signup.
       await addDoc(collection(db, 'merkez-personnel'), {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -213,17 +185,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         phone: null,
         dateOfBirth: null,
       });
-
-      setUser({
-        registryNumber: data.registryNumber,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-      });
       
       return { success: true };
 
-    } catch (error: any) {
+    } catch (error: any)
+    {
       console.error("Firebase signup error:", error);
       if (error.code === 'auth/email-already-in-use') {
         return { success: false, message: "Bu e-posta adresi zaten kullanılıyor." };
@@ -232,8 +198,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { success: false, message: "Şifre en az 6 karakter olmalıdır." };
       }
       return { success: false, message: "Kayıt sırasında bir hata oluştu." };
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -244,13 +208,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       await signOut(auth);
-      setUser(null);
-      setLoading(false);
-      router.push('/login');
+      // onAuthStateChanged will handle setting user to null and loading to false.
+      // The redirection hook will then push the user to the login page.
     } catch (error) {
       console.error("Firebase çıkış hatası:", error);
     }
-  }, [router]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
