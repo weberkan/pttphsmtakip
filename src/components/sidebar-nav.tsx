@@ -4,13 +4,12 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Building, Users, BarChart2, Map, Folder, Briefcase, LayoutDashboard, UserCheck } from 'lucide-react';
+import { Building, Users, BarChart2, Map, Folder, Briefcase } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import * as React from 'react';
-import { useAuth } from '@/contexts/auth-context';
 
-const baseMenuItems = [
+const menuItems = [
   {
     id: 'merkez',
     title: 'Merkez Teşkilatı',
@@ -38,27 +37,15 @@ const baseMenuItems = [
   },
 ];
 
-const adminMenuItem = {
-    id: 'admin',
-    title: 'Yönetim Paneli',
-    icon: UserCheck,
-    subItems: [
-      { href: 'kullanici-onay', title: 'Kullanıcı Onayları', icon: UserCheck },
-    ]
-};
-
 
 interface SidebarNavProps {
     isCollapsed: boolean;
 }
 
 export function SidebarNav({ isCollapsed }: SidebarNavProps) {
-  const { user } = useAuth();
   const searchParams = useSearchParams();
   const currentView = searchParams.get('view') || 'dashboard';
 
-  const menuItems = user?.role === 'admin' ? [...baseMenuItems, adminMenuItem] : baseMenuItems;
-  
   const defaultOpenAccordion = menuItems.find(item => item.subItems?.some(sub => sub.href === currentView))?.id;
 
   if (isCollapsed) {

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense, useState, ReactNode } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Menu, Briefcase, ChevronsLeft, Network } from "lucide-react";
+import { Users, LogOut, Menu, Briefcase, ChevronsLeft, Network, UserCheck } from "lucide-react";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -154,6 +154,17 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                {user.role === 'admin' && (
+                                    <>
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/?view=kullanici-onay">
+                                                <UserCheck className="mr-2 h-4 w-4" />
+                                                <span>Yönetim Paneli</span>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
                                 <DropdownMenuItem onClick={logout}>
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>Çıkış Yap</span>
