@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -13,7 +14,8 @@ import {
   doc, 
   writeBatch,
   getDocs,
-  Timestamp
+  Timestamp,
+  setDoc
 } from "firebase/firestore";
 import { initialPositionsData, initialPersonnelData } from '@/lib/initial-data';
 
@@ -159,11 +161,11 @@ export function usePositions() {
   const updatePosition = useCallback(async (updatedPosition: Position) => {
     if (!user || !db) return;
     const { id, ...data } = updatedPosition;
-    await updateDoc(doc(db, 'merkez-positions', id), {
+    await setDoc(doc(db, 'merkez-positions', id), {
       ...data,
       lastModifiedBy: user.registryNumber,
       lastModifiedAt: Timestamp.now(),
-    });
+    }, { merge: true });
   }, [user]);
 
   const batchUpdatePositions = useCallback(async (positionList: Position[]) => {
@@ -172,11 +174,11 @@ export function usePositions() {
     positionList.forEach(position => {
       const { id, ...data } = position;
       const docRef = doc(db, 'merkez-positions', id);
-      batch.update(docRef, {
+      batch.set(docRef, {
         ...data,
         lastModifiedBy: user.registryNumber,
         lastModifiedAt: Timestamp.now(),
-      });
+      }, { merge: true });
     });
     await batch.commit();
   }, [user]);
@@ -230,11 +232,11 @@ export function usePositions() {
   const updatePersonnel = useCallback(async (updatedPersonnel: Personnel) => {
     if (!user || !db) return;
     const { id, ...data } = updatedPersonnel;
-    await updateDoc(doc(db, 'merkez-personnel', id), {
+    await setDoc(doc(db, 'merkez-personnel', id), {
       ...data,
       lastModifiedBy: user.registryNumber,
       lastModifiedAt: Timestamp.now(),
-    });
+    }, { merge: true });
   }, [user]);
 
   const deletePersonnel = useCallback(async (personnelId: string) => {

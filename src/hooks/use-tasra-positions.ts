@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -13,7 +14,8 @@ import {
   doc, 
   writeBatch,
   getDocs,
-  Timestamp
+  Timestamp,
+  setDoc
 } from "firebase/firestore";
 
 const LOCAL_STORAGE_POSITIONS_KEY = 'tasraTrackerApp_positions';
@@ -157,11 +159,11 @@ export function useTasraPositions() {
   const updateTasraPosition = useCallback(async (updatedPosition: TasraPosition) => {
     if (!user || !db) return;
     const { id, ...data } = updatedPosition;
-    await updateDoc(doc(db, 'tasra-positions', id), {
+    await setDoc(doc(db, 'tasra-positions', id), {
       ...data,
       lastModifiedBy: user.registryNumber,
       lastModifiedAt: Timestamp.now(),
-    });
+    }, { merge: true });
   }, [user]);
 
   const batchUpdateTasraPosition = useCallback(async (positionList: TasraPosition[]) => {
@@ -170,11 +172,11 @@ export function useTasraPositions() {
     positionList.forEach(position => {
       const { id, ...data } = position;
       const docRef = doc(db, 'tasra-positions', id);
-      batch.update(docRef, {
+      batch.set(docRef, {
         ...data,
         lastModifiedBy: user.registryNumber,
         lastModifiedAt: Timestamp.now(),
-      });
+      }, { merge: true });
     });
     await batch.commit();
   }, [user]);
@@ -210,11 +212,11 @@ export function useTasraPositions() {
   const updateTasraPersonnel = useCallback(async (updatedPersonnel: Personnel) => {
     if (!user || !db) return;
     const { id, ...data } = updatedPersonnel;
-    await updateDoc(doc(db, 'tasra-personnel', id), {
+    await setDoc(doc(db, 'tasra-personnel', id), {
       ...data,
       lastModifiedBy: user.registryNumber,
       lastModifiedAt: Timestamp.now(),
-    });
+    }, { merge: true });
   }, [user]);
 
   const deleteTasraPersonnel = useCallback(async (personnelId: string) => {
