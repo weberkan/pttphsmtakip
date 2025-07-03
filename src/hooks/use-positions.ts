@@ -30,55 +30,58 @@ export function usePositions() {
 
   const performOneTimeMigration = useCallback(async () => {
     if (!db || localStorage.getItem(MIGRATION_KEY)) {
-      return; // Migration already done or DB not available
+      return;
     }
 
-    console.log("Checking if migration is needed...");
+    console.log("Checking if merkez-positions migration is needed...");
 
-    const positionsCollectionRef = collection(db, 'merkez-positions');
-    const personnelCollectionRef = collection(db, 'merkez-personnel');
+    try {
+      const positionsCollectionRef = collection(db, 'merkez-positions');
+      const personnelCollectionRef = collection(db, 'merkez-personnel');
 
-    const positionsSnapshot = await getDocs(positionsCollectionRef);
-    const personnelSnapshot = await getDocs(personnelCollectionRef);
+      const positionsSnapshot = await getDocs(positionsCollectionRef);
+      const personnelSnapshot = await getDocs(personnelCollectionRef);
 
-    if (positionsSnapshot.empty && personnelSnapshot.empty) {
-      const localPositionsStr = localStorage.getItem(LOCAL_STORAGE_POSITIONS_KEY);
-      const localPersonnelStr = localStorage.getItem(LOCAL_STORAGE_PERSONNEL_KEY);
+      if (positionsSnapshot.empty && personnelSnapshot.empty) {
+        const localPositionsStr = localStorage.getItem(LOCAL_STORAGE_POSITIONS_KEY);
+        const localPersonnelStr = localStorage.getItem(LOCAL_STORAGE_PERSONNEL_KEY);
+        
+        const localPositions = localPositionsStr ? JSON.parse(localPositionsStr) : initialPositionsData;
+        const localPersonnel = localPersonnelStr ? JSON.parse(localPersonnelStr) : initialPersonnelData;
+        
+        if (localPositions.length > 0 || localPersonnel.length > 0) {
+          console.log("Performing one-time data migration for merkez from localStorage to Firestore...");
+          const batch = writeBatch(db);
 
-      const localPositions = localPositionsStr ? JSON.parse(localPositionsStr) : initialPositionsData;
-      const localPersonnel = localPersonnelStr ? JSON.parse(localPersonnelStr) : initialPersonnelData;
-      
-      if (localPositions.length > 0 || localPersonnel.length > 0) {
-        console.log("Performing one-time data migration from localStorage to Firestore...");
-        const batch = writeBatch(db);
-
-        localPositions.forEach((p: any) => {
-          const docRef = doc(positionsCollectionRef);
-          batch.set(docRef, {
-              ...p,
-              startDate: p.startDate ? Timestamp.fromDate(new Date(p.startDate)) : null,
+          localPositions.forEach((p: any) => {
+            const docRef = doc(positionsCollectionRef);
+            batch.set(docRef, {
+                ...p,
+                startDate: p.startDate ? Timestamp.fromDate(new Date(p.startDate)) : null,
+            });
           });
-        });
 
-        localPersonnel.forEach((p: any) => {
-          const docRef = doc(personnelCollectionRef);
-          batch.set(docRef, {
-              ...p,
-              status: p.status || 'İHS',
-              dateOfBirth: p.dateOfBirth ? Timestamp.fromDate(new Date(p.dateOfBirth)) : null
+          localPersonnel.forEach((p: any) => {
+            const docRef = doc(personnelCollectionRef);
+            batch.set(docRef, {
+                ...p,
+                status: p.status || 'İHS',
+                dateOfBirth: p.dateOfBirth ? Timestamp.fromDate(new Date(p.dateOfBirth)) : null
+            });
           });
-        });
 
-        await batch.commit();
-        console.log("Migration successful.");
+          await batch.commit();
+          console.log("Merkez migration successful.");
+        }
       }
-    }
-    
-    localStorage.setItem(MIGRATION_KEY, 'true');
-    // Clean up old localStorage data after successful migration check
-    localStorage.removeItem(LOCAL_STORAGE_POSITIONS_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_PERSONNEL_KEY);
+      
+      localStorage.setItem(MIGRATION_KEY, 'true');
+      localStorage.removeItem(LOCAL_STORAGE_POSITIONS_KEY);
+      localStorage.removeItem(LOCAL_STORAGE_PERSONNEL_KEY);
 
+    } catch (error) {
+      console.error("Merkez migration check failed. This could be due to Firestore security rules. The app will proceed, but old data might not be migrated.", error);
+    }
   }, []);
 
   useEffect(() => {
@@ -126,7 +129,6 @@ export function usePositions() {
     } else {
       setPositions([]);
       setPersonnel([]);
-      // If db is not available, we still consider it "initialized" to prevent infinite loading screens.
       if (!db) setIsInitialized(true);
       else setIsInitialized(false);
     }
