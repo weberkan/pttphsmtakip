@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense, useState, ReactNode } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Trash, Menu, Briefcase, ChevronsLeft, Network } from "lucide-react";
+import { Users, LogOut, Menu, Briefcase, ChevronsLeft, Network } from "lucide-react";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -17,17 +17,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarNav } from '@/components/sidebar-nav';
 import { useToast } from "@/hooks/use-toast";
@@ -56,41 +45,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     if (!user) return null;
 
     const view = searchParams.get('view') || 'dashboard';
-    
-    const handleClearPersonnel = () => {
-        localStorage.removeItem('positionTrackerApp_personnel');
-        localStorage.removeItem('tasraTrackerApp_personnel');
-
-        const merkezPositionsRaw = localStorage.getItem('positionTrackerApp_positions');
-        if (merkezPositionsRaw) {
-            try {
-                const merkezPositions = JSON.parse(merkezPositionsRaw);
-                if (Array.isArray(merkezPositions)) {
-                    const updatedMerkezPositions = merkezPositions.map(p => ({ ...p, assignedPersonnelId: null }));
-                    localStorage.setItem('positionTrackerApp_positions', JSON.stringify(updatedMerkezPositions));
-                }
-            } catch (e) { console.error("Could not update merkez positions", e); }
-        }
-        
-        const tasraPositionsRaw = localStorage.getItem('tasraTrackerApp_positions');
-        if (tasraPositionsRaw) {
-            try {
-                const tasraPositions = JSON.parse(tasraPositionsRaw);
-                if (Array.isArray(tasraPositions)) {
-                    const updatedTasraPositions = tasraPositions.map(p => ({ ...p, assignedPersonnelId: null }));
-                    localStorage.setItem('tasraTrackerApp_positions', JSON.stringify(updatedTasraPositions));
-                }
-            } catch(e) { console.error("Could not update tasra positions", e); }
-        }
-
-        toast({
-            title: "Personel Verileri Temizlendi",
-            description: "Tüm personel bilgileri başarıyla silindi. Sayfa yeniden yükleniyor...",
-        });
-        setTimeout(() => {
-            window.location.reload();
-        }, 1500);
-    };
     
     return (
         <div className={cn(
@@ -177,35 +131,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                                         </p>
                                     </div>
                                 </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem
-                                            className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10"
-                                            onSelect={(e) => e.preventDefault()}
-                                        >
-                                            <Trash className="mr-2 h-4 w-4" />
-                                            <span>Tüm Personeli Sil</span>
-                                        </DropdownMenuItem>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Bu işlem geri alınamaz. Sistemdeki tüm merkez ve taşra personeli kalıcı olarak silinecektir. Pozisyonlar silinmeyecek, ancak personel atamaları kaldırılacaktır.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>İptal</AlertDialogCancel>
-                                            <AlertDialogAction
-                                                onClick={handleClearPersonnel}
-                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                                Evet, Personeli Sil
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={logout}>
                                     <LogOut className="mr-2 h-4 w-4" />
