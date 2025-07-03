@@ -155,13 +155,8 @@ export function useTasraPositions() {
 
   const deleteTasraPosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
-
     try {
-      const batch = writeBatch(db);
-      const positionRef = doc(db, 'tasra-positions', positionId);
-      batch.delete(positionRef);
-      await batch.commit();
-
+      await deleteDoc(doc(db, 'tasra-positions', positionId));
       toast({
         title: "Pozisyon Silindi",
         description: "Taşra pozisyonu başarıyla silindi.",
@@ -212,7 +207,6 @@ export function useTasraPositions() {
 
   const deleteTasraPersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
-    
     try {
       const batch = writeBatch(db);
       
@@ -244,7 +238,7 @@ export function useTasraPositions() {
         description: "Personel silinirken bir hata oluştu.",
       });
     }
-  }, [user, tasraPositions, db, toast]);
+  }, [user, db, tasraPositions, toast]);
 
   return { 
     tasraPositions, 
