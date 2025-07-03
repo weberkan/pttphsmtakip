@@ -156,9 +156,6 @@ export function useTasraPositions() {
   const deleteTasraPosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
 
-    const originalPositions = [...tasraPositions];
-    setTasraPositions(prev => prev.filter(p => p.id !== positionId));
-
     try {
       const batch = writeBatch(db);
       const positionRef = doc(db, 'tasra-positions', positionId);
@@ -171,14 +168,13 @@ export function useTasraPositions() {
       });
     } catch (error) {
       console.error("Error deleting Tasra position:", error);
-      setTasraPositions(originalPositions);
       toast({
         variant: "destructive",
         title: "Hata",
-        description: "Pozisyon silinirken bir hata oluştu. Değişiklikler geri alındı.",
+        description: "Pozisyon silinirken bir hata oluştu.",
       });
     }
-  }, [user, db, toast, tasraPositions]);
+  }, [user, db, toast]);
 
 
   const addTasraPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id'>) => {
@@ -217,17 +213,13 @@ export function useTasraPositions() {
   const deleteTasraPersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
     
-    const originalPersonnel = [...tasraPersonnel];
-    const originalPositions = [...tasraPositions];
-    setTasraPersonnel(prev => prev.filter(p => p.id !== personnelId));
-
     try {
       const batch = writeBatch(db);
       
       const personnelRef = doc(db, 'tasra-personnel', personnelId);
       batch.delete(personnelRef);
       
-      const assignedPositions = originalPositions.filter(p => p.assignedPersonnelId === personnelId);
+      const assignedPositions = tasraPositions.filter(p => p.assignedPersonnelId === personnelId);
       assignedPositions.forEach(pos => {
         const posRef = doc(db, 'tasra-positions', pos.id);
         batch.set(posRef, {
@@ -246,15 +238,13 @@ export function useTasraPositions() {
       });
     } catch (error) {
       console.error("Error deleting Tasra personnel:", error);
-      setTasraPersonnel(originalPersonnel);
-      setTasraPositions(originalPositions);
       toast({
         variant: "destructive",
         title: "Hata",
         description: "Personel silinirken bir hata oluştu.",
       });
     }
-  }, [user, tasraPersonnel, tasraPositions, db, toast]);
+  }, [user, tasraPositions, db, toast]);
 
   return { 
     tasraPositions, 
