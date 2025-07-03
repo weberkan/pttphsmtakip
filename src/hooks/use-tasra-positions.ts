@@ -18,7 +18,7 @@ import {
 } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 
-const MIGRATION_KEY = 'tasraTrackerApp_firestoreMigrationComplete_v3';
+const MIGRATION_KEY = 'tasraTrackerApp_firestoreMigrationComplete_v3_tasra_init';
 
 export function useTasraPositions() {
   const { user } = useAuth();
@@ -28,10 +28,8 @@ export function useTasraPositions() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   const performOneTimeMigration = useCallback(async () => {
-    if (!db) return;
-    
-    if (localStorage.getItem(MIGRATION_KEY)) {
-      return; // Migration already done
+    if (!db || localStorage.getItem(MIGRATION_KEY)) {
+      return; 
     }
 
     console.log("Performing one-time data check for tasra...");
@@ -43,102 +41,69 @@ export function useTasraPositions() {
       const positionsSnapshot = await getDocs(positionsCollectionRef);
       const personnelSnapshot = await getDocs(personnelCollectionRef);
 
-      // Only migrate from old localStorage if collections are empty on the very first check.
       if (positionsSnapshot.empty && personnelSnapshot.empty) {
-        const localPositionsStr = localStorage.getItem('tasraTrackerApp_positions'); // Old key
-        const localPersonnelStr = localStorage.getItem('tasraTrackerApp_personnel'); // Old key
-
-        const localPositions = localPositionsStr ? JSON.parse(localPositionsStr) : [];
-        const localPersonnel = localPersonnelStr ? JSON.parse(localPersonnelStr) : [];
-        
-        if (localPositions.length > 0 || localPersonnel.length > 0) {
-          console.log("Migrating old tasra localStorage data to Firestore...");
-          const batch = writeBatch(db);
-
-          localPositions.forEach((p: any) => {
-            const docRef = doc(positionsCollectionRef, p.id);
-            batch.set(docRef, {
-              ...p,
-              startDate: p.startDate ? Timestamp.fromDate(new Date(p.startDate)) : null,
-            });
-          });
-
-          localPersonnel.forEach((p: any) => {
-            const docRef = doc(personnelCollectionRef, p.id);
-            batch.set(docRef, {
-              ...p,
-              dateOfBirth: p.dateOfBirth ? Timestamp.fromDate(new Date(p.dateOfBirth)) : null,
-            });
-          });
-
-          await batch.commit();
-          console.log("Tasra localStorage migration successful.");
-        }
+        console.log("Database is empty for Tasra. No initial data to seed.");
       }
       
-      // Mark migration as complete to prevent this block from ever running again.
       localStorage.setItem(MIGRATION_KEY, 'true');
       console.log("Tasra data check complete. Migration key set.");
-      // Clean up old keys just in case.
-      localStorage.removeItem('tasraTrackerApp_positions');
-      localStorage.removeItem('tasraTrackerApp_personnel');
-
+      
     } catch(error) {
       console.error("Tasra data check/migration failed:", error);
     }
   }, []);
 
   useEffect(() => {
-    if (user && db) {
-      performOneTimeMigration().then(() => {
-        const positionsUnsubscribe = onSnapshot(collection(db, "tasra-positions"), (snapshot) => {
-          const fetchedPositions = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              ...data,
-              startDate: data.startDate?.toDate(),
-              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
-            } as TasraPosition;
-          });
-          const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
-          setTasraPositions(uniquePositions);
-          setIsInitialized(true);
-        }, (error) => {
-            console.error("Error fetching tasra positions:", error);
-            setIsInitialized(true);
-        });
-
-        const personnelUnsubscribe = onSnapshot(collection(db, "tasra-personnel"), (snapshot) => {
-          const fetchedPersonnel = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              ...data,
-              dateOfBirth: data.dateOfBirth?.toDate(),
-              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
-            } as Personnel;
-          });
-          const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
-          setTasraPersonnel(uniquePersonnel);
-          setIsInitialized(true);
-        }, (error) => {
-            console.error("Error fetching tasra personnel:", error);
-            setIsInitialized(true);
-        });
-
-        return () => {
-          positionsUnsubscribe();
-          personnelUnsubscribe();
-        };
-      });
-    } else {
+    if (!user || !db) {
       setTasraPositions([]);
       setTasraPersonnel([]);
-      if (!db) setIsInitialized(true);
-      else setIsInitialized(false);
+      setIsInitialized(!db);
+      return;
     }
-  }, [user, performOneTimeMigration]);
+
+    performOneTimeMigration();
+
+    const positionsUnsubscribe = onSnapshot(collection(db, "tasra-positions"), (snapshot) => {
+      const fetchedPositions = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          startDate: data.startDate?.toDate ? data.startDate.toDate() : data.startDate,
+          lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+        } as TasraPosition;
+      });
+      const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
+      setTasraPositions(uniquePositions);
+      setIsInitialized(true);
+    }, (error) => {
+        console.error("Error fetching tasra positions:", error);
+        setIsInitialized(true);
+    });
+
+    const personnelUnsubscribe = onSnapshot(collection(db, "tasra-personnel"), (snapshot) => {
+      const fetchedPersonnel = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : data.dateOfBirth,
+          lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+        } as Personnel;
+      });
+      const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
+      setTasraPersonnel(uniquePersonnel);
+      setIsInitialized(true);
+    }, (error) => {
+        console.error("Error fetching tasra personnel:", error);
+        setIsInitialized(true);
+    });
+
+    return () => {
+      positionsUnsubscribe();
+      personnelUnsubscribe();
+    };
+  }, [user, db, performOneTimeMigration]);
 
   const addTasraPosition = useCallback(async (positionData: Omit<TasraPosition, 'id'>) => {
     if (!user || !db) return;
@@ -191,7 +156,6 @@ export function useTasraPositions() {
   const deleteTasraPosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
     
-    // Optimistic UI Update
     const originalPositions = [...tasraPositions];
     setTasraPositions(prev => prev.filter(p => p.id !== positionId));
     
@@ -203,7 +167,7 @@ export function useTasraPositions() {
       });
     } catch (error) {
       console.error("Error deleting Tasra position:", error);
-      setTasraPositions(originalPositions); // Revert on error
+      setTasraPositions(originalPositions); 
       toast({
         variant: "destructive",
         title: "Hata",
@@ -248,7 +212,6 @@ export function useTasraPositions() {
   const deleteTasraPersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
     
-    // Optimistic UI Update
     const originalPersonnel = [...tasraPersonnel];
     const originalPositions = [...tasraPositions];
     setTasraPersonnel(prev => prev.filter(p => p.id !== personnelId));

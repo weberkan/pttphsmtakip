@@ -16,10 +16,9 @@ import {
   Timestamp,
   setDoc
 } from "firebase/firestore";
-import { initialPositionsData, initialPersonnelData } from '@/lib/initial-data';
 import { useToast } from '@/hooks/use-toast';
 
-const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete_v3';
+const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete_v3_merkez_init';
 
 export function usePositions() {
   const { user } = useAuth();
@@ -29,10 +28,8 @@ export function usePositions() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   const performOneTimeMigration = useCallback(async () => {
-    if (!db) return;
-
-    if (localStorage.getItem(MIGRATION_KEY)) {
-      return; // Migration already done, do nothing.
+    if (!db || localStorage.getItem(MIGRATION_KEY)) {
+      return;
     }
 
     console.log("Performing one-time data check for merkez...");
@@ -44,33 +41,10 @@ export function usePositions() {
       const positionsSnapshot = await getDocs(positionsCollectionRef);
       const personnelSnapshot = await getDocs(personnelCollectionRef);
 
-      // Only seed data if BOTH collections are empty on the very first check.
       if (positionsSnapshot.empty && personnelSnapshot.empty) {
-        console.log("Database is empty. Seeding initial merkez data...");
-        const batch = writeBatch(db);
-
-        initialPositionsData.forEach((p: any) => {
-          const docRef = doc(positionsCollectionRef, p.id);
-          batch.set(docRef, {
-            ...p,
-            startDate: p.startDate ? Timestamp.fromDate(new Date(p.startDate)) : null,
-          });
-        });
-
-        initialPersonnelData.forEach((p: any) => {
-          const docRef = doc(personnelCollectionRef, p.id);
-          batch.set(docRef, {
-            ...p,
-            dateOfBirth: p.dateOfBirth ? Timestamp.fromDate(new Date(p.dateOfBirth)) : null,
-          });
-        });
-
-        await batch.commit();
-        console.log("Initial merkez data seeded successfully.");
+        console.log("Database is empty for Merkez. No initial data to seed.");
       }
       
-      // Mark migration as complete regardless of whether we seeded data or not.
-      // This prevents re-seeding if the user later deletes all data.
       localStorage.setItem(MIGRATION_KEY, 'true');
       console.log("Merkez data check complete. Migration key set.");
 
@@ -80,56 +54,56 @@ export function usePositions() {
   }, []);
 
   useEffect(() => {
-    if (user && db) {
-      performOneTimeMigration().then(() => {
-        const positionsUnsubscribe = onSnapshot(collection(db, "merkez-positions"), (snapshot) => {
-          const fetchedPositions = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              ...data,
-              startDate: data.startDate?.toDate(),
-              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
-            } as Position;
-          });
-          const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
-          setPositions(uniquePositions);
-          setIsInitialized(true);
-        }, (error) => {
-          console.error("Error fetching merkez positions:", error);
-          setIsInitialized(true);
-        });
-
-        const personnelUnsubscribe = onSnapshot(collection(db, "merkez-personnel"), (snapshot) => {
-          const fetchedPersonnel = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              ...data,
-              dateOfBirth: data.dateOfBirth?.toDate(),
-              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
-            } as Personnel;
-          });
-          const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
-          setPersonnel(uniquePersonnel);
-          setIsInitialized(true);
-        }, (error) => {
-            console.error("Error fetching merkez personnel:", error);
-            setIsInitialized(true);
-        });
-
-        return () => {
-          positionsUnsubscribe();
-          personnelUnsubscribe();
-        };
-      });
-    } else {
+    if (!user || !db) {
       setPositions([]);
       setPersonnel([]);
-      if (!db) setIsInitialized(true);
-      else setIsInitialized(false);
+      setIsInitialized(!db);
+      return;
     }
-  }, [user, performOneTimeMigration]);
+
+    performOneTimeMigration();
+
+    const positionsUnsubscribe = onSnapshot(collection(db, "merkez-positions"), (snapshot) => {
+      const fetchedPositions = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          startDate: data.startDate?.toDate ? data.startDate.toDate() : data.startDate,
+          lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+        } as Position;
+      });
+      const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
+      setPositions(uniquePositions);
+      setIsInitialized(true);
+    }, (error) => {
+      console.error("Error fetching merkez positions:", error);
+      setIsInitialized(true);
+    });
+
+    const personnelUnsubscribe = onSnapshot(collection(db, "merkez-personnel"), (snapshot) => {
+      const fetchedPersonnel = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : data.dateOfBirth,
+          lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+        } as Personnel;
+      });
+      const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
+      setPersonnel(uniquePersonnel);
+      setIsInitialized(true);
+    }, (error) => {
+        console.error("Error fetching merkez personnel:", error);
+        setIsInitialized(true);
+    });
+
+    return () => {
+      positionsUnsubscribe();
+      personnelUnsubscribe();
+    };
+  }, [user, db, performOneTimeMigration]);
 
   const addPosition = useCallback(async (positionData: Omit<Position, 'id'>) => {
     if (!user || !db) return;
@@ -181,8 +155,7 @@ export function usePositions() {
 
   const deletePosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
-
-    // Optimistic UI Update
+    
     const originalPositions = [...positions];
     setPositions(prev => prev.filter(p => p.id !== positionId));
 
@@ -209,7 +182,7 @@ export function usePositions() {
       });
     } catch (error) {
       console.error("Error deleting Merkez position:", error);
-      setPositions(originalPositions); // Revert on error
+      setPositions(originalPositions);
       toast({
         variant: "destructive",
         title: "Hata",
@@ -255,7 +228,6 @@ export function usePositions() {
   const deletePersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
     
-    // Optimistic UI Update
     const originalPersonnel = [...personnel];
     const originalPositions = [...positions];
     setPersonnel(prev => prev.filter(p => p.id !== personnelId));
