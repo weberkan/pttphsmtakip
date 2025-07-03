@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
@@ -28,7 +28,7 @@ export interface SignUpData {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{success: boolean, message?: string}>;
   signup: (data: SignUpData) => Promise<{success: boolean, message?: string}>;
   logout: () => void;
 }
@@ -39,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!auth || !db) {
@@ -109,17 +110,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    if (!auth) {
-        console.error("Auth service is not available. Check Firebase configuration.");
-        return false;
+  useEffect(() => {
+    if (loading) return; // Wait until initial auth check is complete
+
+    const isAuthPage = pathname === '/login';
+
+    if (!user && !isAuthPage) {
+      router.push('/login');
     }
+    if (user && isAuthPage) {
+      router.push('/');
+    }
+  }, [user, loading, pathname, router]);
+
+
+  const login = useCallback(async (email: string, password: string): Promise<{success: boolean, message?: string}> => {
+    if (!auth) return { success: false, message: "Auth service not available." };
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      return true;
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error("Firebase login error:", error);
-      return false;
+      let message = "E-posta veya şifre hatalı.";
+      if(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        message = "E-posta veya şifre hatalı.";
+      }
+      return { success: false, message };
     }
   }, []);
 
@@ -131,7 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Check for duplicate registry number in both collections
       const merkezRegQuery = query(collection(db, "merkez-personnel"), where("registryNumber", "==", data.registryNumber));
       const merkezRegSnapshot = await getDocs(merkezRegQuery);
       if (!merkezRegSnapshot.empty) {
@@ -144,11 +159,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, message: "Bu sicil numarası Taşra Personel listesinde zaten kayıtlı." };
       }
 
-      // Firebase Auth will handle duplicate email checks.
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       
-      // Add user to the 'merkez-personnel' collection by default upon signup.
-      // This is where their profile data (name, registry number, etc.) is stored.
       await addDoc(collection(db, 'merkez-personnel'), {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -156,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: data.email,
         status: data.status,
         unvan: data.unvan || null,
-        lastModifiedBy: data.registryNumber, // The user themself modified it first
+        lastModifiedBy: data.registryNumber,
         lastModifiedAt: Timestamp.now(),
         photoUrl: null,
         phone: null,
@@ -180,16 +192,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     if (!auth) {
       console.error("Auth service is not available. Check Firebase configuration.");
-      router.push('/login');
       return;
     }
     try {
       await signOut(auth);
-      router.push('/login');
     } catch (error) {
       console.error("Firebase logout error:", error);
     }
-  }, [router]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, logout }}>

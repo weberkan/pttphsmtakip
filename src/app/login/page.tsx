@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useRouter } from "next/navigation";
 import { useAuth, type SignUpData } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,20 +64,14 @@ function LoginForm() {
 
     const onSubmit = async (data: LoginFormValues) => {
         setIsSubmitting(true);
-        try {
-            const loginSuccessful = await login(data.email, data.password);
-            if (loginSuccessful) {
-                toast({ title: "Giriş Başarılı", description: "Yönlendiriliyorsunuz..." });
-                // Yönlendirme artık AuthPage'deki useEffect tarafından yapılacak.
-            } else {
-                toast({ variant: "destructive", title: "Giriş Başarısız", description: "E-posta veya şifre hatalı." });
-            }
-        } catch (error) {
-            console.error("Login error:", error);
-            toast({ variant: "destructive", title: "Bir hata oluştu", description: "Giriş yapılırken bir sorunla karşılaşıldı." });
-        } finally {
-            setIsSubmitting(false);
+        const result = await login(data.email, data.password);
+        if (result.success) {
+            toast({ title: "Giriş Başarılı", description: "Yönlendiriliyorsunuz..." });
+            // The AuthProvider will handle the redirect.
+        } else {
+            toast({ variant: "destructive", title: "Giriş Başarısız", description: result.message });
         }
+        setIsSubmitting(false);
     };
 
     return (
@@ -139,7 +132,7 @@ function SignupForm() {
         const result = await signup(data as SignUpData);
         if (result.success) {
             toast({ title: "Kayıt Başarılı!", description: "Giriş başarılı. Anasayfaya yönlendiriliyorsunuz..." });
-            // Yönlendirme artık AuthPage'deki useEffect tarafından yapılacak.
+            // The AuthProvider will handle the redirect.
         } else {
             toast({ variant: "destructive", title: "Kayıt Başarısız", description: result.message || "Bilinmeyen bir hata oluştu." });
         }
@@ -183,16 +176,7 @@ function SignupForm() {
 
 
 export default function AuthPage() {
-  const router = useRouter();
   const { user, loading } = useAuth();
-  
-  useEffect(() => {
-    // This effect is the single source of truth for redirection.
-    // It will only redirect when the authentication state is fully resolved.
-    if (!loading && user) {
-      router.push("/");
-    }
-  }, [user, loading, router]);
   
   if (loading || user) {
     return (

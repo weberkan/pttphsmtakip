@@ -48,19 +48,12 @@ const viewTitles: { [key: string]: string } = {
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, logout, loading } = useAuth();
-    const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     const view = searchParams.get('view') || 'dashboard';
     
-    useEffect(() => {
-        if (!loading && !user) {
-            router.push('/login');
-        }
-    }, [user, loading, router]);
-
     const handleClearPersonnel = () => {
         localStorage.removeItem('positionTrackerApp_personnel');
         localStorage.removeItem('tasraTrackerApp_personnel');
