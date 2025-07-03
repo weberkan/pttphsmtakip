@@ -79,7 +79,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                                 src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
                                 alt="PTT Logo"
                                 width={isCollapsed ? 40 : 80}
-                                height={32}
+                                height={isCollapsed ? 16 : 32}
                                 className="object-contain transition-all duration-300"
                             />
                         </Link>
