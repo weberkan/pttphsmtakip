@@ -62,7 +62,9 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-soft-blue text-soft-blue-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Merkez Toplam Pozisyon</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              <span className="font-bold">Merkez</span> Toplam Pozisyon
+            </CardTitle>
             <Briefcase className="h-4 w-4 text-soft-blue-foreground/70" />
           </CardHeader>
           <CardContent>
@@ -72,7 +74,9 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
         </Card>
         <Card className="bg-soft-blue text-soft-blue-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taşra Toplam Pozisyon</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              <span className="font-bold">Taşra</span> Toplam Pozisyon
+            </CardTitle>
             <Briefcase className="h-4 w-4 text-soft-blue-foreground/70" />
           </CardHeader>
           <CardContent>
@@ -82,7 +86,9 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
         </Card>
          <Card className="bg-soft-green text-soft-green-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Merkez Personel</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              <span className="font-bold">Merkez</span> Personel
+            </CardTitle>
             <Users className="h-4 w-4 text-soft-green-foreground/70" />
           </CardHeader>
           <CardContent>
@@ -92,7 +98,9 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
         </Card>
         <Card className="bg-soft-green text-soft-green-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taşra Personel</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              <span className="font-bold">Taşra</span> Personel
+            </CardTitle>
             <Users className="h-4 w-4 text-soft-green-foreground/70" />
           </CardHeader>
           <CardContent>
@@ -147,7 +155,7 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
                             const y = cy + radius * Math.sin(-midAngle * RADIAN);
                             return (
                                 <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
-                                    {`${(percent * 100).toFixed(0)}%`}
+                                    {`(${(percent * 100).toFixed(0)}%)`}
                                 </text>
                             );
                         }}>
