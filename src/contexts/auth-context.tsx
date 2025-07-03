@@ -76,8 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (userProfile) {
             setUser(userProfile);
           } else {
-            // User exists in Auth but not in Firestore or is not approved, so sign them out.
-            await signOut(auth); 
+            // User exists in Auth but not in Firestore or is not approved.
+            // We just set the local user to null, we don't force a sign-out here,
+            // as that causes a race condition during the initial login process.
+            // The login function itself will handle the sign-out for unapproved users.
             setUser(null);
           }
         } else {
