@@ -231,11 +231,11 @@ export function useTasraPositions() {
     const assignedPositions = tasraPositions.filter(p => p.assignedPersonnelId === personnelId);
     assignedPositions.forEach(pos => {
       const posRef = doc(db, 'tasra-positions', pos.id);
-      batch.update(posRef, {
+      batch.set(posRef, {
         assignedPersonnelId: null,
         lastModifiedBy: user.registryNumber,
         lastModifiedAt: Timestamp.now(),
-      });
+      }, { merge: true });
     });
     
     await batch.commit();

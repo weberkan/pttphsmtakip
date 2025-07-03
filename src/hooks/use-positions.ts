@@ -195,11 +195,11 @@ export function usePositions() {
     const childPositions = positions.filter(p => p.reportsTo === positionId);
     childPositions.forEach(child => {
         const childRef = doc(db, 'merkez-positions', child.id);
-        batch.update(childRef, { 
+        batch.set(childRef, { 
             reportsTo: null,
             lastModifiedBy: user.registryNumber,
             lastModifiedAt: Timestamp.now(),
-        });
+        }, { merge: true });
     });
 
     await batch.commit();
@@ -252,11 +252,11 @@ export function usePositions() {
     const assignedPositions = positions.filter(p => p.assignedPersonnelId === personnelId);
     assignedPositions.forEach(pos => {
       const posRef = doc(db, 'merkez-positions', pos.id);
-      batch.update(posRef, {
+      batch.set(posRef, {
         assignedPersonnelId: null,
         lastModifiedBy: user.registryNumber,
         lastModifiedAt: Timestamp.now(),
-      });
+      }, { merge: true });
     });
 
     await batch.commit();
