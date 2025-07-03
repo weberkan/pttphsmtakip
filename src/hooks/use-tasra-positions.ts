@@ -61,47 +61,55 @@ export function useTasraPositions() {
       return;
     }
 
-    performOneTimeMigration();
+    const unsubscribes: (() => void)[] = [];
 
-    const positionsUnsubscribe = onSnapshot(collection(db, "tasra-positions"), (snapshot) => {
-      const fetchedPositions = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          startDate: data.startDate?.toDate ? data.startDate.toDate() : data.startDate,
-          lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
-        } as TasraPosition;
-      });
-      const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
-      setTasraPositions(uniquePositions);
-      setIsInitialized(true);
-    }, (error) => {
-        console.error("Error fetching tasra positions:", error);
-        setIsInitialized(true);
-    });
+    performOneTimeMigration().finally(() => {
+        if (!db || !user) { // Added !user check for safety during logout
+            unsubscribes.forEach(unsub => unsub());
+            return;
+        };
 
-    const personnelUnsubscribe = onSnapshot(collection(db, "tasra-personnel"), (snapshot) => {
-      const fetchedPersonnel = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : data.dateOfBirth,
-          lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
-        } as Personnel;
-      });
-      const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
-      setTasraPersonnel(uniquePersonnel);
-      setIsInitialized(true);
-    }, (error) => {
-        console.error("Error fetching tasra personnel:", error);
-        setIsInitialized(true);
+        const positionsUnsubscribe = onSnapshot(collection(db, "tasra-positions"), (snapshot) => {
+          const fetchedPositions = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              startDate: data.startDate?.toDate ? data.startDate.toDate() : data.startDate,
+              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+            } as TasraPosition;
+          });
+          const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
+          setTasraPositions(uniquePositions);
+          setIsInitialized(true);
+        }, (error) => {
+            console.error("Error fetching tasra positions:", error);
+            setIsInitialized(true);
+        });
+
+        const personnelUnsubscribe = onSnapshot(collection(db, "tasra-personnel"), (snapshot) => {
+          const fetchedPersonnel = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : data.dateOfBirth,
+              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+            } as Personnel;
+          });
+          const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
+          setTasraPersonnel(uniquePersonnel);
+          setIsInitialized(true);
+        }, (error) => {
+            console.error("Error fetching tasra personnel:", error);
+            setIsInitialized(true);
+        });
+
+        unsubscribes.push(positionsUnsubscribe, personnelUnsubscribe);
     });
 
     return () => {
-      positionsUnsubscribe();
-      personnelUnsubscribe();
+      unsubscribes.forEach(unsub => unsub());
     };
   }, [user, db, performOneTimeMigration]);
 
@@ -160,7 +168,11 @@ export function useTasraPositions() {
     setTasraPositions(prev => prev.filter(p => p.id !== positionId));
     
     try {
-      await deleteDoc(doc(db, 'tasra-positions', positionId));
+      const batch = writeBatch(db);
+      const positionRef = doc(db, 'tasra-positions', positionId);
+      batch.delete(positionRef);
+      await batch.commit();
+      
       toast({
         title: "Pozisyon Silindi",
         description: "Taşra pozisyonu başarıyla silindi.",
@@ -213,7 +225,6 @@ export function useTasraPositions() {
     if (!user || !db) return;
     
     const originalPersonnel = [...tasraPersonnel];
-    const originalPositions = [...tasraPositions];
     setTasraPersonnel(prev => prev.filter(p => p.id !== personnelId));
     
     try {
@@ -222,7 +233,7 @@ export function useTasraPositions() {
       const personnelRef = doc(db, 'tasra-personnel', personnelId);
       batch.delete(personnelRef);
 
-      const assignedPositions = originalPositions.filter(p => p.assignedPersonnelId === personnelId);
+      const assignedPositions = tasraPositions.filter(p => p.assignedPersonnelId === personnelId);
       assignedPositions.forEach(pos => {
         const posRef = doc(db, 'tasra-positions', pos.id);
         batch.set(posRef, {
@@ -241,7 +252,6 @@ export function useTasraPositions() {
     } catch (error) {
       console.error("Error deleting Tasra personnel:", error);
       setTasraPersonnel(originalPersonnel); 
-      setTasraPositions(originalPositions);
       toast({
         variant: "destructive",
         title: "Hata",
