@@ -18,6 +18,7 @@ import {
   setDoc
 } from "firebase/firestore";
 import { initialPositionsData, initialPersonnelData } from '@/lib/initial-data';
+import { useToast } from '@/hooks/use-toast';
 
 const LOCAL_STORAGE_POSITIONS_KEY = 'positionTrackerApp_positions';
 const LOCAL_STORAGE_PERSONNEL_KEY = 'positionTrackerApp_personnel';
@@ -25,6 +26,7 @@ const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete';
 
 export function usePositions() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [positions, setPositions] = useState<Position[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -185,25 +187,36 @@ export function usePositions() {
 
   const deletePosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
-    const batch = writeBatch(db);
-    
-    // Delete the position
-    const positionRef = doc(db, 'merkez-positions', positionId);
-    batch.delete(positionRef);
-    
-    // Update children positions
-    const childPositions = positions.filter(p => p.reportsTo === positionId);
-    childPositions.forEach(child => {
-        const childRef = doc(db, 'merkez-positions', child.id);
-        batch.set(childRef, { 
-            reportsTo: null,
-            lastModifiedBy: user.registryNumber,
-            lastModifiedAt: Timestamp.now(),
-        }, { merge: true });
-    });
+    try {
+      const batch = writeBatch(db);
+      
+      const positionRef = doc(db, 'merkez-positions', positionId);
+      batch.delete(positionRef);
+      
+      const childPositions = positions.filter(p => p.reportsTo === positionId);
+      childPositions.forEach(child => {
+          const childRef = doc(db, 'merkez-positions', child.id);
+          batch.set(childRef, { 
+              reportsTo: null,
+              lastModifiedBy: user.registryNumber,
+              lastModifiedAt: Timestamp.now(),
+          }, { merge: true });
+      });
 
-    await batch.commit();
-  }, [user, positions]);
+      await batch.commit();
+      toast({
+        title: "Pozisyon Silindi",
+        description: "Merkez pozisyonu ve alt bağlantıları başarıyla güncellendi.",
+      });
+    } catch (error) {
+      console.error("Error deleting Merkez position:", error);
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Pozisyon silinirken bir hata oluştu.",
+      });
+    }
+  }, [user, positions, toast]);
 
 
   const addPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id' | 'status'> & { status: 'İHS' | '399' }) => {
@@ -242,25 +255,36 @@ export function usePositions() {
   const deletePersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
     
-    const batch = writeBatch(db);
-    
-    // Delete the personnel
-    const personnelRef = doc(db, 'merkez-personnel', personnelId);
-    batch.delete(personnelRef);
-    
-    // Unassign this person from any positions
-    const assignedPositions = positions.filter(p => p.assignedPersonnelId === personnelId);
-    assignedPositions.forEach(pos => {
-      const posRef = doc(db, 'merkez-positions', pos.id);
-      batch.set(posRef, {
-        assignedPersonnelId: null,
-        lastModifiedBy: user.registryNumber,
-        lastModifiedAt: Timestamp.now(),
-      }, { merge: true });
-    });
+    try {
+      const batch = writeBatch(db);
+      
+      const personnelRef = doc(db, 'merkez-personnel', personnelId);
+      batch.delete(personnelRef);
+      
+      const assignedPositions = positions.filter(p => p.assignedPersonnelId === personnelId);
+      assignedPositions.forEach(pos => {
+        const posRef = doc(db, 'merkez-positions', pos.id);
+        batch.set(posRef, {
+          assignedPersonnelId: null,
+          lastModifiedBy: user.registryNumber,
+          lastModifiedAt: Timestamp.now(),
+        }, { merge: true });
+      });
 
-    await batch.commit();
-  }, [user, positions]);
+      await batch.commit();
+      toast({
+        title: "Personel Silindi",
+        description: "Merkez personeli başarıyla silindi ve atamaları kaldırıldı.",
+      });
+    } catch (error) {
+      console.error("Error deleting Merkez personnel:", error);
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Personel silinirken bir hata oluştu.",
+      });
+    }
+  }, [user, positions, toast]);
 
   return { 
     positions, 

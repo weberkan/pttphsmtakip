@@ -17,6 +17,7 @@ import {
   Timestamp,
   setDoc
 } from "firebase/firestore";
+import { useToast } from '@/hooks/use-toast';
 
 const LOCAL_STORAGE_POSITIONS_KEY = 'tasraTrackerApp_positions';
 const LOCAL_STORAGE_PERSONNEL_KEY = 'tasraTrackerApp_personnel';
@@ -24,6 +25,7 @@ const MIGRATION_KEY = 'tasraTrackerApp_firestoreMigrationComplete';
 
 export function useTasraPositions() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [tasraPositions, setTasraPositions] = useState<TasraPosition[]>([]);
   const [tasraPersonnel, setTasraPersonnel] = useState<Personnel[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -183,8 +185,21 @@ export function useTasraPositions() {
 
   const deleteTasraPosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
-    await deleteDoc(doc(db, 'tasra-positions', positionId));
-  }, [user]);
+    try {
+      await deleteDoc(doc(db, 'tasra-positions', positionId));
+      toast({
+        title: "Pozisyon Silindi",
+        description: "Taşra pozisyonu başarıyla silindi.",
+      });
+    } catch (error) {
+      console.error("Error deleting Tasra position:", error);
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Pozisyon silinirken bir hata oluştu.",
+      });
+    }
+  }, [user, toast]);
 
   const addTasraPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id'>) => {
     if (!user || !db) return;
@@ -221,25 +236,36 @@ export function useTasraPositions() {
 
   const deleteTasraPersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
-    const batch = writeBatch(db);
+    try {
+      const batch = writeBatch(db);
 
-    // Delete the personnel
-    const personnelRef = doc(db, 'tasra-personnel', personnelId);
-    batch.delete(personnelRef);
+      const personnelRef = doc(db, 'tasra-personnel', personnelId);
+      batch.delete(personnelRef);
 
-    // Unassign from positions
-    const assignedPositions = tasraPositions.filter(p => p.assignedPersonnelId === personnelId);
-    assignedPositions.forEach(pos => {
-      const posRef = doc(db, 'tasra-positions', pos.id);
-      batch.set(posRef, {
-        assignedPersonnelId: null,
-        lastModifiedBy: user.registryNumber,
-        lastModifiedAt: Timestamp.now(),
-      }, { merge: true });
-    });
-    
-    await batch.commit();
-  }, [user, tasraPositions]);
+      const assignedPositions = tasraPositions.filter(p => p.assignedPersonnelId === personnelId);
+      assignedPositions.forEach(pos => {
+        const posRef = doc(db, 'tasra-positions', pos.id);
+        batch.set(posRef, {
+          assignedPersonnelId: null,
+          lastModifiedBy: user.registryNumber,
+          lastModifiedAt: Timestamp.now(),
+        }, { merge: true });
+      });
+      
+      await batch.commit();
+      toast({
+        title: "Personel Silindi",
+        description: "Taşra personeli başarıyla silindi ve atamaları kaldırıldı.",
+      });
+    } catch (error) {
+      console.error("Error deleting Tasra personnel:", error);
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Personel silinirken bir hata oluştu.",
+      });
+    }
+  }, [user, tasraPositions, toast]);
 
   return { 
     tasraPositions, 
