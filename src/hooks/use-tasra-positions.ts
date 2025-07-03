@@ -14,7 +14,9 @@ import {
   writeBatch,
   getDocs,
   Timestamp,
-  setDoc
+  setDoc,
+  query,
+  where
 } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 
@@ -63,9 +65,10 @@ export function useTasraPositions() {
 
     const unsubscribes: (() => void)[] = [];
 
-    performOneTimeMigration().finally(() => {
-        if (!db || !user) { // Added !user check for safety during logout
-            unsubscribes.forEach(unsub => unsub());
+    const initialize = async () => {
+        await performOneTimeMigration();
+
+        if (!db || !user) {
             return;
         };
 
@@ -106,7 +109,9 @@ export function useTasraPositions() {
         });
 
         unsubscribes.push(positionsUnsubscribe, personnelUnsubscribe);
-    });
+    };
+
+    initialize();
 
     return () => {
       unsubscribes.forEach(unsub => unsub());
@@ -163,30 +168,22 @@ export function useTasraPositions() {
 
   const deleteTasraPosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
-    
-    const originalPositions = [...tasraPositions];
-    setTasraPositions(prev => prev.filter(p => p.id !== positionId));
-    
     try {
-      const batch = writeBatch(db);
-      const positionRef = doc(db, 'tasra-positions', positionId);
-      batch.delete(positionRef);
-      await batch.commit();
-      
+      await deleteDoc(doc(db, 'tasra-positions', positionId));
       toast({
         title: "Pozisyon Silindi",
         description: "Taşra pozisyonu başarıyla silindi.",
       });
     } catch (error) {
       console.error("Error deleting Tasra position:", error);
-      setTasraPositions(originalPositions); 
       toast({
         variant: "destructive",
         title: "Hata",
         description: "Pozisyon silinirken bir hata oluştu.",
       });
     }
-  }, [user, db, tasraPositions, toast]);
+  }, [user, db, toast]);
+
 
   const addTasraPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id'>) => {
     if (!user || !db) return;
@@ -223,42 +220,44 @@ export function useTasraPositions() {
 
   const deleteTasraPersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
-    
-    const originalPersonnel = [...tasraPersonnel];
-    setTasraPersonnel(prev => prev.filter(p => p.id !== personnelId));
-    
     try {
       const batch = writeBatch(db);
-
+      
+      // 1. Delete the personnel document
       const personnelRef = doc(db, 'tasra-personnel', personnelId);
       batch.delete(personnelRef);
-
-      const assignedPositions = tasraPositions.filter(p => p.assignedPersonnelId === personnelId);
-      assignedPositions.forEach(pos => {
-        const posRef = doc(db, 'tasra-positions', pos.id);
-        batch.set(posRef, {
+      
+      // 2. Query for all positions assigned to this person
+      const positionsToUpdateQuery = query(collection(db, 'tasra-positions'), where('assignedPersonnelId', '==', personnelId));
+      const positionsSnapshot = await getDocs(positionsToUpdateQuery);
+      
+      // 3. Update each of those positions in the same batch
+      positionsSnapshot.forEach(positionDoc => {
+        const positionRef = doc(db, 'tasra-positions', positionDoc.id);
+        batch.update(positionRef, {
           assignedPersonnelId: null,
           status: 'Boş',
           lastModifiedBy: user.registryNumber,
           lastModifiedAt: Timestamp.now(),
-        }, { merge: true });
+        });
       });
       
+      // 4. Commit all changes at once
       await batch.commit();
+  
       toast({
         title: "Personel Silindi",
         description: "Taşra personeli başarıyla silindi ve atamaları kaldırıldı.",
       });
     } catch (error) {
       console.error("Error deleting Tasra personnel:", error);
-      setTasraPersonnel(originalPersonnel); 
       toast({
         variant: "destructive",
         title: "Hata",
         description: "Personel silinirken bir hata oluştu.",
       });
     }
-  }, [user, tasraPersonnel, tasraPositions, db, toast]);
+  }, [user, db, toast]);
 
   return { 
     tasraPositions, 
