@@ -60,44 +60,44 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="bg-soft-blue text-soft-blue-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Merkez Toplam Pozisyon</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+            <Briefcase className="h-4 w-4 text-soft-blue-foreground/70" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{merkezStats.total}</div>
-            <p className="text-xs text-muted-foreground">{merkezStats.dolu} dolu, {merkezStats.bos} boş</p>
+            <p className="text-xs text-soft-blue-foreground/80">{merkezStats.dolu} dolu, {merkezStats.bos} boş</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-soft-blue text-soft-blue-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Taşra Toplam Pozisyon</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+            <Briefcase className="h-4 w-4 text-soft-blue-foreground/70" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{tasraStats.total}</div>
-             <p className="text-xs text-muted-foreground">{tasraStats.dolu} dolu, {tasraStats.bos} boş</p>
+             <p className="text-xs text-soft-blue-foreground/80">{tasraStats.dolu} dolu, {tasraStats.bos} boş</p>
           </CardContent>
         </Card>
-         <Card>
+         <Card className="bg-soft-green text-soft-green-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Merkez Personel</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-soft-green-foreground/70" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{merkezStats.personnel}</div>
-            <p className="text-xs text-muted-foreground">Toplam merkez personeli</p>
+            <p className="text-xs text-soft-green-foreground/80">Toplam merkez personeli</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-soft-green text-soft-green-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Taşra Personel</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-soft-green-foreground/70" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{tasraStats.personnel}</div>
-             <p className="text-xs text-muted-foreground">Toplam taşra personeli</p>
+             <p className="text-xs text-soft-green-foreground/80">Toplam taşra personeli</p>
           </CardContent>
         </Card>
       </div>

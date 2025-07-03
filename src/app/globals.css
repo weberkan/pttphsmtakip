@@ -39,6 +39,13 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
+    /* New colors for cards */
+    --soft-blue: 207 90% 92%;
+    --soft-blue-foreground: 207 90% 25%;
+    --soft-green: 145 58% 92%;
+    --soft-green-foreground: 145 58% 25%;
+
+
     /* Sidebar variables, can remain default or be themed if sidebar is used extensively */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -84,6 +91,12 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* New colors for cards */
+    --soft-blue: 207 90% 15%;
+    --soft-blue-foreground: 207 90% 85%;
+    --soft-green: 145 58% 15%;
+    --soft-green-foreground: 145 58% 85%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
