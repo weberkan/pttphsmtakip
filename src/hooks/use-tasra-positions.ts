@@ -28,8 +28,8 @@ export function useTasraPositions() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   const performOneTimeMigration = useCallback(async () => {
-    if (localStorage.getItem(MIGRATION_KEY)) {
-      return; // Migration already done
+    if (!db || localStorage.getItem(MIGRATION_KEY)) {
+      return; // Migration already done or DB not available
     }
     
     console.log("Checking if tasra migration is needed...");
@@ -80,7 +80,7 @@ export function useTasraPositions() {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && db) {
       performOneTimeMigration().then(() => {
         const positionsUnsubscribe = onSnapshot(collection(db, "tasra-positions"), (snapshot) => {
           const fetchedPositions = snapshot.docs.map(doc => {
@@ -94,6 +94,9 @@ export function useTasraPositions() {
           });
           setTasraPositions(fetchedPositions);
           setIsInitialized(true);
+        }, (error) => {
+            console.error("Error fetching tasra positions:", error);
+            setIsInitialized(true);
         });
 
         const personnelUnsubscribe = onSnapshot(collection(db, "tasra-personnel"), (snapshot) => {
@@ -108,6 +111,9 @@ export function useTasraPositions() {
           });
           setTasraPersonnel(fetchedPersonnel);
           setIsInitialized(true);
+        }, (error) => {
+            console.error("Error fetching tasra personnel:", error);
+            setIsInitialized(true);
         });
 
         return () => {
@@ -118,12 +124,14 @@ export function useTasraPositions() {
     } else {
       setTasraPositions([]);
       setTasraPersonnel([]);
-      setIsInitialized(false);
+      // If db is not available, we still consider it "initialized" to prevent infinite loading screens.
+      if (!db) setIsInitialized(true);
+      else setIsInitialized(false);
     }
   }, [user, performOneTimeMigration]);
 
   const addTasraPosition = useCallback(async (positionData: Omit<TasraPosition, 'id'>) => {
-    if (!user) return;
+    if (!user || !db) return;
     await addDoc(collection(db, 'tasra-positions'), {
       ...positionData,
       lastModifiedBy: user.registryNumber,
@@ -132,7 +140,7 @@ export function useTasraPositions() {
   }, [user]);
 
   const batchAddTasraPosition = useCallback(async (positionList: Omit<TasraPosition, 'id'>[]) => {
-    if (!user) return;
+    if (!user || !db) return;
     const batch = writeBatch(db);
     positionList.forEach(positionData => {
       const docRef = doc(collection(db, 'tasra-positions'));
@@ -146,7 +154,7 @@ export function useTasraPositions() {
   }, [user]);
 
   const updateTasraPosition = useCallback(async (updatedPosition: TasraPosition) => {
-    if (!user) return;
+    if (!user || !db) return;
     const { id, ...data } = updatedPosition;
     await updateDoc(doc(db, 'tasra-positions', id), {
       ...data,
@@ -156,7 +164,7 @@ export function useTasraPositions() {
   }, [user]);
 
   const batchUpdateTasraPosition = useCallback(async (positionList: TasraPosition[]) => {
-    if (!user) return;
+    if (!user || !db) return;
     const batch = writeBatch(db);
     positionList.forEach(position => {
       const { id, ...data } = position;
@@ -171,12 +179,12 @@ export function useTasraPositions() {
   }, [user]);
 
   const deleteTasraPosition = useCallback(async (positionId: string) => {
-    if (!user) return;
+    if (!user || !db) return;
     await deleteDoc(doc(db, 'tasra-positions', positionId));
   }, [user]);
 
   const addTasraPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id'>) => {
-    if (!user) return;
+    if (!user || !db) return;
     await addDoc(collection(db, 'tasra-personnel'), {
       ...personnelData,
       lastModifiedBy: user.registryNumber,
@@ -185,7 +193,7 @@ export function useTasraPositions() {
   }, [user]);
 
   const batchAddTasraPersonnel = useCallback(async (personnelList: Omit<Personnel, 'id'>[]) => {
-    if (!user) return;
+    if (!user || !db) return;
     const batch = writeBatch(db);
     personnelList.forEach(personnelData => {
       const docRef = doc(collection(db, 'tasra-personnel'));
@@ -199,7 +207,7 @@ export function useTasraPositions() {
   }, [user]);
 
   const updateTasraPersonnel = useCallback(async (updatedPersonnel: Personnel) => {
-    if (!user) return;
+    if (!user || !db) return;
     const { id, ...data } = updatedPersonnel;
     await updateDoc(doc(db, 'tasra-personnel', id), {
       ...data,
@@ -209,7 +217,7 @@ export function useTasraPositions() {
   }, [user]);
 
   const deleteTasraPersonnel = useCallback(async (personnelId: string) => {
-    if (!user) return;
+    if (!user || !db) return;
     const batch = writeBatch(db);
 
     // Delete the personnel

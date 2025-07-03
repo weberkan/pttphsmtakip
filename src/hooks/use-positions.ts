@@ -29,8 +29,8 @@ export function usePositions() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   const performOneTimeMigration = useCallback(async () => {
-    if (localStorage.getItem(MIGRATION_KEY)) {
-      return; // Migration already done
+    if (!db || localStorage.getItem(MIGRATION_KEY)) {
+      return; // Migration already done or DB not available
     }
 
     console.log("Checking if migration is needed...");
@@ -82,7 +82,7 @@ export function usePositions() {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && db) {
       performOneTimeMigration().then(() => {
         const positionsUnsubscribe = onSnapshot(collection(db, "merkez-positions"), (snapshot) => {
           const fetchedPositions = snapshot.docs.map(doc => {
@@ -95,6 +95,9 @@ export function usePositions() {
             } as Position;
           });
           setPositions(fetchedPositions);
+          setIsInitialized(true);
+        }, (error) => {
+          console.error("Error fetching merkez positions:", error);
           setIsInitialized(true);
         });
 
@@ -110,6 +113,9 @@ export function usePositions() {
           });
           setPersonnel(fetchedPersonnel);
           setIsInitialized(true);
+        }, (error) => {
+            console.error("Error fetching merkez personnel:", error);
+            setIsInitialized(true);
         });
 
         return () => {
@@ -120,12 +126,14 @@ export function usePositions() {
     } else {
       setPositions([]);
       setPersonnel([]);
-      setIsInitialized(false);
+      // If db is not available, we still consider it "initialized" to prevent infinite loading screens.
+      if (!db) setIsInitialized(true);
+      else setIsInitialized(false);
     }
   }, [user, performOneTimeMigration]);
 
   const addPosition = useCallback(async (positionData: Omit<Position, 'id'>) => {
-    if (!user) return;
+    if (!user || !db) return;
     await addDoc(collection(db, 'merkez-positions'), {
       ...positionData,
       lastModifiedBy: user.registryNumber,
@@ -134,7 +142,7 @@ export function usePositions() {
   }, [user]);
 
   const batchAddPositions = useCallback(async (positionList: Omit<Position, 'id'>[]) => {
-    if (!user) return;
+    if (!user || !db) return;
     const batch = writeBatch(db);
     positionList.forEach(positionData => {
       const docRef = doc(collection(db, 'merkez-positions'));
@@ -148,7 +156,7 @@ export function usePositions() {
   }, [user]);
 
   const updatePosition = useCallback(async (updatedPosition: Position) => {
-    if (!user) return;
+    if (!user || !db) return;
     const { id, ...data } = updatedPosition;
     await updateDoc(doc(db, 'merkez-positions', id), {
       ...data,
@@ -158,7 +166,7 @@ export function usePositions() {
   }, [user]);
 
   const batchUpdatePositions = useCallback(async (positionList: Position[]) => {
-    if (!user) return;
+    if (!user || !db) return;
     const batch = writeBatch(db);
     positionList.forEach(position => {
       const { id, ...data } = position;
@@ -173,7 +181,7 @@ export function usePositions() {
   }, [user]);
 
   const deletePosition = useCallback(async (positionId: string) => {
-    if (!user) return;
+    if (!user || !db) return;
     const batch = writeBatch(db);
     
     // Delete the position
@@ -196,7 +204,7 @@ export function usePositions() {
 
 
   const addPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id' | 'status'> & { status: 'İHS' | '399' }) => {
-    if (!user) return;
+    if (!user || !db) return;
     await addDoc(collection(db, 'merkez-personnel'), {
       ...personnelData,
       lastModifiedBy: user.registryNumber,
@@ -205,7 +213,7 @@ export function usePositions() {
   }, [user]);
 
   const batchAddPersonnel = useCallback(async (personnelList: Omit<Personnel, 'id'>[]) => {
-    if (!user) return;
+    if (!user || !db) return;
     const batch = writeBatch(db);
     personnelList.forEach(personnelData => {
       const docRef = doc(collection(db, 'merkez-personnel'));
@@ -219,7 +227,7 @@ export function usePositions() {
   }, [user]);
 
   const updatePersonnel = useCallback(async (updatedPersonnel: Personnel) => {
-    if (!user) return;
+    if (!user || !db) return;
     const { id, ...data } = updatedPersonnel;
     await updateDoc(doc(db, 'merkez-personnel', id), {
       ...data,
@@ -229,7 +237,7 @@ export function usePositions() {
   }, [user]);
 
   const deletePersonnel = useCallback(async (personnelId: string) => {
-    if (!user) return;
+    if (!user || !db) return;
     
     const batch = writeBatch(db);
     

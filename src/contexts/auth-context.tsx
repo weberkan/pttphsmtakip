@@ -32,6 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser && firebaseUser.email) {
         // Find the corresponding user in our hardcoded list to get full details
@@ -57,6 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (registryNumber: string, password: string): Promise<boolean> => {
+    if (!auth) {
+        console.error("Auth service is not available. Check Firebase configuration.");
+        return false;
+    }
+
     const foundUser = USERS.find(
       (u) => u.registryNumber === registryNumber && u.password === password
     );
@@ -76,6 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    if (!auth) {
+      console.error("Auth service is not available. Check Firebase configuration.");
+      router.push('/login');
+      return;
+    }
     try {
       await signOut(auth);
       // The onAuthStateChanged listener will handle setting user to null.
