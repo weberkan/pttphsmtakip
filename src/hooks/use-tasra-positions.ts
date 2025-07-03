@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -92,7 +91,7 @@ export function useTasraPositions() {
               id: doc.id,
               ...data,
               startDate: data.startDate?.toDate(),
-              lastModifiedAt: data.lastModifiedAt?.toDate(),
+              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
             } as TasraPosition;
           });
           setTasraPositions(fetchedPositions);
@@ -109,7 +108,7 @@ export function useTasraPositions() {
               id: doc.id,
               ...data,
               dateOfBirth: data.dateOfBirth?.toDate(),
-              lastModifiedAt: data.lastModifiedAt?.toDate(),
+              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
             } as Personnel;
           });
           setTasraPersonnel(fetchedPersonnel);

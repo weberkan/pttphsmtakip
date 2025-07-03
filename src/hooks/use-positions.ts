@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -94,7 +93,7 @@ export function usePositions() {
               id: doc.id,
               ...data,
               startDate: data.startDate?.toDate(),
-              lastModifiedAt: data.lastModifiedAt?.toDate(),
+              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
             } as Position;
           });
           setPositions(fetchedPositions);
@@ -111,7 +110,7 @@ export function usePositions() {
               id: doc.id,
               ...data,
               dateOfBirth: data.dateOfBirth?.toDate(),
-              lastModifiedAt: data.lastModifiedAt?.toDate(),
+              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
             } as Personnel;
           });
           setPersonnel(fetchedPersonnel);
