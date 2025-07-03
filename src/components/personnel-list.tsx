@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -30,7 +31,12 @@ interface PersonnelListProps {
 }
 
 export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProps) {
-  if (personnel.length === 0) {
+  const uniquePersonnel = useMemo(() => {
+    // This prevents crashes from duplicate keys if the source array temporarily has duplicates.
+    return Array.from(new Map(personnel.map(p => [p.id, p])).values());
+  }, [personnel]);
+
+  if (uniquePersonnel.length === 0) {
     return <p className="text-muted-foreground text-center py-4">Personel bulunamadı. Eklemeyi deneyin!</p>;
   }
 
@@ -50,7 +56,7 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {personnel.map((person) => {
+          {uniquePersonnel.map((person) => {
             return (
               <TableRow key={person.id}>
                 <TableCell className="font-medium">
