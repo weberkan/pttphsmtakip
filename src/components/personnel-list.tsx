@@ -31,9 +31,11 @@ interface PersonnelListProps {
 }
 
 export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProps) {
-  // De-duplication is now handled by the parent component (page.tsx)
-  // to ensure the count and list are always in sync.
-  if (personnel.length === 0) {
+  const uniquePersonnel = useMemo(() => {
+    return Array.from(new Map(personnel.map(p => [p.id, p])).values());
+  }, [personnel]);
+
+  if (uniquePersonnel.length === 0) {
     return <p className="text-muted-foreground text-center py-4">Personel bulunamadı. Eklemeyi deneyin!</p>;
   }
 
@@ -53,7 +55,7 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {personnel.map((person) => {
+          {uniquePersonnel.map((person) => {
             return (
               <TableRow key={person.id}>
                 <TableCell className="font-medium">
@@ -109,8 +111,8 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                   )}
                 </TableCell>
                 <TableCell>
-                  {person.lastModifiedBy ? (
-                    <TooltipProvider>
+                  {person.lastModifiedBy && person.lastModifiedAt ? (
+                    <TooltipProvider delayDuration={100}>
                       <Tooltip>
                         <TooltipTrigger>
                           <div className="flex items-center text-muted-foreground">
@@ -119,8 +121,12 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>
-                            Güncelleyen Sicil No: {person.lastModifiedBy}{' '}
-                            {person.lastModifiedAt ? `(${formatDistanceToNow(new Date(person.lastModifiedAt), { addSuffix: true, locale: tr })})` : ''}
+                            {(() => {
+                              const modifier = personnel.find(p => p.registryNumber === person.lastModifiedBy);
+                              const modifierName = modifier ? `${modifier.firstName} ${modifier.lastName}` : person.lastModifiedBy;
+                              const timeAgo = formatDistanceToNow(new Date(person.lastModifiedAt), { locale: tr });
+                              return `${modifierName} ${timeAgo} önce güncelledi.`;
+                            })()}
                           </p>
                         </TooltipContent>
                       </Tooltip>

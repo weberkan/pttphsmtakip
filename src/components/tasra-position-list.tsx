@@ -154,8 +154,8 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
                   </div>
                 </TableCell>
                 <TableCell>
-                  {position.lastModifiedBy ? (
-                    <TooltipProvider>
+                  {position.lastModifiedBy && position.lastModifiedAt ? (
+                    <TooltipProvider delayDuration={100}>
                       <Tooltip>
                         <TooltipTrigger>
                           <div className="flex items-center text-muted-foreground">
@@ -164,8 +164,12 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>
-                            Güncelleyen Sicil No: {position.lastModifiedBy}{' '}
-                            {position.lastModifiedAt ? `(${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })})` : ''}
+                            {(() => {
+                              const modifier = allPersonnel.find(p => p.registryNumber === position.lastModifiedBy);
+                              const modifierName = modifier ? `${modifier.firstName} ${modifier.lastName}` : position.lastModifiedBy;
+                              const timeAgo = formatDistanceToNow(new Date(position.lastModifiedAt), { locale: tr });
+                              return `${modifierName} ${timeAgo} önce güncelledi.`;
+                            })()}
                           </p>
                         </TooltipContent>
                       </Tooltip>

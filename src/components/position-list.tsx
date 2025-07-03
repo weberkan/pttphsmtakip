@@ -105,7 +105,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
     const { letter, tooltip, variant, className } = statusMap[status] || { letter: '?', tooltip: status, variant: 'secondary' as const, className: '' };
 
     return (
-      <TooltipProvider delayDuration={200}>
+      <TooltipProvider delayDuration={100}>
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge variant={variant} className={cn("w-6 h-6 flex items-center justify-center p-0 font-bold", className)}>
@@ -196,8 +196,8 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                   )}
                 </TableCell>
                 <TableCell>
-                  {position.lastModifiedBy ? (
-                    <TooltipProvider>
+                  {position.lastModifiedBy && position.lastModifiedAt ? (
+                    <TooltipProvider delayDuration={100}>
                       <Tooltip>
                         <TooltipTrigger>
                           <div className="flex items-center text-muted-foreground">
@@ -206,8 +206,12 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                         </TooltipTrigger>
                         <TooltipContent>
                            <p>
-                            Güncelleyen Sicil No: {position.lastModifiedBy}{' '}
-                            {position.lastModifiedAt ? `(${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })})` : ''}
+                            {(() => {
+                              const modifier = allPersonnel.find(p => p.registryNumber === position.lastModifiedBy);
+                              const modifierName = modifier ? `${modifier.firstName} ${modifier.lastName}` : position.lastModifiedBy;
+                              const timeAgo = formatDistanceToNow(new Date(position.lastModifiedAt), { locale: tr });
+                              return `${modifierName} ${timeAgo} önce güncelledi.`;
+                            })()}
                           </p>
                         </TooltipContent>
                       </Tooltip>
