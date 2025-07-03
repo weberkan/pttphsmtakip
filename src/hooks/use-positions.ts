@@ -4,11 +4,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Position, Personnel } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
+import { db } from '@/lib/firebase';
+import { 
+  collection, 
+  onSnapshot, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  writeBatch,
+  getDocs,
+  Timestamp
+} from "firebase/firestore";
 import { initialPositionsData, initialPersonnelData } from '@/lib/initial-data';
 
 const LOCAL_STORAGE_POSITIONS_KEY = 'positionTrackerApp_positions';
 const LOCAL_STORAGE_PERSONNEL_KEY = 'positionTrackerApp_personnel';
-
+const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete';
 
 export function usePositions() {
   const { user } = useAuth();
@@ -16,174 +28,228 @@ export function usePositions() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const storedPositions = localStorage.getItem(LOCAL_STORAGE_POSITIONS_KEY);
-        if (storedPositions) {
-          const parsedPositions = JSON.parse(storedPositions).map((p: Position) => ({
-            ...p,
-            startDate: p.startDate ? new Date(p.startDate) : null,
-            lastModifiedAt: p.lastModifiedAt ? new Date(p.lastModifiedAt) : null,
-          }));
-          setPositions(parsedPositions);
-        } else {
-          setPositions(initialPositionsData.map(p => ({...p, startDate: p.startDate ? new Date(p.startDate) : null })));
-          localStorage.setItem(LOCAL_STORAGE_POSITIONS_KEY, JSON.stringify(initialPositionsData));
-        }
-
-        const storedPersonnel = localStorage.getItem(LOCAL_STORAGE_PERSONNEL_KEY);
-        if (storedPersonnel) {
-          const parsedPersonnel = JSON.parse(storedPersonnel).map((p: Personnel) => ({
-            ...p,
-            status: p.status || 'İHS',
-            dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth) : null,
-            lastModifiedAt: p.lastModifiedAt ? new Date(p.lastModifiedAt) : null,
-          }));
-          setPersonnel(parsedPersonnel);
-        } else {
-          setPersonnel(initialPersonnelData.map(p => ({...p, status: p.status || 'İHS', dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth) : null })));
-          localStorage.setItem(LOCAL_STORAGE_PERSONNEL_KEY, JSON.stringify(initialPersonnelData));
-        }
-      } catch (error) {
-        console.error("Error accessing localStorage:", error);
-        setPositions(initialPositionsData.map(p => ({...p, startDate: p.startDate ? new Date(p.startDate) : null }))); 
-        setPersonnel(initialPersonnelData.map(p => ({...p, status: p.status || 'İHS', dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth) : null })));
-      }
-      setIsInitialized(true);
+  const performOneTimeMigration = useCallback(async () => {
+    if (localStorage.getItem(MIGRATION_KEY)) {
+      return; // Migration already done
     }
+
+    console.log("Checking if migration is needed...");
+
+    const positionsCollectionRef = collection(db, 'merkez-positions');
+    const personnelCollectionRef = collection(db, 'merkez-personnel');
+
+    const positionsSnapshot = await getDocs(positionsCollectionRef);
+    const personnelSnapshot = await getDocs(personnelCollectionRef);
+
+    if (positionsSnapshot.empty && personnelSnapshot.empty) {
+      const localPositionsStr = localStorage.getItem(LOCAL_STORAGE_POSITIONS_KEY);
+      const localPersonnelStr = localStorage.getItem(LOCAL_STORAGE_PERSONNEL_KEY);
+
+      const localPositions = localPositionsStr ? JSON.parse(localPositionsStr) : initialPositionsData;
+      const localPersonnel = localPersonnelStr ? JSON.parse(localPersonnelStr) : initialPersonnelData;
+      
+      if (localPositions.length > 0 || localPersonnel.length > 0) {
+        console.log("Performing one-time data migration from localStorage to Firestore...");
+        const batch = writeBatch(db);
+
+        localPositions.forEach((p: any) => {
+          const docRef = doc(positionsCollectionRef);
+          batch.set(docRef, {
+              ...p,
+              startDate: p.startDate ? Timestamp.fromDate(new Date(p.startDate)) : null,
+          });
+        });
+
+        localPersonnel.forEach((p: any) => {
+          const docRef = doc(personnelCollectionRef);
+          batch.set(docRef, {
+              ...p,
+              status: p.status || 'İHS',
+              dateOfBirth: p.dateOfBirth ? Timestamp.fromDate(new Date(p.dateOfBirth)) : null
+          });
+        });
+
+        await batch.commit();
+        console.log("Migration successful.");
+      }
+    }
+    
+    localStorage.setItem(MIGRATION_KEY, 'true');
+    // Clean up old localStorage data after successful migration check
+    localStorage.removeItem(LOCAL_STORAGE_POSITIONS_KEY);
+    localStorage.removeItem(LOCAL_STORAGE_PERSONNEL_KEY);
+
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && isInitialized) {
-      const positionMap = new Map(positions.map(p => [p.id, p]));
-      const updatedPositions = positions.map(p => {
-        if (p.reportsTo && !positionMap.has(p.reportsTo)) {
-          console.warn(`Position "${p.name}" (${p.id}) has an invalid reportsTo ID: ${p.reportsTo}. Setting to null.`);
-          return { ...p, reportsTo: null };
-        }
-        return p;
+    if (user) {
+      performOneTimeMigration().then(() => {
+        const positionsUnsubscribe = onSnapshot(collection(db, "merkez-positions"), (snapshot) => {
+          const fetchedPositions = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              startDate: data.startDate?.toDate(),
+              lastModifiedAt: data.lastModifiedAt?.toDate(),
+            } as Position;
+          });
+          setPositions(fetchedPositions);
+          setIsInitialized(true);
+        });
+
+        const personnelUnsubscribe = onSnapshot(collection(db, "merkez-personnel"), (snapshot) => {
+          const fetchedPersonnel = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              dateOfBirth: data.dateOfBirth?.toDate(),
+              lastModifiedAt: data.lastModifiedAt?.toDate(),
+            } as Personnel;
+          });
+          setPersonnel(fetchedPersonnel);
+          setIsInitialized(true);
+        });
+
+        return () => {
+          positionsUnsubscribe();
+          personnelUnsubscribe();
+        };
       });
-
-      try {
-        localStorage.setItem(LOCAL_STORAGE_POSITIONS_KEY, JSON.stringify(updatedPositions));
-      } catch (error) {
-        console.error("Error saving positions to localStorage:", error);
-      }
+    } else {
+      setPositions([]);
+      setPersonnel([]);
+      setIsInitialized(false);
     }
-  }, [positions, isInitialized]);
+  }, [user, performOneTimeMigration]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && isInitialized) {
-      try {
-        localStorage.setItem(LOCAL_STORAGE_PERSONNEL_KEY, JSON.stringify(personnel));
-      } catch (error) {
-        console.error("Error saving personnel to localStorage:", error);
-      }
-    }
-  }, [personnel, isInitialized]);
-
-  const addPosition = useCallback((positionData: Omit<Position, 'id'>) => {
-    const newPosition = { 
-      ...positionData, 
-      id: crypto.randomUUID(),
-      lastModifiedBy: user?.registryNumber,
-      lastModifiedAt: new Date(),
-    };
-    setPositions(prev => [...prev, newPosition]);
+  const addPosition = useCallback(async (positionData: Omit<Position, 'id'>) => {
+    if (!user) return;
+    await addDoc(collection(db, 'merkez-positions'), {
+      ...positionData,
+      lastModifiedBy: user.registryNumber,
+      lastModifiedAt: Timestamp.now(),
+    });
   }, [user]);
 
-  const batchAddPositions = useCallback((positionList: Omit<Position, 'id'>[]) => {
-      const newPositions = positionList.map(p => ({
-          ...p,
-          id: crypto.randomUUID(),
-          lastModifiedBy: user?.registryNumber,
-          lastModifiedAt: new Date(),
-      }));
-      setPositions(prev => [...prev, ...newPositions]);
-  }, [user]);
-
-  const updatePosition = useCallback((updatedPosition: Position) => {
-    const positionWithAudit = {
-      ...updatedPosition,
-      lastModifiedBy: user?.registryNumber,
-      lastModifiedAt: new Date(),
-    };
-    setPositions(prev => prev.map(p => p.id === updatedPosition.id ? positionWithAudit : p));
-  }, [user]);
-
-  const batchUpdatePositions = useCallback((positionList: Position[]) => {
-      const updatesWithAudit = positionList.map(p => ({
-          ...p,
-          lastModifiedBy: user?.registryNumber,
-          lastModifiedAt: new Date(),
-      }));
-      
-      const positionMap = new Map(positions.map(p => [p.id, p]));
-      
-      updatesWithAudit.forEach(update => {
-          positionMap.set(update.id, update);
+  const batchAddPositions = useCallback(async (positionList: Omit<Position, 'id'>[]) => {
+    if (!user) return;
+    const batch = writeBatch(db);
+    positionList.forEach(positionData => {
+      const docRef = doc(collection(db, 'merkez-positions'));
+      batch.set(docRef, {
+        ...positionData,
+        lastModifiedBy: user.registryNumber,
+        lastModifiedAt: Timestamp.now(),
       });
+    });
+    await batch.commit();
+  }, [user]);
 
-      setPositions(Array.from(positionMap.values()));
+  const updatePosition = useCallback(async (updatedPosition: Position) => {
+    if (!user) return;
+    const { id, ...data } = updatedPosition;
+    await updateDoc(doc(db, 'merkez-positions', id), {
+      ...data,
+      lastModifiedBy: user.registryNumber,
+      lastModifiedAt: Timestamp.now(),
+    });
+  }, [user]);
 
+  const batchUpdatePositions = useCallback(async (positionList: Position[]) => {
+    if (!user) return;
+    const batch = writeBatch(db);
+    positionList.forEach(position => {
+      const { id, ...data } = position;
+      const docRef = doc(db, 'merkez-positions', id);
+      batch.update(docRef, {
+        ...data,
+        lastModifiedBy: user.registryNumber,
+        lastModifiedAt: Timestamp.now(),
+      });
+    });
+    await batch.commit();
+  }, [user]);
+
+  const deletePosition = useCallback(async (positionId: string) => {
+    if (!user) return;
+    const batch = writeBatch(db);
+    
+    // Delete the position
+    const positionRef = doc(db, 'merkez-positions', positionId);
+    batch.delete(positionRef);
+    
+    // Update children positions
+    const childPositions = positions.filter(p => p.reportsTo === positionId);
+    childPositions.forEach(child => {
+        const childRef = doc(db, 'merkez-positions', child.id);
+        batch.update(childRef, { 
+            reportsTo: null,
+            lastModifiedBy: user.registryNumber,
+            lastModifiedAt: Timestamp.now(),
+        });
+    });
+
+    await batch.commit();
   }, [user, positions]);
 
-  const deletePosition = useCallback((positionId: string) => {
-    setPositions(prev => {
-      const itemToDelete = prev.find(p => p.id === positionId);
-      if (itemToDelete) {
-         // Optionally log deletion, but for now we just remove it
-      }
-      return prev.filter(p => p.id !== positionId)
-                 .map(p => p.reportsTo === positionId ? { ...p, reportsTo: null } : p);
+
+  const addPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id' | 'status'> & { status: 'İHS' | '399' }) => {
+    if (!user) return;
+    await addDoc(collection(db, 'merkez-personnel'), {
+      ...personnelData,
+      lastModifiedBy: user.registryNumber,
+      lastModifiedAt: Timestamp.now(),
     });
-  }, []);
-
-  const addPersonnel = useCallback((personnelData: Omit<Personnel, 'id' | 'status'> & { status: 'İHS' | '399' }) => {
-    const newPersonnel = { 
-      ...personnelData, 
-      id: crypto.randomUUID(),
-      lastModifiedBy: user?.registryNumber,
-      lastModifiedAt: new Date(),
-    };
-    setPersonnel(prev => [...prev, newPersonnel]);
   }, [user]);
 
-  const batchAddPersonnel = useCallback((personnelList: Omit<Personnel, 'id'>[]) => {
-    const newPersonnelList = personnelList.map(p => ({
-      ...p,
-      id: crypto.randomUUID(),
-      lastModifiedBy: user?.registryNumber,
-      lastModifiedAt: new Date(),
-    }));
-    setPersonnel(prev => [...prev, ...newPersonnelList]);
+  const batchAddPersonnel = useCallback(async (personnelList: Omit<Personnel, 'id'>[]) => {
+    if (!user) return;
+    const batch = writeBatch(db);
+    personnelList.forEach(personnelData => {
+      const docRef = doc(collection(db, 'merkez-personnel'));
+      batch.set(docRef, {
+        ...personnelData,
+        lastModifiedBy: user.registryNumber,
+        lastModifiedAt: Timestamp.now(),
+      });
+    });
+    await batch.commit();
   }, [user]);
 
-  const updatePersonnel = useCallback((updatedPersonnel: Personnel) => {
-    const personnelWithAudit = {
-      ...updatedPersonnel,
-      lastModifiedBy: user?.registryNumber,
-      lastModifiedAt: new Date(),
-    };
-    setPersonnel(prev => prev.map(p => p.id === updatedPersonnel.id ? personnelWithAudit : p));
+  const updatePersonnel = useCallback(async (updatedPersonnel: Personnel) => {
+    if (!user) return;
+    const { id, ...data } = updatedPersonnel;
+    await updateDoc(doc(db, 'merkez-personnel', id), {
+      ...data,
+      lastModifiedBy: user.registryNumber,
+      lastModifiedAt: Timestamp.now(),
+    });
   }, [user]);
 
-  const deletePersonnel = useCallback((personnelId: string) => {
-    setPersonnel(prevPersonnel => prevPersonnel.filter(p => p.id !== personnelId));
-    setPositions(prevPositions => 
-      prevPositions.map(pos => 
-        pos.assignedPersonnelId === personnelId 
-          ? { 
-              ...pos, 
-              assignedPersonnelId: null, 
-              lastModifiedBy: user?.registryNumber,
-              lastModifiedAt: new Date(),
-            } 
-          : pos
-      )
-    );
-  }, [user]);
+  const deletePersonnel = useCallback(async (personnelId: string) => {
+    if (!user) return;
+    
+    const batch = writeBatch(db);
+    
+    // Delete the personnel
+    const personnelRef = doc(db, 'merkez-personnel', personnelId);
+    batch.delete(personnelRef);
+    
+    // Unassign this person from any positions
+    const assignedPositions = positions.filter(p => p.assignedPersonnelId === personnelId);
+    assignedPositions.forEach(pos => {
+      const posRef = doc(db, 'merkez-positions', pos.id);
+      batch.update(posRef, {
+        assignedPersonnelId: null,
+        lastModifiedBy: user.registryNumber,
+        lastModifiedAt: Timestamp.now(),
+      });
+    });
+
+    await batch.commit();
+  }, [user, positions]);
 
   return { 
     positions, 

@@ -1,4 +1,6 @@
 
+import type { Timestamp } from 'firebase/firestore';
+
 export interface Position {
   id: string;
   name: string; // Ünvan
@@ -10,7 +12,7 @@ export interface Position {
   startDate: Date | null; // Göreve başlama tarihi
   originalTitle?: string | null; // Asıl Ünvan (Vekalet/Yürütme durumları için)
   lastModifiedBy?: string; // Sicil Numarası
-  lastModifiedAt?: Date | null;
+  lastModifiedAt?: Date | Timestamp | null;
 }
 
 export interface TasraPosition {
@@ -25,7 +27,7 @@ export interface TasraPosition {
   receivesProxyPay: boolean;
   hasDelegatedAuthority: boolean;
   lastModifiedBy?: string;
-  lastModifiedAt?: Date | null;
+  lastModifiedAt?: Date | Timestamp | null;
 }
 
 export interface Personnel {
@@ -40,6 +42,5 @@ export interface Personnel {
   phone?: string | null; // Telefon Numarası (Opsiyonel)
   dateOfBirth?: Date | null; // Doğum Tarihi
   lastModifiedBy?: string; // Sicil Numarası
-  lastModifiedAt?: Date | null;
+  lastModifiedAt?: Date | Timestamp | null;
 }
-
