@@ -31,12 +31,9 @@ interface PersonnelListProps {
 }
 
 export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProps) {
-  const uniquePersonnel = useMemo(() => {
-    // This prevents crashes from duplicate keys if the source array temporarily has duplicates.
-    return Array.from(new Map(personnel.map(p => [p.id, p])).values());
-  }, [personnel]);
-
-  if (uniquePersonnel.length === 0) {
+  // De-duplication is now handled by the parent component (page.tsx)
+  // to ensure the count and list are always in sync.
+  if (personnel.length === 0) {
     return <p className="text-muted-foreground text-center py-4">Personel bulunamadı. Eklemeyi deneyin!</p>;
   }
 
@@ -56,7 +53,7 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {uniquePersonnel.map((person) => {
+          {personnel.map((person) => {
             return (
               <TableRow key={person.id}>
                 <TableCell className="font-medium">

@@ -103,7 +103,6 @@ function DashboardPageContent() {
     personnel,
     addPosition, 
     batchAddPositions,
-    batchUpdatePositions,
     updatePosition, 
     deletePosition, 
     addPersonnel,
@@ -119,7 +118,6 @@ function DashboardPageContent() {
     tasraPersonnel,
     addTasraPosition,
     batchAddTasraPosition,
-    batchUpdateTasraPosition,
     updateTasraPosition,
     deleteTasraPosition,
     addTasraPersonnel,
@@ -262,8 +260,8 @@ function DashboardPageContent() {
         return (
           (p.name || '').toLowerCase().includes(searchTermLower) ||
           (p.department || '').toLowerCase().includes(searchTermLower) ||
-          (p.dutyLocation && p.dutyLocation.toLowerCase().includes(searchTermLower)) ||
-          (p.originalTitle && p.originalTitle.toLowerCase().includes(searchTermLower)) ||
+          (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
+          (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
           (assignedPerson && (
             (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
             (assignedPerson.lastName || '').toLowerCase().includes(searchTermLower) ||
@@ -276,15 +274,18 @@ function DashboardPageContent() {
   }, [positions, filter, positionSearchTerm, personnel]);
 
   const sortedAndFilteredPersonnel = useMemo(() => {
-    let filtered = personnel;
+    // 1. De-duplicate first to prevent count/render mismatches.
+    const uniquePersonnel = Array.from(new Map(personnel.map(p => [p.id, p])).values());
+
+    let filtered = uniquePersonnel;
     if (personnelSearchTerm.trim() !== "") {
         const searchTermLower = personnelSearchTerm.toLowerCase();
-        filtered = personnel.filter(p => 
+        filtered = uniquePersonnel.filter(p => 
             (p.firstName || '').toLowerCase().includes(searchTermLower) ||
             (p.lastName || '').toLowerCase().includes(searchTermLower) ||
             (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
-            (p.email && p.email.toLowerCase().includes(searchTermLower)) ||
-            (p.phone && p.phone.toLowerCase().includes(searchTermLower))
+            (p.email || '').toLowerCase().includes(searchTermLower) ||
+            (p.phone || '').toLowerCase().includes(searchTermLower)
         );
     }
 
@@ -366,7 +367,7 @@ function DashboardPageContent() {
         return (
           (p.unit || '').toLowerCase().includes(searchTermLower) ||
           (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
-          (p.originalTitle && p.originalTitle.toLowerCase().includes(searchTermLower)) ||
+          (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
           (assignedPerson && (
             (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
             (assignedPerson.lastName || '').toLowerCase().includes(searchTermLower) ||
@@ -379,15 +380,18 @@ function DashboardPageContent() {
   }, [tasraPositions, tasraPositionSearchTerm, tasraPersonnel]);
 
   const filteredTasraPersonnel = useMemo(() => {
-    let filtered = tasraPersonnel;
+    // 1. De-duplicate first to solve count and phantom deletion issues.
+    const uniquePersonnel = Array.from(new Map(tasraPersonnel.map(p => [p.id, p])).values());
+    
+    let filtered = uniquePersonnel;
     if (tasraPersonnelSearchTerm.trim() !== "") {
         const searchTermLower = tasraPersonnelSearchTerm.toLowerCase();
-        filtered = tasraPersonnel.filter(p => 
+        filtered = uniquePersonnel.filter(p => 
             (p.firstName || '').toLowerCase().includes(searchTermLower) ||
             (p.lastName || '').toLowerCase().includes(searchTermLower) ||
             (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
-            (p.email && p.email.toLowerCase().includes(searchTermLower)) ||
-            (p.phone && p.phone.toLowerCase().includes(searchTermLower))
+            (p.email || '').toLowerCase().includes(searchTermLower) ||
+            (p.phone || '').toLowerCase().includes(searchTermLower)
         );
     }
     return [...filtered].sort((a, b) => 
