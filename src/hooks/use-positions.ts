@@ -19,7 +19,7 @@ import {
 import { initialPositionsData, initialPersonnelData } from '@/lib/initial-data';
 import { useToast } from '@/hooks/use-toast';
 
-const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete_v2';
+const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete_v3';
 
 export function usePositions() {
   const { user } = useAuth();
@@ -29,11 +29,13 @@ export function usePositions() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   const performOneTimeMigration = useCallback(async () => {
-    if (!db || localStorage.getItem(MIGRATION_KEY)) {
-      return;
+    if (!db) return;
+
+    if (localStorage.getItem(MIGRATION_KEY)) {
+      return; // Migration already done, do nothing.
     }
 
-    console.log("Checking if merkez-positions migration is needed...");
+    console.log("Performing one-time data check for merkez...");
 
     try {
       const positionsCollectionRef = collection(db, 'merkez-positions');
@@ -42,45 +44,38 @@ export function usePositions() {
       const positionsSnapshot = await getDocs(positionsCollectionRef);
       const personnelSnapshot = await getDocs(personnelCollectionRef);
 
+      // Only seed data if BOTH collections are empty on the very first check.
       if (positionsSnapshot.empty && personnelSnapshot.empty) {
-        const localPositionsStr = localStorage.getItem('positionTrackerApp_positions'); // Old key
-        const localPersonnelStr = localStorage.getItem('positionTrackerApp_personnel'); // Old key
-        
-        const localPositions = localPositionsStr ? JSON.parse(localPositionsStr) : initialPositionsData;
-        const localPersonnel = localPersonnelStr ? JSON.parse(localPersonnelStr) : initialPersonnelData;
-        
-        if (localPositions.length > 0 || localPersonnel.length > 0) {
-          console.log("Performing one-time data migration for merkez from localStorage to Firestore...");
-          const batch = writeBatch(db);
+        console.log("Database is empty. Seeding initial merkez data...");
+        const batch = writeBatch(db);
 
-          localPositions.forEach((p: any) => {
-            const docRef = doc(positionsCollectionRef, p.id); // Use existing ID
-            batch.set(docRef, {
-                ...p,
-                startDate: p.startDate ? Timestamp.fromDate(new Date(p.startDate)) : null,
-            });
+        initialPositionsData.forEach((p: any) => {
+          const docRef = doc(positionsCollectionRef, p.id);
+          batch.set(docRef, {
+            ...p,
+            startDate: p.startDate ? Timestamp.fromDate(new Date(p.startDate)) : null,
           });
+        });
 
-          localPersonnel.forEach((p: any) => {
-            const docRef = doc(personnelCollectionRef, p.id); // Use existing ID
-            batch.set(docRef, {
-                ...p,
-                status: p.status || 'İHS',
-                dateOfBirth: p.dateOfBirth ? Timestamp.fromDate(new Date(p.dateOfBirth)) : null
-            });
+        initialPersonnelData.forEach((p: any) => {
+          const docRef = doc(personnelCollectionRef, p.id);
+          batch.set(docRef, {
+            ...p,
+            dateOfBirth: p.dateOfBirth ? Timestamp.fromDate(new Date(p.dateOfBirth)) : null,
           });
+        });
 
-          await batch.commit();
-          console.log("Merkez migration successful.");
-        }
+        await batch.commit();
+        console.log("Initial merkez data seeded successfully.");
       }
       
+      // Mark migration as complete regardless of whether we seeded data or not.
+      // This prevents re-seeding if the user later deletes all data.
       localStorage.setItem(MIGRATION_KEY, 'true');
-      localStorage.removeItem('positionTrackerApp_positions');
-      localStorage.removeItem('positionTrackerApp_personnel');
+      console.log("Merkez data check complete. Migration key set.");
 
     } catch (error) {
-      console.error("Merkez migration check failed. This could be due to Firestore security rules. The app will proceed, but old data might not be migrated.", error);
+      console.error("Merkez data check/migration failed:", error);
     }
   }, []);
 
@@ -188,14 +183,8 @@ export function usePositions() {
     if (!user || !db) return;
 
     // Optimistic UI Update
-    const originalPositions = positions;
-    const childPositionsToUpdate = positions.filter(p => p.reportsTo === positionId);
-    setPositions(prev => {
-        const withoutDeleted = prev.filter(p => p.id !== positionId);
-        return withoutDeleted.map(p => 
-            p.reportsTo === positionId ? { ...p, reportsTo: null } : p
-        );
-    });
+    const originalPositions = [...positions];
+    setPositions(prev => prev.filter(p => p.id !== positionId));
 
     try {
       const batch = writeBatch(db);
@@ -203,6 +192,7 @@ export function usePositions() {
       const positionRef = doc(db, 'merkez-positions', positionId);
       batch.delete(positionRef);
       
+      const childPositionsToUpdate = originalPositions.filter(p => p.reportsTo === positionId);
       childPositionsToUpdate.forEach(child => {
           const childRef = doc(db, 'merkez-positions', child.id);
           batch.set(childRef, { 
@@ -266,12 +256,9 @@ export function usePositions() {
     if (!user || !db) return;
     
     // Optimistic UI Update
-    const originalPersonnel = personnel;
-    const originalPositions = positions;
+    const originalPersonnel = [...personnel];
+    const originalPositions = [...positions];
     setPersonnel(prev => prev.filter(p => p.id !== personnelId));
-    setPositions(prev => prev.map(p => 
-        p.assignedPersonnelId === personnelId ? { ...p, assignedPersonnelId: null } : p
-    ));
 
     try {
       const batch = writeBatch(db);
@@ -284,6 +271,7 @@ export function usePositions() {
         const posRef = doc(db, 'merkez-positions', pos.id);
         batch.set(posRef, {
           assignedPersonnelId: null,
+          status: 'Boş',
           lastModifiedBy: user.registryNumber,
           lastModifiedAt: Timestamp.now(),
         }, { merge: true });
@@ -296,7 +284,7 @@ export function usePositions() {
       });
     } catch (error) {
       console.error("Error deleting Merkez personnel:", error);
-      setPersonnel(originalPersonnel); // Revert on error
+      setPersonnel(originalPersonnel); 
       setPositions(originalPositions);
       toast({
         variant: "destructive",

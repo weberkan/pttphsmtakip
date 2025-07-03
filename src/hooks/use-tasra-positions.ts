@@ -18,7 +18,7 @@ import {
 } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 
-const MIGRATION_KEY = 'tasraTrackerApp_firestoreMigrationComplete_v2';
+const MIGRATION_KEY = 'tasraTrackerApp_firestoreMigrationComplete_v3';
 
 export function useTasraPositions() {
   const { user } = useAuth();
@@ -28,11 +28,13 @@ export function useTasraPositions() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   const performOneTimeMigration = useCallback(async () => {
-    if (!db || localStorage.getItem(MIGRATION_KEY)) {
-      return;
-    }
+    if (!db) return;
     
-    console.log("Checking if tasra migration is needed...");
+    if (localStorage.getItem(MIGRATION_KEY)) {
+      return; // Migration already done
+    }
+
+    console.log("Performing one-time data check for tasra...");
 
     try {
       const positionsCollectionRef = collection(db, 'tasra-positions');
@@ -41,6 +43,7 @@ export function useTasraPositions() {
       const positionsSnapshot = await getDocs(positionsCollectionRef);
       const personnelSnapshot = await getDocs(personnelCollectionRef);
 
+      // Only migrate from old localStorage if collections are empty on the very first check.
       if (positionsSnapshot.empty && personnelSnapshot.empty) {
         const localPositionsStr = localStorage.getItem('tasraTrackerApp_positions'); // Old key
         const localPersonnelStr = localStorage.getItem('tasraTrackerApp_personnel'); // Old key
@@ -49,11 +52,11 @@ export function useTasraPositions() {
         const localPersonnel = localPersonnelStr ? JSON.parse(localPersonnelStr) : [];
         
         if (localPositions.length > 0 || localPersonnel.length > 0) {
-          console.log("Performing one-time data migration for tasra from localStorage to Firestore...");
+          console.log("Migrating old tasra localStorage data to Firestore...");
           const batch = writeBatch(db);
 
           localPositions.forEach((p: any) => {
-            const docRef = doc(positionsCollectionRef, p.id); // Use existing ID
+            const docRef = doc(positionsCollectionRef, p.id);
             batch.set(docRef, {
               ...p,
               startDate: p.startDate ? Timestamp.fromDate(new Date(p.startDate)) : null,
@@ -61,24 +64,27 @@ export function useTasraPositions() {
           });
 
           localPersonnel.forEach((p: any) => {
-            const docRef = doc(personnelCollectionRef, p.id); // Use existing ID
+            const docRef = doc(personnelCollectionRef, p.id);
             batch.set(docRef, {
               ...p,
-              status: p.status || 'İHS',
-              dateOfBirth: p.dateOfBirth ? Timestamp.fromDate(new Date(p.dateOfBirth)) : null
+              dateOfBirth: p.dateOfBirth ? Timestamp.fromDate(new Date(p.dateOfBirth)) : null,
             });
           });
 
           await batch.commit();
-          console.log("Tasra migration successful.");
+          console.log("Tasra localStorage migration successful.");
         }
       }
       
+      // Mark migration as complete to prevent this block from ever running again.
       localStorage.setItem(MIGRATION_KEY, 'true');
+      console.log("Tasra data check complete. Migration key set.");
+      // Clean up old keys just in case.
       localStorage.removeItem('tasraTrackerApp_positions');
       localStorage.removeItem('tasraTrackerApp_personnel');
+
     } catch(error) {
-      console.error("Tasra migration check failed. This could be due to Firestore security rules. The app will proceed, but old data might not be migrated.", error);
+      console.error("Tasra data check/migration failed:", error);
     }
   }, []);
 
@@ -186,7 +192,7 @@ export function useTasraPositions() {
     if (!user || !db) return;
     
     // Optimistic UI Update
-    const originalPositions = tasraPositions;
+    const originalPositions = [...tasraPositions];
     setTasraPositions(prev => prev.filter(p => p.id !== positionId));
     
     try {
@@ -243,12 +249,9 @@ export function useTasraPositions() {
     if (!user || !db) return;
     
     // Optimistic UI Update
-    const originalPersonnel = tasraPersonnel;
-    const originalPositions = tasraPositions;
+    const originalPersonnel = [...tasraPersonnel];
+    const originalPositions = [...tasraPositions];
     setTasraPersonnel(prev => prev.filter(p => p.id !== personnelId));
-    setTasraPositions(prev => prev.map(p => 
-        p.assignedPersonnelId === personnelId ? { ...p, assignedPersonnelId: null } : p
-    ));
     
     try {
       const batch = writeBatch(db);
@@ -261,6 +264,7 @@ export function useTasraPositions() {
         const posRef = doc(db, 'tasra-positions', pos.id);
         batch.set(posRef, {
           assignedPersonnelId: null,
+          status: 'Boş',
           lastModifiedBy: user.registryNumber,
           lastModifiedAt: Timestamp.now(),
         }, { merge: true });
@@ -273,7 +277,7 @@ export function useTasraPositions() {
       });
     } catch (error) {
       console.error("Error deleting Tasra personnel:", error);
-      setTasraPersonnel(originalPersonnel); // Revert on error
+      setTasraPersonnel(originalPersonnel); 
       setTasraPositions(originalPositions);
       toast({
         variant: "destructive",
