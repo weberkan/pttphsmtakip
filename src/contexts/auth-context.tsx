@@ -41,8 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // This useEffect handles session persistence on page reloads and is the
-  // single source of truth for the user's authentication state.
   useEffect(() => {
     if (!auth || !db) {
       setLoading(false);
@@ -55,9 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           let appUser: AuthUser | null = null;
 
           if (email) {
-            // Check merkez-personnel
             const merkezQuery = query(collection(db, "merkez-personnel"), where("email", "==", email));
-            const merkezSnapshot = await getDocs(merkezQuery);
+            const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", email));
+
+            const [merkezSnapshot, tasraSnapshot] = await Promise.all([
+              getDocs(merkezQuery),
+              getDocs(tasraQuery)
+            ]);
+            
             if (!merkezSnapshot.empty) {
               const appUserData = merkezSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
               appUser = {
@@ -66,27 +69,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 lastName: appUserData.lastName,
                 email: appUserData.email || '',
               };
-            } else {
-              // Check tasra-personnel if not in merkez
-              const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", email));
-              const tasraSnapshot = await getDocs(tasraQuery);
-              if (!tasraSnapshot.empty) {
-                const appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-                appUser = {
-                  registryNumber: appUserData.registryNumber,
-                  firstName: appUserData.firstName,
-                  lastName: appUserData.lastName,
-                  email: appUserData.email || '',
-                };
-              }
+            } else if (!tasraSnapshot.empty) {
+              const appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
+              appUser = {
+                registryNumber: appUserData.registryNumber,
+                firstName: appUserData.firstName,
+                lastName: appUserData.lastName,
+                email: appUserData.email || '',
+              };
             }
           }
 
           if (appUser) {
             setUser(appUser);
           } else {
-            // User exists in Firebase Auth but not in our DB (or has no email), which is an inconsistent state.
-            // Sign them out to be safe.
             await signOut(auth);
             setUser(null);
           }
@@ -95,10 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (auth) await signOut(auth);
           setUser(null);
         } finally {
-          // This block is now guaranteed to run, ending the loading state.
           setLoading(false);
         }
-      } else { // No firebaseUser
+      } else {
         setUser(null);
         setLoading(false);
       }
@@ -107,9 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // This useEffect handles redirection logic based on the auth state.
   useEffect(() => {
-    if (loading) return; // Wait until loading is finished
+    if (loading) return;
 
     const isAuthPage = pathname === '/login';
 
@@ -121,11 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loading, pathname, router]);
 
   const login = useCallback(async (email: string, password: string): Promise<{success: boolean, message?: string}> => {
-    if (!auth) return { success: false, message: "Kimlik doğrulama sistemi başlatılamadı." };
+    if (!auth || !db) return { success: false, message: "Kimlik doğrulama sistemi başlatılamadı." };
     
     try {
-      // Attempt to sign in. The onAuthStateChanged listener will handle all state updates if successful.
       await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle the rest: fetching profile, setting state, and triggering the redirect effect.
       return { success: true };
     } catch (error: any) {
       console.error("Login process error:", error);
@@ -134,9 +128,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           switch (error.code) {
               case 'auth/invalid-credential':
                   message = "E-posta veya şifre hatalı. Lütfen kontrol edin.";
-                  break;
-              case 'permission-denied':
-                  message = "Veritabanına erişim izni yok. Lütfen Firestore güvenlik kurallarınızı kontrol edin.";
                   break;
               default:
                   message = "Giriş sırasında bir hata oluştu: " + error.message;
@@ -154,7 +145,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-      // Check for duplicate registry number in both collections to ensure data integrity
       const merkezRegQuery = query(collection(db, "merkez-personnel"), where("registryNumber", "==", data.registryNumber));
       const tasraRegQuery = query(collection(db, "tasra-personnel"), where("registryNumber", "==", data.registryNumber));
       
@@ -167,11 +157,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { success: false, message: "Bu sicil numarası zaten sistemde kayıtlı." };
       }
 
-      // Create the user in Firebase Auth. onAuthStateChanged will then fire.
       await createUserWithEmailAndPassword(auth, data.email, data.password);
       
-      // After successful auth creation, create the user's profile in the personnel database.
-      // The user is added to 'merkez-personnel' by default upon signup.
       await addDoc(collection(db, 'merkez-personnel'), {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -208,8 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       await signOut(auth);
-      // onAuthStateChanged will handle setting user to null and loading to false.
-      // The redirection hook will then push the user to the login page.
+      // onAuthStateChanged will set user to null. The redirect useEffect will then handle pushing to /login.
     } catch (error) {
       console.error("Firebase çıkış hatası:", error);
     }

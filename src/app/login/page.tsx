@@ -28,6 +28,7 @@ import { Network, LogIn, UserPlus } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 
 const loginSchema = z.object({
   email: z.string().email("Geçerli bir e-posta adresi girin."),
@@ -67,7 +68,7 @@ function LoginForm() {
         const result = await login(data.email, data.password);
         if (result.success) {
             toast({ title: "Giriş Başarılı", description: "Yönlendiriliyorsunuz..." });
-            // The AuthProvider will handle the redirect.
+            // The AuthProvider's useEffect will handle the redirect.
         } else {
             toast({ variant: "destructive", title: "Giriş Başarısız", description: result.message });
         }
@@ -132,7 +133,7 @@ function SignupForm() {
         const result = await signup(data as SignUpData);
         if (result.success) {
             toast({ title: "Kayıt Başarılı!", description: "Giriş başarılı. Anasayfaya yönlendiriliyorsunuz..." });
-            // The AuthProvider will handle the redirect.
+            // The AuthProvider's useEffect will handle the redirect.
         } else {
             toast({ variant: "destructive", title: "Kayıt Başarısız", description: result.message || "Bilinmeyen bir hata oluştu." });
         }
@@ -176,9 +177,9 @@ function SignupForm() {
 
 
 export default function AuthPage() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   
-  if (loading || user) {
+  if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
