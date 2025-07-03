@@ -168,6 +168,10 @@ export function useTasraPositions() {
 
   const deleteTasraPosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
+
+    const originalPositions = [...tasraPositions];
+    setTasraPositions(prev => prev.filter(p => p.id !== positionId));
+
     try {
       await deleteDoc(doc(db, 'tasra-positions', positionId));
       toast({
@@ -176,13 +180,14 @@ export function useTasraPositions() {
       });
     } catch (error) {
       console.error("Error deleting Tasra position:", error);
+      setTasraPositions(originalPositions);
       toast({
         variant: "destructive",
         title: "Hata",
-        description: "Pozisyon silinirken bir hata oluştu.",
+        description: "Pozisyon silinirken bir hata oluştu. Değişiklikler geri alındı.",
       });
     }
-  }, [user, db, toast]);
+  }, [user, db, toast, tasraPositions]);
 
 
   const addTasraPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id'>) => {
@@ -220,18 +225,26 @@ export function useTasraPositions() {
 
   const deleteTasraPersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
+    
+    const originalPersonnel = [...tasraPersonnel];
+    const originalPositions = [...tasraPositions];
+    
+    setTasraPersonnel(prev => prev.filter(p => p.id !== personnelId));
+    setTasraPositions(prevPositions => prevPositions.map(p => 
+        p.assignedPersonnelId === personnelId 
+        ? { ...p, assignedPersonnelId: null, status: 'Boş' as const } 
+        : p
+    ));
+
     try {
       const batch = writeBatch(db);
       
-      // 1. Delete the personnel document
       const personnelRef = doc(db, 'tasra-personnel', personnelId);
       batch.delete(personnelRef);
       
-      // 2. Query for all positions assigned to this person
       const positionsToUpdateQuery = query(collection(db, 'tasra-positions'), where('assignedPersonnelId', '==', personnelId));
       const positionsSnapshot = await getDocs(positionsToUpdateQuery);
       
-      // 3. Update each of those positions in the same batch
       positionsSnapshot.forEach(positionDoc => {
         const positionRef = doc(db, 'tasra-positions', positionDoc.id);
         batch.update(positionRef, {
@@ -242,7 +255,6 @@ export function useTasraPositions() {
         });
       });
       
-      // 4. Commit all changes at once
       await batch.commit();
   
       toast({
@@ -251,13 +263,15 @@ export function useTasraPositions() {
       });
     } catch (error) {
       console.error("Error deleting Tasra personnel:", error);
+      setTasraPersonnel(originalPersonnel);
+      setTasraPositions(originalPositions);
       toast({
         variant: "destructive",
         title: "Hata",
-        description: "Personel silinirken bir hata oluştu.",
+        description: "Personel silinirken bir hata oluştu. Değişiklikler geri alındı.",
       });
     }
-  }, [user, db, toast]);
+  }, [user, db, toast, tasraPersonnel, tasraPositions]);
 
   return { 
     tasraPositions, 
