@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -6,11 +5,13 @@ import { useAuth } from '@/contexts/auth-context';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import type { AppUser } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 export function useUserManagement() {
   const { user } = useAuth();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!user || user.role !== 'admin' || !db) {
@@ -36,11 +37,19 @@ export function useUserManagement() {
       setIsInitialized(true);
     }, (error) => {
       console.error("Error fetching users:", error);
+      if (error.code === 'permission-denied') {
+          toast({
+              variant: "destructive",
+              title: "Yönetici İzin Hatası",
+              description: "Kullanıcı listesini çekerken izin hatası oluştu. Lütfen çıkış yapıp tekrar giriş yapmayı deneyin. Sorun devam ederse, Firestore'da 'role' alanının doğru ('admin') yazıldığından emin olun.",
+              duration: 12000,
+          });
+      }
       setIsInitialized(true);
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, toast]);
 
   const approveUser = useCallback(async (uid: string) => {
     if (!user || user.role !== 'admin' || !db) {
