@@ -26,7 +26,7 @@ export interface SignUpData {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{success: boolean, message?: string}>;
+  login: (email: string, password:string) => Promise<{success: boolean, message?: string}>;
   signup: (data: SignUpData) => Promise<{success: boolean, message?: string}>;
   logout: () => Promise<void>;
 }
@@ -41,11 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = useCallback(async (firebaseUser: FirebaseUser): Promise<AuthUser | null> => {
     if (!db || !firebaseUser) return null;
-
     try {
       const userDocRef = doc(db, "users", firebaseUser.uid);
       const userDoc = await getDoc(userDocRef);
-
       if (userDoc.exists()) {
         const userData = userDoc.data();
         return {
@@ -56,47 +54,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           registryNumber: userData.registryNumber,
         };
       }
-      console.warn(`No profile document found in 'users' collection for UID: ${firebaseUser.uid}. This can happen if signup was interrupted.`);
+      console.warn(`No profile document found in 'users' for UID: ${firebaseUser.uid}.`);
       return null;
     } catch (error) {
       console.error("Error fetching user profile from Firestore:", error);
       return null;
     }
   }, []);
-  
-  // onAuthStateChanged is the single source of truth for the user's auth state.
-  // It runs on initial load, and whenever a user signs in or out.
+
   useEffect(() => {
     if (!auth) {
-        setLoading(false);
-        return;
+      setLoading(false);
+      return;
     }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true);
-      if (firebaseUser) {
-        const userProfile = await fetchUserProfile(firebaseUser);
-        if (userProfile) {
-          setUser(userProfile);
+      try {
+        if (firebaseUser) {
+          const userProfile = await fetchUserProfile(firebaseUser);
+          if (userProfile) {
+            setUser(userProfile);
+          } else {
+            await signOut(auth);
+            setUser(null);
+          }
         } else {
-          // If a user is authenticated in Firebase Auth but has no profile
-          // document in Firestore, we sign them out to prevent a broken state.
-          await signOut(auth);
           setUser(null);
         }
-      } else {
+      } catch (error) {
+        console.error("Critical error in onAuthStateChanged:", error);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, [fetchUserProfile]);
-
-
-  // This useEffect handles all redirection logic based on the auth state.
+  
   useEffect(() => {
     if (loading) {
-      return; // Wait until loading is complete before deciding where to redirect.
+      return;
     }
 
     const isAuthPage = pathname === '/login';
@@ -114,15 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Success. The onAuthStateChanged listener will now handle fetching the user profile
-      // and updating the state, which will trigger the redirection useEffect.
       return { success: true };
     } catch (error: any) {
+      console.error("Login error:", error.code, error.message);
       let message = "Beklenmedik bir hata oluştu.";
-       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
           message = "E-posta veya şifre hatalı.";
       }
-      console.error("Login error:", error.code);
       return { success: false, message };
     }
   };
@@ -131,40 +127,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth || !db) return { success: false, message: "Sistem başlatılamadı." };
     
     try {
-      // Step 1: Create the user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const firebaseUser = userCredential.user;
       
-      // Step 2: Create the user profile document in the 'users' collection in Firestore
-      const newUserProfile: Omit<AuthUser, 'uid' | 'email'> = {
+      const newUserProfile = {
         firstName: data.firstName,
         lastName: data.lastName,
         registryNumber: data.registryNumber,
+        email: data.email,
       };
       
       await setDoc(doc(db, "users", firebaseUser.uid), newUserProfile);
       
-      // Success. The onAuthStateChanged listener will now pick up the new authenticated user,
-      // fetch their newly created profile, and update the state.
       return { success: true };
 
     } catch (error: any) {
+      console.error("Signup error:", error);
       let message = "Kayıt sırasında bir hata oluştu.";
       if (error.code === 'auth/email-already-in-use') {
         message = "Bu e-posta adresi zaten kullanılıyor.";
       } else if (error.code === 'auth/weak-password') {
           message = "Şifre en az 6 karakter olmalıdır.";
       }
-      console.error("Signup error:", error);
       return { success: false, message };
     }
   };
 
   const logout = async () => {
     if (!auth) return;
-    await signOut(auth);
-    // The onAuthStateChanged listener will set the user to null,
-    // and the redirection useEffect will then automatically redirect to /login.
+    try {
+        await signOut(auth);
+    } catch (error) {
+        console.error("Error signing out: ", error);
+    }
   };
 
   return (
