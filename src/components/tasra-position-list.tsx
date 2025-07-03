@@ -107,6 +107,7 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
           <TableRow>
             <TableHead>Ünite</TableHead>
             <TableHead>Görev Yeri</TableHead>
+            <TableHead>Kadro Ünvanı</TableHead>
             <TableHead>Sicil</TableHead>
             <TableHead>Personel</TableHead>
             <TableHead>Personel Statü</TableHead>
@@ -129,6 +130,13 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
               <TableRow key={position.id}>
                 <TableCell><div className="flex items-center gap-2"><Building className="h-4 w-4 shrink-0 text-muted-foreground"/>{position.unit}</div></TableCell>
                 <TableCell><div className="flex items-center gap-2"><MapPin className="h-4 w-4 shrink-0 text-muted-foreground"/>{position.dutyLocation}</div></TableCell>
+                <TableCell>
+                  {position.kadroUnvani ? (
+                    <div className="flex items-center gap-2"><Briefcase className="h-4 w-4 shrink-0 text-muted-foreground"/>{position.kadroUnvani}</div>
+                  ) : (
+                    <span className="text-muted-foreground italic">Belirtilmemiş</span>
+                  )}
+                </TableCell>
                 <TableCell>{assignedPerson ? <div className="flex items-center gap-2"><Hash className="h-4 w-4 shrink-0 text-muted-foreground"/>{assignedPerson.registryNumber}</div> : <span className="text-muted-foreground italic">N/A</span>}</TableCell>
                 <TableCell>{assignedPerson ? <div className="flex items-center gap-2"><User className="h-4 w-4 shrink-0 text-muted-foreground"/>{`${assignedPerson.firstName} ${assignedPerson.lastName}`}</div> : <span className="text-muted-foreground italic">Atanmamış</span>}</TableCell>
                 <TableCell>{assignedPerson ? <Badge variant={assignedPerson.status === "İHS" ? "default" : "secondary"}>{assignedPerson.status}</Badge> : <span className="text-muted-foreground italic">N/A</span>}</TableCell>

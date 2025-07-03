@@ -19,6 +19,7 @@ export interface TasraPosition {
   id: string;
   unit: string;
   dutyLocation: string;
+  kadroUnvani?: string | null; // Pozisyonun kadro ünvanı
   assignedPersonnelId: string | null;
   originalTitle?: string | null;
   status: 'Asıl' | 'Vekalet' | 'Yürütme' | 'Boş';

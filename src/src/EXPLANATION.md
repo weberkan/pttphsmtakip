@@ -113,7 +113,7 @@ Taşra pozisyon listesini yüklemek için Excel dosyanızda aşağıdaki sütunl
 *   **`Görev Yeri`**
 *   **`Durum`** (Değerler: `Asıl`, `Vekalet`, `Yürütme` veya `Boş` olmalıdır)
 *   `Kadro Ünvanı` (Opsiyonel. Pozisyonun resmi kadro ünvanı.)
-*   `Asıl Ünvan` (Opsiyonel, genellikle `Vekalet` veya `Yürütme` durumlarında kullanılır)
+*   `Asıl Ünvan` (Opsiyonel. `Durum` "Vekalet" veya "Yürütme" ise zorunludur ve geçerli bir kadro ünvanı olmalıdır.)
 *   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin sicil numarası. `Durum` "Boş" ise bu alan dikkate alınmaz.)
 *   `Başlama Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında. `Durum` "Boş" ise dikkate alınmaz.)
 *   `Görevi Veren Makam` (Opsiyonel. Değerler: `Başmüdürlük` veya `Genel Müdürlük`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)

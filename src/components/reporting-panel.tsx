@@ -42,6 +42,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   // Tasra Filters
   const [uniteFilters, setUniteFilters] = useState<string[]>([]);
   const [tasraGorevYeriFilters, setTasraGorevYeriFilters] = useState<string[]>([]);
+  const [kadroUnvaniFilters, setKadroUnvaniFilters] = useState<string[]>([]);
   const [asilUnvanFilters, setAsilUnvanFilters] = useState<string[]>([]);
   const [makamFilters, setMakamFilters] = useState<string[]>([]);
   const [vekaletUcretiFilter, setVekaletUcretiFilter] = useState<'all' | 'yes' | 'no'>('all');
@@ -55,6 +56,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   
   const uniqueTasraUniteler = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.unit))).sort(), [tasraPositions]);
   const uniqueTasraGorevYerleri = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.dutyLocation))).sort(), [tasraPositions]);
+  const uniqueTasraKadroUnvanlari = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.kadroUnvani).filter(Boolean) as string[])).sort(), [tasraPositions]);
   const uniqueTasraAsilUnvanlar = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.originalTitle).filter(Boolean) as string[])).sort(), [tasraPositions]);
 
 
@@ -105,6 +107,9 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
       if (tasraGorevYeriFilters.length > 0) {
         tasraData = tasraData.filter(p => tasraGorevYeriFilters.includes(p.dutyLocation));
       }
+      if (kadroUnvaniFilters.length > 0) {
+        tasraData = tasraData.filter(p => p.kadroUnvani && kadroUnvaniFilters.includes(p.kadroUnvani));
+      }
       if (asilUnvanFilters.length > 0) {
         tasraData = tasraData.filter(p => p.originalTitle && asilUnvanFilters.includes(p.originalTitle));
       }
@@ -134,7 +139,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     return data;
   }, [
     dataSource, statusFilters, birimFilters, gorevYeriFilters, unvanFilters, merkezDateRange, 
-    uniteFilters, tasraGorevYeriFilters, asilUnvanFilters, makamFilters, vekaletUcretiFilter, yetkiDevriFilter, tasraDateRange,
+    uniteFilters, tasraGorevYeriFilters, kadroUnvaniFilters, asilUnvanFilters, makamFilters, vekaletUcretiFilter, yetkiDevriFilter, tasraDateRange,
     positions, tasraPositions
   ]);
 
@@ -147,6 +152,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     setMerkezDateRange(undefined);
     setUniteFilters([]);
     setTasraGorevYeriFilters([]);
+    setKadroUnvaniFilters([]);
     setAsilUnvanFilters([]);
     setMakamFilters([]);
     setVekaletUcretiFilter('all');
@@ -188,6 +194,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
         return {
           'Ünite': p.unit,
           'Görev Yeri': p.dutyLocation,
+          'Kadro Ünvanı': p.kadroUnvani || '',
           'Durum': p.status,
           'Başlama Tarihi': p.startDate ? format(new Date(p.startDate), 'dd.MM.yyyy') : '',
           'Asıl Ünvan (Vekalet/Yürütme)': p.originalTitle || '',
@@ -258,6 +265,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
               <TableRow>
                 <TableHead>Ünite</TableHead>
                 <TableHead>Görev Yeri</TableHead>
+                <TableHead>Kadro Ünvanı</TableHead>
                 <TableHead>Personel</TableHead>
                 <TableHead>Durum</TableHead>
               </TableRow>
@@ -269,6 +277,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
                     <TableRow key={p.id}>
                         <TableCell>{p.unit}</TableCell>
                         <TableCell>{p.dutyLocation}</TableCell>
+                        <TableCell>{p.kadroUnvani || '-'}</TableCell>
                         <TableCell>{person ? `${person.firstName} ${person.lastName}` : 'Atanmamış'}</TableCell>
                         <TableCell>{p.status}</TableCell>
                     </TableRow>
@@ -414,6 +423,17 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
                                 <div key={`tasra-gorev-${item}`} className="flex items-center space-x-2 py-1">
                                     <Checkbox id={`tasra-gorev-${item}`} checked={tasraGorevYeriFilters.includes(item)} onCheckedChange={() => handleFilterChange(setTasraGorevYeriFilters)(item)} />
                                     <Label htmlFor={`tasra-gorev-${item}`} className="font-normal text-sm">{item}</Label>
+                                </div>
+                            ))}
+                        </ScrollArea>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className='text-xs font-semibold'>Kadro Ünvanı</Label>
+                        <ScrollArea className="h-32 w-full rounded-md border p-2">
+                            {uniqueTasraKadroUnvanlari.map(item => (
+                                <div key={`kadro-unvan-${item}`} className="flex items-center space-x-2 py-1">
+                                    <Checkbox id={`kadro-unvan-${item}`} checked={kadroUnvaniFilters.includes(item)} onCheckedChange={() => handleFilterChange(setKadroUnvaniFilters)(item)} />
+                                    <Label htmlFor={`kadro-unvan-${item}`} className="font-normal text-sm">{item}</Label>
                                 </div>
                             ))}
                         </ScrollArea>

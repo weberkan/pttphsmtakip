@@ -56,6 +56,7 @@ const importPositionSchema = z.object({
 const importTasraPositionSchema = z.object({
   unit: z.string().min(1, "Ünite boş olamaz."),
   dutyLocation: z.string().min(1, "Görev Yeri boş olamaz."),
+  kadroUnvani: z.string().optional().nullable().or(z.literal('')),
   status: z.enum(["Asıl", "Vekalet", "Yürütme", "Boş"], { 
     errorMap: () => ({ message: "Durum 'Asıl', 'Vekalet', 'Yürütme' veya 'Boş' olmalıdır." }) 
   }),
@@ -376,6 +377,7 @@ function DashboardPageContent() {
         return (
           (p.unit || '').toLowerCase().includes(searchTermLower) ||
           (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
+          (p.kadroUnvani || '').toLowerCase().includes(searchTermLower) ||
           (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
           (assignedPerson && (
             (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
@@ -778,6 +780,7 @@ function DashboardPageContent() {
         const headerMapping: { [key: string]: keyof z.infer<typeof importTasraPositionSchema> } = {
           'unite': 'unit',
           'gorevyeri': 'dutyLocation',
+          'kadrounvani': 'kadroUnvani',
           'durum': 'status', 
           'asilunvan': 'originalTitle',
           'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber',
@@ -788,7 +791,7 @@ function DashboardPageContent() {
         };
         
         const positionHeaderMappingReverse: { [key: string]: string } = {
-          'unit': 'Ünite', 'dutyLocation': 'Görev Yeri', 'status': 'Durum', 'originalTitle': 'Asıl Ünvan',
+          'unit': 'Ünite', 'dutyLocation': 'Görev Yeri', 'kadroUnvani': 'Kadro Ünvanı', 'status': 'Durum', 'originalTitle': 'Asıl Ünvan',
           'assignedPersonnelRegistryNumber': 'Atanan Personel Sicil', 'startDate': 'Başlama Tarihi',
           'actingAuthority': 'Görevi Veren Makam', 'receivesProxyPay': 'Vekalet Ücreti Alıyor Mu?', 'hasDelegatedAuthority': 'Yetki Devri Var Mı?',
         };
@@ -850,6 +853,7 @@ function DashboardPageContent() {
               const positionDataFromExcel: Omit<TasraPosition, 'id'> = {
                 unit: validatedData.unit,
                 dutyLocation: validatedData.dutyLocation,
+                kadroUnvani: validatedData.kadroUnvani || null,
                 originalTitle: isProxyOrActing ? validatedData.originalTitle || null : null,
                 status: validatedData.status,
                 assignedPersonnelId: resolvedAssignedPersonnelId,

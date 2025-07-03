@@ -44,6 +44,7 @@ import { turkeyCities } from "@/lib/cities";
 const positionSchema = z.object({
   unit: z.string().min(2, "Ünite en az 2 karakter olmalıdır."),
   dutyLocation: z.string().min(2, "Görev Yeri en az 2 karakter olmalıdır."),
+  kadroUnvani: z.string().optional().nullable(),
   status: z.enum(["Asıl", "Vekalet", "Yürütme", "Boş"]),
   originalTitle: z.string().optional().nullable(),
   assignedPersonnelId: z.string().nullable(),
@@ -94,6 +95,7 @@ export function AddEditTasraPositionDialog({
     defaultValues: {
       unit: "",
       dutyLocation: "",
+      kadroUnvani: "",
       status: "Asıl",
       originalTitle: "",
       assignedPersonnelId: null,
@@ -122,6 +124,7 @@ export function AddEditTasraPositionDialog({
         form.reset({
           unit: positionToEdit.unit,
           dutyLocation: positionToEdit.dutyLocation,
+          kadroUnvani: positionToEdit.kadroUnvani || "",
           status: positionToEdit.status,
           originalTitle: positionToEdit.originalTitle || "",
           assignedPersonnelId: positionToEdit.assignedPersonnelId,
@@ -134,6 +137,7 @@ export function AddEditTasraPositionDialog({
         form.reset({
           unit: "",
           dutyLocation: "",
+          kadroUnvani: "",
           status: "Asıl",
           originalTitle: "",
           assignedPersonnelId: null,
@@ -152,6 +156,7 @@ export function AddEditTasraPositionDialog({
 
     const dataToSave = {
       ...data,
+      kadroUnvani: data.kadroUnvani || null,
       originalTitle: isProxyOrActing ? data.originalTitle || null : null,
       actingAuthority: isProxyOrActing ? data.actingAuthority : null,
       receivesProxyPay: isProxyOrActing ? data.receivesProxyPay : false,
@@ -266,6 +271,19 @@ export function AddEditTasraPositionDialog({
                     </FormItem>
                   )}
                 />
+                 <FormField
+                    control={form.control}
+                    name="kadroUnvani"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Kadro Ünvanı (Opsiyonel)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="örn: Başdağıtıcı" {...field} value={field.value ?? ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 <FormField
                     control={form.control}
                     name="status"
