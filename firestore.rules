@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the requesting user is an admin.
+    // It reads the user's own document from the 'users' collection.
+    function isRequestingUserAdmin() {
+      // Ensure the user is authenticated before trying to read their role.
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // An admin can list all user documents for the approval panel.
+      allow list: if isRequestingUserAdmin();
+      
+      // An authenticated user can read their own document.
+      // An admin can read any user's document.
+      allow get: if request.auth.uid == userId || isRequestingUserAdmin();
+
+      // A new user can create their own document upon signup.
+      // We must check that they are not giving themselves admin rights or pre-approving.
+      allow create: if request.auth.uid == userId
+                    && request.resource.data.isApproved == false
+                    && !('role' in request.resource.data);
+
+      // An admin can update a user's 'isApproved' field.
+      // A user cannot update their own document.
+      allow update: if isRequestingUserAdmin() 
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isApproved']);
+    }
+
+    // Allow any authenticated user to read/write from the main data collections.
+    // For a production app with more complex requirements, you might want more granular rules here.
+    match /merkez-personnel/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /merkez-positions/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /tasra-personnel/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /tasra-positions/{docId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
