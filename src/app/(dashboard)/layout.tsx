@@ -3,10 +3,10 @@
 
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, Suspense, useState } from 'react';
+import { useEffect, Suspense, useState, ReactNode } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Trash, Menu, Briefcase, ChevronsLeft } from "lucide-react";
+import { Users, LogOut, Trash, Menu, Briefcase, ChevronsLeft, Network } from "lucide-react";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -46,11 +46,14 @@ const viewTitles: { [key: string]: string } = {
     'raporlama': 'Raporlama ve Analiz',
 };
 
-function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const { user, logout, loading } = useAuth();
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
+    const { user, logout } = useAuth();
     const searchParams = useSearchParams();
     const { toast } = useToast();
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    // This should never happen if the protection in DashboardLayout works, but it's a good failsafe.
+    if (!user) return null;
 
     const view = searchParams.get('view') || 'dashboard';
     
@@ -88,14 +91,6 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
             window.location.reload();
         }, 1500);
     };
-
-    if (loading || !user) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center bg-background">
-                <p>Yükleniyor...</p>
-            </div>
-        );
-    }
     
     return (
         <div className={cn(
@@ -226,6 +221,30 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
         </div>
     );
+}
+
+function DashboardLayout({ children }: { children: React.ReactNode }) {
+    const { user, loading } = useAuth();
+    
+    if (loading) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-4">
+                    <Network className="h-12 w-12 text-primary animate-pulse" />
+                    <p className="text-muted-foreground">Oturum doğrulanıyor...</p>
+                </div>
+            </div>
+        );
+    }
+    
+    // AuthProvider is responsible for redirecting. If we reach here and there's
+    // no user, it means the redirect is about to happen. Returning null prevents
+    // the dashboard from flashing or attempting to render with no user data.
+    if (!user) {
+        return null; 
+    }
+
+    return <DashboardLayoutContent>{children}</DashboardLayoutContent>
 }
 
 
