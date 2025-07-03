@@ -228,13 +228,7 @@ export function useTasraPositions() {
     
     const originalPersonnel = [...tasraPersonnel];
     const originalPositions = [...tasraPositions];
-    
     setTasraPersonnel(prev => prev.filter(p => p.id !== personnelId));
-    setTasraPositions(prevPositions => prevPositions.map(p => 
-        p.assignedPersonnelId === personnelId 
-        ? { ...p, assignedPersonnelId: null, status: 'Boş' as const } 
-        : p
-    ));
 
     try {
       const batch = writeBatch(db);
@@ -242,17 +236,15 @@ export function useTasraPositions() {
       const personnelRef = doc(db, 'tasra-personnel', personnelId);
       batch.delete(personnelRef);
       
-      const positionsToUpdateQuery = query(collection(db, 'tasra-positions'), where('assignedPersonnelId', '==', personnelId));
-      const positionsSnapshot = await getDocs(positionsToUpdateQuery);
-      
-      positionsSnapshot.forEach(positionDoc => {
-        const positionRef = doc(db, 'tasra-positions', positionDoc.id);
-        batch.update(positionRef, {
+      const assignedPositions = originalPositions.filter(p => p.assignedPersonnelId === personnelId);
+      assignedPositions.forEach(pos => {
+        const posRef = doc(db, 'tasra-positions', pos.id);
+        batch.set(posRef, {
           assignedPersonnelId: null,
-          status: 'Boş',
+          status: 'Boş' as const,
           lastModifiedBy: user.registryNumber,
           lastModifiedAt: Timestamp.now(),
-        });
+        }, { merge: true });
       });
       
       await batch.commit();
@@ -268,10 +260,10 @@ export function useTasraPositions() {
       toast({
         variant: "destructive",
         title: "Hata",
-        description: "Personel silinirken bir hata oluştu. Değişiklikler geri alındı.",
+        description: "Personel silinirken bir hata oluştu.",
       });
     }
-  }, [user, db, toast, tasraPersonnel, tasraPositions]);
+  }, [user, tasraPersonnel, tasraPositions, db, toast]);
 
   return { 
     tasraPositions, 
