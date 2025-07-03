@@ -28,7 +28,9 @@ interface TasraPositionListProps {
 
 export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }: TasraPositionListProps) {
     const sortedPositions = useMemo(() => {
-        return [...positions].sort((a, b) => {
+        const uniquePositions = Array.from(new Map(positions.map(p => [p.id, p])).values());
+        
+        return uniquePositions.sort((a, b) => {
             const unitA = a.unit.toLowerCase();
             const unitB = b.unit.toLowerCase();
             if (unitA < unitB) return -1;
