@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,8 +27,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Network, LogIn, UserPlus } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
 
 const loginSchema = z.object({
   email: z.string().email("Geçerli bir e-posta adresi girin."),
@@ -42,8 +40,6 @@ const signupSchema = z.object({
   email: z.string().email("Geçerli bir e-posta adresi girin."),
   password: z.string().min(6, "Şifre en az 6 karakter olmalıdır."),
   confirmPassword: z.string(),
-  status: z.enum(["İHS", "399"]),
-  unvan: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Şifreler eşleşmiyor.",
   path: ["confirmPassword"],
@@ -123,8 +119,6 @@ function SignupForm() {
             email: "",
             password: "",
             confirmPassword: "",
-            status: "İHS",
-            unvan: "",
         },
     });
 
@@ -163,9 +157,6 @@ function SignupForm() {
                  <FormField control={form.control} name="confirmPassword" render={({ field }) => (
                     <FormItem><FormLabel>Şifre Tekrar</FormLabel><FormControl><Input type="password" placeholder="Şifrenizi doğrulayın" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                 <FormField control={form.control} name="status" render={({ field }) => (
-                    <FormItem><FormLabel>Statü</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="İHS">İHS</SelectItem><SelectItem value="399">399</SelectItem></SelectContent></Select><FormMessage /></FormItem>
-                )} />
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     {isSubmitting ? "Hesap Oluşturuluyor..." : "Hesap Oluştur"}
@@ -177,8 +168,10 @@ function SignupForm() {
 
 
 export default function AuthPage() {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
   
+  // While loading, show a spinner. This prevents a flash of the login form
+  // if the user is already authenticated.
   if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -190,6 +183,13 @@ export default function AuthPage() {
     );
   }
 
+  // If loading is finished and there's a user, the AuthProvider's useEffect
+  // is about to redirect them. Returning null prevents the login form from flashing.
+  if (user) {
+      return null;
+  }
+  
+  // If loading is finished and there's no user, show the login page.
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
       <Tabs defaultValue="login" className="w-full max-w-sm">

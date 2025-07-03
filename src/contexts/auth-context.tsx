@@ -5,24 +5,25 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
-import type { Personnel } from '@/lib/types';
+import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 
+// A simplified user profile for anyone who can log into the app.
+// This is stored in a separate 'users' collection.
 export interface AuthUser {
+  uid: string;
   registryNumber: string;
   firstName: string;
   lastName: string;
   email: string;
 }
 
+// Data needed to sign up for a new app user account.
 export interface SignUpData {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
   registryNumber: string;
-  status: 'İHS' | '399';
-  unvan?: string | null;
 }
 
 interface AuthContextType {
@@ -41,56 +42,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const fetchAppUser = useCallback(async (email: string): Promise<AuthUser | null> => {
-    if (!db || !email) return null;
+  const fetchUserProfile = useCallback(async (firebaseUser: FirebaseUser): Promise<AuthUser | null> => {
+    if (!db || !firebaseUser) return null;
 
     try {
-      const merkezQuery = query(collection(db, "merkez-personnel"), where("email", "==", email));
-      const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", email));
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userDoc = await getDoc(userDocRef);
 
-      const [merkezSnapshot, tasraSnapshot] = await Promise.all([
-        getDocs(merkezQuery),
-        getDocs(tasraQuery)
-      ]);
-      
-      let appUserData: Omit<Personnel, 'id'> | null = null;
-      if (!merkezSnapshot.empty) {
-        appUserData = merkezSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-      } else if (!tasraSnapshot.empty) {
-        appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-      }
-
-      if (appUserData) {
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
         return {
-          registryNumber: appUserData.registryNumber,
-          firstName: appUserData.firstName,
-          lastName: appUserData.lastName,
-          email: appUserData.email || '',
+          uid: firebaseUser.uid,
+          email: firebaseUser.email!,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          registryNumber: userData.registryNumber,
         };
       }
+      console.warn(`No profile document found in 'users' collection for UID: ${firebaseUser.uid}`);
       return null;
     } catch (error) {
-      console.error("Error fetching app user from Firestore:", error);
-      return null; // Return null on error to indicate failure
+      console.error("Error fetching user profile from Firestore:", error);
+      return null;
     }
   }, []);
 
   useEffect(() => {
-    // This listener handles session persistence on page refresh or initial load.
     if (!auth) {
         setLoading(false);
         return;
     }
+    // This is the single source of truth for the user's auth state.
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser?.email) {
-        const appUser = await fetchAppUser(firebaseUser.email);
-        if (appUser) {
-          setUser(appUser);
-        } else {
-          // User exists in Firebase Auth but not in our DB. This is an invalid state.
-          await signOut(auth);
-          setUser(null);
-        }
+      if (firebaseUser) {
+        const userProfile = await fetchUserProfile(firebaseUser);
+        setUser(userProfile); // Can be null if profile not found, that's expected
       } else {
         setUser(null);
       }
@@ -98,104 +84,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [fetchAppUser]);
+  }, [fetchUserProfile]);
+
 
   useEffect(() => {
-    // This is the single source of truth for redirection logic.
+    // This hook handles redirection logic based on the auth state.
     if (loading) {
-      return; // Do nothing until authentication state is fully resolved.
+      return; // Wait until loading is complete before redirecting.
     }
 
     const isAuthPage = pathname === '/login';
 
     if (user && isAuthPage) {
-      // User is logged in and on the login page -> redirect to dashboard.
       router.push('/');
     } else if (!user && !isAuthPage) {
-      // User is not logged in and not on the login page -> redirect to login.
       router.push('/login');
     }
   }, [user, loading, pathname, router]);
 
-  const login = useCallback(async (email: string, password: string): Promise<{success: boolean, message?: string}> => {
-    if (!auth || !db) return { success: false, message: "Kimlik doğrulama sistemi başlatılamadı." };
-    
-    setLoading(true);
-    try {
-      // Step 1: Authenticate with Firebase Auth
-      await signInWithEmailAndPassword(auth, email, password);
-      
-      // Step 2: Fetch app-specific user profile from Firestore AFTER successful auth
-      const appUser = await fetchAppUser(email);
 
-      if (appUser) {
-        // Step 3: Set user state. The useEffect hook will handle the redirect.
-        setUser(appUser);
-        setLoading(false);
-        return { success: true };
-      } else {
-        // Critical case: User authenticated with Firebase but has no profile in our DB.
-        await signOut(auth); // Log them out immediately.
-        setUser(null);
-        setLoading(false);
-        return { success: false, message: "Kimlik doğrulandı ancak sisteme kayıtlı personel profili bulunamadı." };
-      }
+  const login = async (email: string, password: string): Promise<{success: boolean, message?: string}> => {
+    if (!auth) return { success: false, message: "Kimlik doğrulama sistemi başlatılamadı." };
+    
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle fetching the profile and setting state.
+      // The redirection useEffect will then handle moving to the dashboard.
+      return { success: true };
     } catch (error: any) {
       let message = "Beklenmedik bir hata oluştu.";
-       if (error.code === 'auth/invalid-credential') {
+       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
           message = "E-posta veya şifre hatalı.";
       }
-      console.error("Login error:", error);
-      setUser(null);
-      setLoading(false);
+      console.error("Login error:", error.code);
       return { success: false, message };
     }
-  }, [fetchAppUser]);
+  };
   
-  const signup = useCallback(async (data: SignUpData): Promise<{success: boolean, message?: string}> => {
+  const signup = async (data: SignUpData): Promise<{success: boolean, message?: string}> => {
     if (!auth || !db) return { success: false, message: "Sistem başlatılamadı." };
     
-    setLoading(true);
     try {
-      // Check for duplicate registry number
-      const merkezRegQuery = query(collection(db, "merkez-personnel"), where("registryNumber", "==", data.registryNumber));
-      const tasraRegQuery = query(collection(db, "tasra-personnel"), where("registryNumber", "==", data.registryNumber));
-      const [merkezRegSnapshot, tasraRegSnapshot] = await Promise.all([ getDocs(merkezRegQuery), getDocs(tasraRegQuery) ]);
-      if (!merkezRegSnapshot.empty || !tasraRegSnapshot.empty) {
-        setLoading(false);
-        return { success: false, message: "Bu sicil numarası zaten sistemde kayıtlı." };
-      }
+      // Step 1: Create the user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const firebaseUser = userCredential.user;
       
-      // Create user in Firebase Auth
-      await createUserWithEmailAndPassword(auth, data.email, data.password);
-      
-      const newPersonnelData = {
+      // Step 2: Create the user profile document in the 'users' collection
+      const newUserProfile: Omit<AuthUser, 'uid'> = {
+        email: firebaseUser.email!,
         firstName: data.firstName,
         lastName: data.lastName,
         registryNumber: data.registryNumber,
-        email: data.email,
-        status: data.status,
-        unvan: data.unvan || null,
-        lastModifiedBy: data.registryNumber,
-        lastModifiedAt: Timestamp.now(),
-        photoUrl: null,
-        phone: null,
-        dateOfBirth: null,
       };
-
-      // Create user profile in Firestore
-      await addDoc(collection(db, 'merkez-personnel'), newPersonnelData);
-
-      // Set the user state immediately after successful signup
-      setUser({
-        registryNumber: newPersonnelData.registryNumber,
-        firstName: newPersonnelData.firstName,
-        lastName: newPersonnelData.lastName,
-        email: newPersonnelData.email,
-      });
       
-      setLoading(false);
+      await setDoc(doc(db, "users", firebaseUser.uid), newUserProfile);
+      
+      // onAuthStateChanged will automatically pick up the new user and their profile.
+      // The redirection useEffect will then navigate to the dashboard.
       return { success: true };
+
     } catch (error: any) {
       let message = "Kayıt sırasında bir hata oluştu.";
       if (error.code === 'auth/email-already-in-use') {
@@ -204,18 +151,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           message = "Şifre en az 6 karakter olmalıdır.";
       }
       console.error("Signup error:", error);
-      setUser(null);
-      setLoading(false);
       return { success: false, message };
     }
-  }, []);
+  };
 
-  const logout = useCallback(async () => {
+  const logout = async () => {
     if (!auth) return;
     await signOut(auth);
-    setUser(null);
-    // The useEffect hook will redirect to /login because user is now null.
-  }, [router]);
+    // The redirection useEffect will handle redirecting to /login because user is now null.
+  };
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
