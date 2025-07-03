@@ -5,10 +5,8 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-// A simplified user profile for anyone who can log into the app.
-// This is stored in a separate 'users' collection.
 export interface AuthUser {
   uid: string;
   registryNumber: string;
@@ -17,7 +15,6 @@ export interface AuthUser {
   email: string;
 }
 
-// Data needed to sign up for a new app user account.
 export interface SignUpData {
   email: string;
   password: string;
@@ -31,7 +28,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<{success: boolean, message?: string}>;
   signup: (data: SignUpData) => Promise<{success: boolean, message?: string}>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,24 +56,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           registryNumber: userData.registryNumber,
         };
       }
-      console.warn(`No profile document found in 'users' collection for UID: ${firebaseUser.uid}`);
+      console.warn(`No profile document found in 'users' collection for UID: ${firebaseUser.uid}. This can happen if signup was interrupted.`);
       return null;
     } catch (error) {
       console.error("Error fetching user profile from Firestore:", error);
       return null;
     }
   }, []);
-
+  
+  // onAuthStateChanged is the single source of truth for the user's auth state.
+  // It runs on initial load, and whenever a user signs in or out.
   useEffect(() => {
     if (!auth) {
         setLoading(false);
         return;
     }
-    // This is the single source of truth for the user's auth state.
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setLoading(true);
       if (firebaseUser) {
         const userProfile = await fetchUserProfile(firebaseUser);
-        setUser(userProfile); // Can be null if profile not found, that's expected
+        if (userProfile) {
+          setUser(userProfile);
+        } else {
+          // If a user is authenticated in Firebase Auth but has no profile
+          // document in Firestore, we sign them out to prevent a broken state.
+          await signOut(auth);
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
@@ -87,10 +93,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUserProfile]);
 
 
+  // This useEffect handles all redirection logic based on the auth state.
   useEffect(() => {
-    // This hook handles redirection logic based on the auth state.
     if (loading) {
-      return; // Wait until loading is complete before redirecting.
+      return; // Wait until loading is complete before deciding where to redirect.
     }
 
     const isAuthPage = pathname === '/login';
@@ -108,8 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // onAuthStateChanged will handle fetching the profile and setting state.
-      // The redirection useEffect will then handle moving to the dashboard.
+      // Success. The onAuthStateChanged listener will now handle fetching the user profile
+      // and updating the state, which will trigger the redirection useEffect.
       return { success: true };
     } catch (error: any) {
       let message = "Beklenmedik bir hata oluştu.";
@@ -129,9 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const firebaseUser = userCredential.user;
       
-      // Step 2: Create the user profile document in the 'users' collection
-      const newUserProfile: Omit<AuthUser, 'uid'> = {
-        email: firebaseUser.email!,
+      // Step 2: Create the user profile document in the 'users' collection in Firestore
+      const newUserProfile: Omit<AuthUser, 'uid' | 'email'> = {
         firstName: data.firstName,
         lastName: data.lastName,
         registryNumber: data.registryNumber,
@@ -139,8 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       await setDoc(doc(db, "users", firebaseUser.uid), newUserProfile);
       
-      // onAuthStateChanged will automatically pick up the new user and their profile.
-      // The redirection useEffect will then navigate to the dashboard.
+      // Success. The onAuthStateChanged listener will now pick up the new authenticated user,
+      // fetch their newly created profile, and update the state.
       return { success: true };
 
     } catch (error: any) {
@@ -158,7 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     if (!auth) return;
     await signOut(auth);
-    // The redirection useEffect will handle redirecting to /login because user is now null.
+    // The onAuthStateChanged listener will set the user to null,
+    // and the redirection useEffect will then automatically redirect to /login.
   };
 
   return (
