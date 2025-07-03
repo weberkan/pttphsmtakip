@@ -22,7 +22,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { USERS } from "@/lib/auth-data";
 
 interface PersonnelListProps {
   personnel: Personnel[];
@@ -52,9 +51,6 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
         </TableHeader>
         <TableBody>
           {personnel.map((person) => {
-            const modifier = person.lastModifiedBy ? USERS.find(u => u.registryNumber === person.lastModifiedBy) : null;
-            const modifierDisplayName = modifier ? `${modifier.firstName} ${modifier.lastName}` : (person.lastModifiedBy || 'Bilinmeyen');
-
             return (
               <TableRow key={person.id}>
                 <TableCell className="font-medium">
@@ -120,8 +116,8 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>
-                            {modifierDisplayName}{' '}
-                            {person.lastModifiedAt ? `${formatDistanceToNow(new Date(person.lastModifiedAt), { addSuffix: true, locale: tr })} güncelledi.` : 'Tarih bilgisi yok'}
+                            Güncelleyen Sicil No: {person.lastModifiedBy}{' '}
+                            {person.lastModifiedAt ? `(${formatDistanceToNow(new Date(person.lastModifiedAt), { addSuffix: true, locale: tr })})` : ''}
                           </p>
                         </TooltipContent>
                       </Tooltip>

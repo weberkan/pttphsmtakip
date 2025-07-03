@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -17,7 +18,6 @@ import { format, formatDistanceToNow } from "date-fns";
 import { tr } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { USERS } from "@/lib/auth-data";
 
 interface PositionListProps {
   positions: Position[];
@@ -140,8 +140,6 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
         <TableBody>
           {sortedPositions.map((position) => {
             const assignedPerson = allPersonnel.find(p => p.id === position.assignedPersonnelId);
-            const modifier = position.lastModifiedBy ? USERS.find(u => u.registryNumber === position.lastModifiedBy) : null;
-            const modifierDisplayName = modifier ? `${modifier.firstName} ${modifier.lastName}` : (position.lastModifiedBy || 'Bilinmeyen');
             const isStyledTitle = styledTitles.includes(position.name);
             return (
               <TableRow 
@@ -207,9 +205,9 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>
-                            {modifierDisplayName}{' '}
-                            {position.lastModifiedAt ? `${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })} güncelledi.` : 'Tarih bilgisi yok'}
+                           <p>
+                            Güncelleyen Sicil No: {position.lastModifiedBy}{' '}
+                            {position.lastModifiedAt ? `(${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })})` : ''}
                           </p>
                         </TooltipContent>
                       </Tooltip>

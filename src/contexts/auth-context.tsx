@@ -3,9 +3,10 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { USERS } from '@/lib/auth-data';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import type { Personnel } from '@/lib/types';
 
 export interface AuthUser {
   registryNumber: string;
@@ -23,33 +24,34 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Note: We are not storing the user in localStorage anymore as Firebase handles session persistence.
-// This simplifies state management and improves security.
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    if (!auth) {
+    if (!auth || !db) {
       setLoading(false);
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser && firebaseUser.email) {
-        // Find the corresponding user in our hardcoded list to get full details
-        const appUser = USERS.find(u => u.email === firebaseUser.email);
-        if (appUser) {
-          setUser({
-            registryNumber: appUser.registryNumber,
-            firstName: appUser.firstName,
-            lastName: appUser.lastName,
-            email: appUser.email
-          });
+        // Query firestore to get the full user details.
+        const q = query(collection(db, "merkez-personnel"), where("email", "==", firebaseUser.email));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const appUserDoc = querySnapshot.docs[0];
+            const appUserData = appUserDoc.data() as Omit<Personnel, 'id'>;
+            setUser({
+              registryNumber: appUserData.registryNumber,
+              firstName: appUserData.firstName,
+              lastName: appUserData.lastName,
+              email: appUserData.email || '',
+            });
         } else {
-            // This case might happen if a user was deleted from our auth-data.ts but still has a valid Firebase session.
+            // This case can happen if the user was deleted from our DB but still has a valid Firebase session.
             setUser(null);
+            signOut(auth);
         }
       } else {
         setUser(null);
@@ -61,28 +63,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (registryNumber: string, password: string): Promise<boolean> => {
-    if (!auth) {
-        console.error("Auth service is not available. Check Firebase configuration.");
+    if (!auth || !db) {
+        console.error("Auth/DB service is not available. Check Firebase configuration.");
         return false;
     }
 
-    // Find user by registry number ONLY. Do not check the password here.
-    const foundUser = USERS.find(u => u.registryNumber === registryNumber);
+    // Query firestore to find user by registry number.
+    const q = query(collection(db, "merkez-personnel"), where("registryNumber", "==", registryNumber));
+    const querySnapshot = await getDocs(q);
 
-    if (foundUser && foundUser.email) {
-      try {
-        // Let Firebase handle the password check.
-        await signInWithEmailAndPassword(auth, foundUser.email, password);
-        // The onAuthStateChanged listener will handle setting the user state.
-        return true;
-      } catch (error) {
-        // Firebase will throw an error for wrong password, user not found, etc.
-        console.error("Firebase login error:", error);
-        return false;
+    if (!querySnapshot.empty) {
+      const userDoc = querySnapshot.docs[0].data();
+      const userEmail = userDoc.email;
+
+      if (userEmail) {
+        try {
+          await signInWithEmailAndPassword(auth, userEmail, password);
+          // The onAuthStateChanged listener will handle setting the user state.
+          return true;
+        } catch (error) {
+          console.error("Firebase login error:", error);
+          return false;
+        }
       }
     }
     
-    // If registry number doesn't exist in our list
+    console.error(`Login failed: No user found with registry number: ${registryNumber}`);
     return false;
   }, []);
 
@@ -94,7 +100,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       await signOut(auth);
-      // The onAuthStateChanged listener will handle setting user to null.
       router.push('/login');
     } catch (error) {
       console.error("Firebase logout error:", error);

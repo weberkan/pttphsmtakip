@@ -18,7 +18,6 @@ import { format, formatDistanceToNow } from "date-fns";
 import { tr } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { USERS } from "@/lib/auth-data";
 
 interface TasraPositionListProps {
   positions: TasraPosition[];
@@ -123,8 +122,6 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
         <TableBody>
           {sortedPositions.map((position) => {
             const assignedPerson = allPersonnel.find(p => p.id === position.assignedPersonnelId);
-            const modifier = position.lastModifiedBy ? USERS.find(u => u.registryNumber === position.lastModifiedBy) : null;
-            const modifierDisplayName = modifier ? `${modifier.firstName} ${modifier.lastName}` : (position.lastModifiedBy || 'Bilinmeyen');
             
             return (
               <TableRow key={position.id}>
@@ -165,8 +162,8 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>
-                            {modifierDisplayName}{' '}
-                            {position.lastModifiedAt ? `${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })} güncelledi.` : 'Tarih bilgisi yok'}
+                            Güncelleyen Sicil No: {position.lastModifiedBy}{' '}
+                            {position.lastModifiedAt ? `(${formatDistanceToNow(new Date(position.lastModifiedAt), { addSuffix: true, locale: tr })})` : ''}
                           </p>
                         </TooltipContent>
                       </Tooltip>
