@@ -66,21 +66,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
     }
 
-    const foundUser = USERS.find(
-      (u) => u.registryNumber === registryNumber && u.password === password
-    );
+    // Find user by registry number ONLY. Do not check the password here.
+    const foundUser = USERS.find(u => u.registryNumber === registryNumber);
 
     if (foundUser && foundUser.email) {
       try {
+        // Let Firebase handle the password check.
         await signInWithEmailAndPassword(auth, foundUser.email, password);
         // The onAuthStateChanged listener will handle setting the user state.
         return true;
       } catch (error) {
+        // Firebase will throw an error for wrong password, user not found, etc.
         console.error("Firebase login error:", error);
         return false;
       }
     }
     
+    // If registry number doesn't exist in our list
     return false;
   }, []);
 
