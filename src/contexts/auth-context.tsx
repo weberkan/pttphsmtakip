@@ -46,49 +46,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser && firebaseUser.email) {
-        
-        const findAndSetUser = async () => {
-          const merkezQuery = query(collection(db, "merkez-personnel"), where("email", "==", firebaseUser.email));
-          const merkezSnapshot = await getDocs(merkezQuery);
-          if (!merkezSnapshot.empty) {
-            const appUserData = merkezSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-            setUser({
-              registryNumber: appUserData.registryNumber,
-              firstName: appUserData.firstName,
-              lastName: appUserData.lastName,
-              email: appUserData.email || '',
-            });
-            return true;
-          }
+      try {
+        if (firebaseUser && firebaseUser.email) {
+          
+          const findAndSetUser = async () => {
+            try {
+              const merkezQuery = query(collection(db, "merkez-personnel"), where("email", "==", firebaseUser.email));
+              const merkezSnapshot = await getDocs(merkezQuery);
+              if (!merkezSnapshot.empty) {
+                const appUserData = merkezSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
+                setUser({
+                  registryNumber: appUserData.registryNumber,
+                  firstName: appUserData.firstName,
+                  lastName: appUserData.lastName,
+                  email: appUserData.email || '',
+                });
+                return true;
+              }
 
-          const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", firebaseUser.email));
-          const tasraSnapshot = await getDocs(tasraQuery);
-          if (!tasraSnapshot.empty) {
-            const appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-            setUser({
-              registryNumber: appUserData.registryNumber,
-              firstName: appUserData.firstName,
-              lastName: appUserData.lastName,
-              email: appUserData.email || '',
-            });
-            return true;
-          }
-          return false;
-        }
-
-        const userFound = await findAndSetUser();
-
-        if (!userFound) {
-            setUser(null);
-            if (auth) {
-                signOut(auth);
+              const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", firebaseUser.email));
+              const tasraSnapshot = await getDocs(tasraQuery);
+              if (!tasraSnapshot.empty) {
+                const appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
+                setUser({
+                  registryNumber: appUserData.registryNumber,
+                  firstName: appUserData.firstName,
+                  lastName: appUserData.lastName,
+                  email: appUserData.email || '',
+                });
+                return true;
+              }
+              return false;
+            } catch (e) {
+              console.error("Firestore user lookup failed. This might be a security rules issue.", e);
+              if (auth) {
+                await signOut(auth);
+              }
+              setUser(null);
+              return false;
             }
+          }
+
+          const userFound = await findAndSetUser();
+
+          if (!userFound) {
+              setUser(null);
+              if (auth?.currentUser) {
+                  await signOut(auth);
+              }
+          }
+        } else {
+          setUser(null);
         }
-      } else {
+      } catch (error) {
+        console.error("An error occurred during the auth state change process:", error);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -116,20 +131,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
     }
 
-    const userEmail = await findEmailForRegistryNumber(registryNumber);
-    
-    if (userEmail) {
-      try {
+    try {
+      const userEmail = await findEmailForRegistryNumber(registryNumber);
+      
+      if (userEmail) {
         await signInWithEmailAndPassword(auth, userEmail, password);
         return true;
-      } catch (error) {
-        console.error("Firebase login error:", error);
-        return false;
       }
+      
+      console.error(`Login failed: No user found with registry number: ${registryNumber}`);
+      return false;
+    } catch (error) {
+      console.error("Firebase login error:", error);
+      return false;
     }
-    
-    console.error(`Login failed: No user found with registry number: ${registryNumber}`);
-    return false;
   }, []);
 
   const signup = useCallback(async (data: SignUpData): Promise<{success: boolean, message?: string}> => {
@@ -139,21 +154,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, message };
     }
 
-    const merkezRegQuery = query(collection(db, "merkez-personnel"), where("registryNumber", "==", data.registryNumber));
-    const merkezRegSnapshot = await getDocs(merkezRegQuery);
-    if (!merkezRegSnapshot.empty) {
-      return { success: false, message: "Bu sicil numarası Merkez Personel listesinde zaten kayıtlı." };
-    }
-    
-    const tasraRegQuery = query(collection(db, "tasra-personnel"), where("registryNumber", "==", data.registryNumber));
-    const tasraRegSnapshot = await getDocs(tasraRegQuery);
-    if (!tasraRegSnapshot.empty) {
-      return { success: false, message: "Bu sicil numarası Taşra Personel listesinde zaten kayıtlı." };
-    }
-
-    // Firebase Auth will handle duplicate email checks.
-
     try {
+      const merkezRegQuery = query(collection(db, "merkez-personnel"), where("registryNumber", "==", data.registryNumber));
+      const merkezRegSnapshot = await getDocs(merkezRegQuery);
+      if (!merkezRegSnapshot.empty) {
+        return { success: false, message: "Bu sicil numarası Merkez Personel listesinde zaten kayıtlı." };
+      }
+      
+      const tasraRegQuery = query(collection(db, "tasra-personnel"), where("registryNumber", "==", data.registryNumber));
+      const tasraRegSnapshot = await getDocs(tasraRegQuery);
+      if (!tasraRegSnapshot.empty) {
+        return { success: false, message: "Bu sicil numarası Taşra Personel listesinde zaten kayıtlı." };
+      }
+
+      // Firebase Auth will handle duplicate email checks.
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       
       // By default, new signups are for the Merkez system
