@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Download, Calendar as CalendarIcon, RotateCcw } from 'lucide-react';
+import { Download, Calendar as CalendarIcon, RotateCcw, Mail, Phone } from 'lucide-react';
 import type { Position, Personnel, TasraPosition } from '@/lib/types';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -239,6 +239,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
               <TableHead>Ünvan</TableHead>
               <TableHead>Personel</TableHead>
               <TableHead>Durum</TableHead>
+              <TableHead>İletişim</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -250,6 +251,13 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
                   <TableCell>{p.name}</TableCell>
                   <TableCell>{person ? `${person.firstName} ${person.lastName}` : 'Atanmamış'}</TableCell>
                   <TableCell>{p.status}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1 text-xs">
+                      {person?.phone && <div className="flex items-center gap-2"><Phone className="h-3 w-3 shrink-0 text-muted-foreground"/>{person.phone}</div>}
+                      {person?.email && <div className="flex items-center gap-2"><Mail className="h-3 w-3 shrink-0 text-muted-foreground"/>{person.email}</div>}
+                      {!person?.phone && !person?.email && <span className="text-muted-foreground italic">Yok</span>}
+                    </div>
+                  </TableCell>
                 </TableRow>
               );
             })}
@@ -268,6 +276,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
                 <TableHead>Kadro Ünvanı</TableHead>
                 <TableHead>Personel</TableHead>
                 <TableHead>Durum</TableHead>
+                <TableHead>İletişim</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -280,6 +289,13 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
                         <TableCell>{p.kadroUnvani || '-'}</TableCell>
                         <TableCell>{person ? `${person.firstName} ${person.lastName}` : 'Atanmamış'}</TableCell>
                         <TableCell>{p.status}</TableCell>
+                        <TableCell>
+                            <div className="flex flex-col gap-1 text-xs">
+                            {person?.phone && <div className="flex items-center gap-2"><Phone className="h-3 w-3 shrink-0 text-muted-foreground"/>{person.phone}</div>}
+                            {person?.email && <div className="flex items-center gap-2"><Mail className="h-3 w-3 shrink-0 text-muted-foreground"/>{person.email}</div>}
+                            {!person?.phone && !person?.email && <span className="text-muted-foreground italic">Yok</span>}
+                            </div>
+                        </TableCell>
                     </TableRow>
                  )
               })}
