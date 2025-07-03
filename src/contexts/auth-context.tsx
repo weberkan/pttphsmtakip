@@ -41,122 +41,161 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // This useEffect handles session persistence on page reloads
   useEffect(() => {
     if (!auth || !db) {
       setLoading(false);
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      try {
-        if (firebaseUser && firebaseUser.email) {
-          
-          const findAndSetUser = async () => {
-            try {
-              const merkezQuery = query(collection(db, "merkez-personnel"), where("email", "==", firebaseUser.email));
-              const merkezSnapshot = await getDocs(merkezQuery);
-              if (!merkezSnapshot.empty) {
-                const appUserData = merkezSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-                setUser({
-                  registryNumber: appUserData.registryNumber,
-                  firstName: appUserData.firstName,
-                  lastName: appUserData.lastName,
-                  email: appUserData.email || '',
-                });
-                return true;
-              }
+      if (firebaseUser && !user) { // Check !user to avoid re-fetching on login/signup
+        try {
+          const email = firebaseUser.email;
+          if (email) {
+            // Check merkez-personnel
+            const merkezQuery = query(collection(db, "merkez-personnel"), where("email", "==", email));
+            const merkezSnapshot = await getDocs(merkezQuery);
+            if (!merkezSnapshot.empty) {
+              const appUserData = merkezSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
+              setUser({
+                registryNumber: appUserData.registryNumber,
+                firstName: appUserData.firstName,
+                lastName: appUserData.lastName,
+                email: appUserData.email || '',
+              });
+              setLoading(false);
+              return;
+            }
 
-              const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", firebaseUser.email));
-              const tasraSnapshot = await getDocs(tasraQuery);
-              if (!tasraSnapshot.empty) {
-                const appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
-                setUser({
-                  registryNumber: appUserData.registryNumber,
-                  firstName: appUserData.firstName,
-                  lastName: appUserData.lastName,
-                  email: appUserData.email || '',
-                });
-                return true;
-              }
-              return false;
-            } catch (e) {
-              console.error("Firestore user lookup failed. This might be a security rules issue.", e);
-              if (auth) {
-                await signOut(auth);
-              }
-              setUser(null);
-              return false;
+            // Check tasra-personnel
+            const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", email));
+            const tasraSnapshot = await getDocs(tasraQuery);
+            if (!tasraSnapshot.empty) {
+              const appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
+              setUser({
+                registryNumber: appUserData.registryNumber,
+                firstName: appUserData.firstName,
+                lastName: appUserData.lastName,
+                email: appUserData.email || '',
+              });
+              setLoading(false);
+              return;
             }
           }
-
-          const userFound = await findAndSetUser();
-
-          if (!userFound) {
-              setUser(null);
-              if (auth?.currentUser) {
-                  await signOut(auth);
-              }
-          }
-        } else {
+          // If user exists in Firebase Auth but not in our DB, or has no email
+          await signOut(auth);
+          setUser(null);
+        } catch (error) {
+          console.error("Error restoring session:", error);
+          if (auth) await signOut(auth);
           setUser(null);
         }
-      } catch (error) {
-        console.error("An error occurred during the auth state change process:", error);
+      } else if (!firebaseUser) {
         setUser(null);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, []); // Run only once on mount to check initial auth state
 
+  // This useEffect handles redirection logic
   useEffect(() => {
-    if (loading) return; // Wait until initial auth check is complete
+    if (loading) return;
 
     const isAuthPage = pathname === '/login';
 
     if (!user && !isAuthPage) {
       router.push('/login');
-    }
-    if (user && isAuthPage) {
+    } else if (user && isAuthPage) {
       router.push('/');
     }
   }, [user, loading, pathname, router]);
 
-
   const login = useCallback(async (email: string, password: string): Promise<{success: boolean, message?: string}> => {
-    if (!auth) return { success: false, message: "Auth service not available." };
+    if (!auth || !db) return { success: false, message: "Sistem başlatılamadı." };
+    
+    setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      return { success: true };
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      const emailToSearch = userCredential.user.email;
+      if (!emailToSearch) {
+        throw new Error("Kullanıcının e-posta adresi bulunamadı.");
+      }
+
+      // Look for user in Firestore
+      const merkezQuery = query(collection(db, "merkez-personnel"), where("email", "==", emailToSearch));
+      const merkezSnapshot = await getDocs(merkezQuery);
+      if (!merkezSnapshot.empty) {
+        const appUserData = merkezSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
+        setUser({
+          registryNumber: appUserData.registryNumber,
+          firstName: appUserData.firstName,
+          lastName: appUserData.lastName,
+          email: appUserData.email || '',
+        });
+        return { success: true };
+      }
+
+      const tasraQuery = query(collection(db, "tasra-personnel"), where("email", "==", emailToSearch));
+      const tasraSnapshot = await getDocs(tasraQuery);
+      if (!tasraSnapshot.empty) {
+        const appUserData = tasraSnapshot.docs[0].data() as Omit<Personnel, 'id'>;
+        setUser({
+          registryNumber: appUserData.registryNumber,
+          firstName: appUserData.firstName,
+          lastName: appUserData.lastName,
+          email: appUserData.email || '',
+        });
+        return { success: true };
+      }
+
+      // If we are here, user is in Auth but not in our DB.
+      await signOut(auth);
+      return { success: false, message: "Giriş bilgileri doğrulandı fakat personel kaydı sistemde bulunamadı." };
+
     } catch (error: any) {
-      console.error("Firebase login error:", error);
-      let message = "E-posta veya şifre hatalı.";
-      if(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        message = "E-posta veya şifre hatalı.";
+      console.error("Login process error:", error);
+      let message = "Beklenmedik bir hata oluştu.";
+      if (error.code) {
+          switch (error.code) {
+              case 'auth/invalid-credential':
+                  message = "E-posta veya şifre hatalı.";
+                  break;
+              case 'permission-denied':
+                  message = "Veritabanına erişim izni yok. Lütfen Firestore güvenlik kurallarınızı kontrol edin.";
+                  break;
+              default:
+                  message = "Giriş sırasında bir hata oluştu: " + error.message;
+          }
       }
       return { success: false, message };
+    } finally {
+        setLoading(false);
     }
   }, []);
 
   const signup = useCallback(async (data: SignUpData): Promise<{success: boolean, message?: string}> => {
     if (!auth || !db) {
-      const message = "Auth/DB service is not available. Check Firebase configuration.";
+      const message = "Auth/DB servisi mevcut değil. Firebase yapılandırmasını kontrol edin.";
       console.error(message);
       return { success: false, message };
     }
-
+    
+    setLoading(true);
     try {
+      // Check for duplicate registry number in both collections
       const merkezRegQuery = query(collection(db, "merkez-personnel"), where("registryNumber", "==", data.registryNumber));
-      const merkezRegSnapshot = await getDocs(merkezRegQuery);
-      if (!merkezRegSnapshot.empty) {
-        return { success: false, message: "Bu sicil numarası Merkez Personel listesinde zaten kayıtlı." };
-      }
-      
       const tasraRegQuery = query(collection(db, "tasra-personnel"), where("registryNumber", "==", data.registryNumber));
-      const tasraRegSnapshot = await getDocs(tasraRegQuery);
-      if (!tasraRegSnapshot.empty) {
-        return { success: false, message: "Bu sicil numarası Taşra Personel listesinde zaten kayıtlı." };
+      
+      const [merkezRegSnapshot, tasraRegSnapshot] = await Promise.all([
+          getDocs(merkezRegQuery),
+          getDocs(tasraRegQuery)
+      ]);
+
+      if (!merkezRegSnapshot.empty || !tasraRegSnapshot.empty) {
+          return { success: false, message: "Bu sicil numarası zaten sistemde kayıtlı." };
       }
 
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
@@ -174,6 +213,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         phone: null,
         dateOfBirth: null,
       });
+
+      setUser({
+        registryNumber: data.registryNumber,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+      });
       
       return { success: true };
 
@@ -186,20 +232,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { success: false, message: "Şifre en az 6 karakter olmalıdır." };
       }
       return { success: false, message: "Kayıt sırasında bir hata oluştu." };
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   const logout = useCallback(async () => {
     if (!auth) {
-      console.error("Auth service is not available. Check Firebase configuration.");
+      console.error("Auth servisi mevcut değil.");
       return;
     }
     try {
       await signOut(auth);
+      setUser(null);
+      setLoading(false);
+      router.push('/login');
     } catch (error) {
-      console.error("Firebase logout error:", error);
+      console.error("Firebase çıkış hatası:", error);
     }
-  }, []);
+  }, [router]);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
