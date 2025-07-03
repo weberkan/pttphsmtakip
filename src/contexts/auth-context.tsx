@@ -28,7 +28,7 @@ export interface SignUpData {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  login: (registryNumber: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   signup: (data: SignUpData) => Promise<{success: boolean, message?: string}>;
   logout: () => void;
 }
@@ -109,38 +109,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const login = useCallback(async (registryNumber: string, password: string): Promise<boolean> => {
-    if (!auth || !db) {
-        console.error("Auth/DB service is not available. Check Firebase configuration.");
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    if (!auth) {
+        console.error("Auth service is not available. Check Firebase configuration.");
         return false;
     }
-
-    const findEmailForRegistryNumber = async (regNum: string): Promise<string | null> => {
-        let q = query(collection(db, "merkez-personnel"), where("registryNumber", "==", regNum));
-        let snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-            return snapshot.docs[0].data().email;
-        }
-
-        q = query(collection(db, "tasra-personnel"), where("registryNumber", "==", regNum));
-        snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-            return snapshot.docs[0].data().email;
-        }
-        
-        return null;
-    }
-
     try {
-      const userEmail = await findEmailForRegistryNumber(registryNumber);
-      
-      if (userEmail) {
-        await signInWithEmailAndPassword(auth, userEmail, password);
-        return true;
-      }
-      
-      console.error(`Login failed: No user found with registry number: ${registryNumber}`);
-      return false;
+      await signInWithEmailAndPassword(auth, email, password);
+      return true;
     } catch (error) {
       console.error("Firebase login error:", error);
       return false;
@@ -155,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Check for duplicate registry number in both collections
       const merkezRegQuery = query(collection(db, "merkez-personnel"), where("registryNumber", "==", data.registryNumber));
       const merkezRegSnapshot = await getDocs(merkezRegQuery);
       if (!merkezRegSnapshot.empty) {
@@ -170,7 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Firebase Auth will handle duplicate email checks.
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       
-      // By default, new signups are for the Merkez system
+      // Add user to the 'merkez-personnel' collection by default upon signup.
+      // This is where their profile data (name, registry number, etc.) is stored.
       await addDoc(collection(db, 'merkez-personnel'), {
         firstName: data.firstName,
         lastName: data.lastName,

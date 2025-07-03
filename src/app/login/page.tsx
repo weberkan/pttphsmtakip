@@ -31,7 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const loginSchema = z.object({
-  registryNumber: z.string().min(1, "Sicil numarası boş bırakılamaz."),
+  email: z.string().email("Geçerli bir e-posta adresi girin."),
   password: z.string().min(1, "Şifre boş bırakılamaz."),
 });
 
@@ -61,18 +61,18 @@ function LoginForm() {
 
     const form = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
-        defaultValues: { registryNumber: "", password: "" },
+        defaultValues: { email: "", password: "" },
     });
 
     const onSubmit = async (data: LoginFormValues) => {
         setIsSubmitting(true);
         try {
-            const loginSuccessful = await login(data.registryNumber, data.password);
+            const loginSuccessful = await login(data.email, data.password);
             if (loginSuccessful) {
                 toast({ title: "Giriş Başarılı", description: "Yönlendiriliyorsunuz..." });
                 router.push("/");
             } else {
-                toast({ variant: "destructive", title: "Giriş Başarısız", description: "Sicil numarası veya şifre hatalı." });
+                toast({ variant: "destructive", title: "Giriş Başarısız", description: "E-posta veya şifre hatalı." });
             }
         } catch (error) {
             console.error("Login error:", error);
@@ -87,11 +87,11 @@ function LoginForm() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
                 control={form.control}
-                name="registryNumber"
+                name="email"
                 render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Sicil Numarası</FormLabel>
-                    <FormControl><Input placeholder="Sicil numaranızı girin" {...field} /></FormControl>
+                    <FormLabel>E-posta Adresi</FormLabel>
+                    <FormControl><Input placeholder="E-posta adresinizi girin" {...field} /></FormControl>
                     <FormMessage />
                 </FormItem>
                 )}
@@ -120,6 +120,7 @@ function SignupForm() {
     const { signup } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const router = useRouter();
 
      const form = useForm<SignupFormValues>({
         resolver: zodResolver(signupSchema),
@@ -139,8 +140,9 @@ function SignupForm() {
         setIsSubmitting(true);
         const result = await signup(data as SignUpData);
         if (result.success) {
-            toast({ title: "Kayıt Başarılı!", description: "Giriş sayfasına yönlendiriliyorsunuz. Lütfen giriş yapın." });
-            // The onAuthStateChanged listener in context will handle the redirect to dashboard
+            toast({ title: "Kayıt Başarılı!", description: "Giriş başarılı. Anasayfaya yönlendiriliyorsunuz..." });
+            // onAuthStateChanged in the context will handle setting the user and the redirect will be caught by the layout effect
+             router.push("/");
         } else {
             toast({ variant: "destructive", title: "Kayıt Başarısız", description: result.message || "Bilinmeyen bir hata oluştu." });
         }
