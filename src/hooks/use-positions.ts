@@ -14,11 +14,11 @@ import {
   writeBatch,
   getDocs,
   Timestamp,
-  setDoc
+  setDoc,
 } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 
-const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete_v3_merkez_init';
+const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete_v4_merkez_delete_all';
 
 export function usePositions() {
   const { user } = useAuth();
@@ -32,7 +32,11 @@ export function usePositions() {
       return;
     }
 
-    console.log("Performing one-time data check for merkez...");
+    console.log("Performing one-time data DELETION for merkez...");
+    toast({
+      title: "Veri Temizleme",
+      description: "Merkez teşkilatı için mevcut tüm pozisyon ve personel verileri temizleniyor...",
+    });
 
     try {
       const positionsCollectionRef = collection(db, 'merkez-positions');
@@ -42,16 +46,31 @@ export function usePositions() {
       const personnelSnapshot = await getDocs(personnelCollectionRef);
 
       if (positionsSnapshot.empty && personnelSnapshot.empty) {
-        console.log("Database is empty for Merkez. No initial data to seed.");
+        console.log("Merkez data is already empty. No deletion needed.");
+      } else {
+        const batch = writeBatch(db);
+        positionsSnapshot.forEach(doc => batch.delete(doc.ref));
+        personnelSnapshot.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        console.log("Successfully deleted all Merkez data.");
+        toast({
+          title: "Merkez Verileri Temizlendi",
+          description: "Tüm merkez pozisyon ve personel kayıtları kalıcı olarak silindi.",
+        });
       }
       
       localStorage.setItem(MIGRATION_KEY, 'true');
-      console.log("Merkez data check complete. Migration key set.");
+      console.log("Merkez data deletion complete. Migration key set.");
 
     } catch (error) {
-      console.error("Merkez data check/migration failed:", error);
+      console.error("Merkez data deletion failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Merkez verileri temizlenirken bir sorun oluştu.",
+      });
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (!user || !db) {
@@ -155,17 +174,13 @@ export function usePositions() {
 
   const deletePosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
-    
-    const originalPositions = [...positions];
-    setPositions(prev => prev.filter(p => p.id !== positionId));
-
     try {
       const batch = writeBatch(db);
       
       const positionRef = doc(db, 'merkez-positions', positionId);
       batch.delete(positionRef);
       
-      const childPositionsToUpdate = originalPositions.filter(p => p.reportsTo === positionId);
+      const childPositionsToUpdate = positions.filter(p => p.reportsTo === positionId);
       childPositionsToUpdate.forEach(child => {
           const childRef = doc(db, 'merkez-positions', child.id);
           batch.set(childRef, { 
@@ -182,14 +197,13 @@ export function usePositions() {
       });
     } catch (error) {
       console.error("Error deleting Merkez position:", error);
-      setPositions(originalPositions);
       toast({
         variant: "destructive",
         title: "Hata",
         description: "Pozisyon silinirken bir hata oluştu.",
       });
     }
-  }, [user, positions, db, toast]);
+  }, [user, db, toast, positions]);
 
 
   const addPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id' | 'status'> & { status: 'İHS' | '399' }) => {
@@ -228,17 +242,13 @@ export function usePositions() {
   const deletePersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
     
-    const originalPersonnel = [...personnel];
-    const originalPositions = [...positions];
-    setPersonnel(prev => prev.filter(p => p.id !== personnelId));
-
     try {
       const batch = writeBatch(db);
       
       const personnelRef = doc(db, 'merkez-personnel', personnelId);
       batch.delete(personnelRef);
       
-      const assignedPositions = originalPositions.filter(p => p.assignedPersonnelId === personnelId);
+      const assignedPositions = positions.filter(p => p.assignedPersonnelId === personnelId);
       assignedPositions.forEach(pos => {
         const posRef = doc(db, 'merkez-positions', pos.id);
         batch.set(posRef, {
@@ -256,15 +266,13 @@ export function usePositions() {
       });
     } catch (error) {
       console.error("Error deleting Merkez personnel:", error);
-      setPersonnel(originalPersonnel); 
-      setPositions(originalPositions);
       toast({
         variant: "destructive",
         title: "Hata",
         description: "Personel silinirken bir hata oluştu.",
       });
     }
-  }, [user, personnel, positions, db, toast]);
+  }, [user, db, toast, positions]);
 
   return { 
     positions, 
