@@ -44,3 +44,13 @@ export interface Personnel {
   lastModifiedBy?: string; // Sicil Numarası
   lastModifiedAt?: Date | Timestamp | null;
 }
+
+export interface AppUser {
+  uid: string;
+  registryNumber: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  isApproved: boolean;
+  role?: 'admin';
+}

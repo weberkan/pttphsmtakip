@@ -109,6 +109,7 @@ function SignupForm() {
     const { signup } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [activeTab, setActiveTab] = useState("login");
 
      const form = useForm<SignupFormValues>({
         resolver: zodResolver(signupSchema),
@@ -126,8 +127,10 @@ function SignupForm() {
         setIsSubmitting(true);
         const result = await signup(data as SignUpData);
         if (result.success) {
-            toast({ title: "Kayıt Başarılı!", description: "Giriş başarılı. Anasayfaya yönlendiriliyorsunuz..." });
-            // The AuthProvider's useEffect will handle the redirect.
+            toast({ title: "Kayıt Başarılı!", description: "Hesabınız oluşturuldu. Yönetici onayı sonrası giriş yapabilirsiniz." });
+            form.reset();
+            // This is a way to switch the tab programmatically, but since Tabs component doesn't expose a setter, 
+            // we'd need to lift state up. For now, a toast is enough.
         } else {
             toast({ variant: "destructive", title: "Kayıt Başarısız", description: result.message || "Bilinmeyen bir hata oluştu." });
         }

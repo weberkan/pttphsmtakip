@@ -28,11 +28,11 @@ const viewTitles: { [key: string]: string } = {
     'dashboard': 'Anasayfa',
     'merkez-pozisyon': 'Merkez Pozisyon Yönetimi',
     'merkez-personel': 'Merkez Personel Yönetimi',
-    'kullanici-olustur': 'Yeni Kullanıcı Oluşturma',
     'merkez-sema': 'Merkez Organizasyon Şeması',
     'tasra-pozisyon': 'Taşra Pozisyon Yönetimi',
     'tasra-personel': 'Taşra Personel Yönetimi',
     'raporlama': 'Raporlama ve Analiz',
+    'kullanici-onay': 'Kullanıcı Onayları',
 };
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
@@ -80,6 +80,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                                 alt="PTT Logo"
                                 width={isCollapsed ? 40 : 80}
                                 height={isCollapsed ? 16 : 32}
+                                style={{ height: 'auto' }}
                                 className="object-contain transition-all duration-300"
                             />
                         </Link>
@@ -121,6 +122,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                                         alt="PTT Logo"
                                         width={80}
                                         height={32}
+                                        style={{ height: 'auto' }}
                                         className="object-contain"
                                     />
                                 </Link>

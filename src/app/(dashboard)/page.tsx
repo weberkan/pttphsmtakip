@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect, useRef, Suspense } from "react";
+import { useState, useMemo, useRef, Suspense } from "react";
 import * as XLSX from 'xlsx';
 import * as z from "zod";
 import { AddEditPositionDialog } from "@/components/add-edit-position-dialog";
@@ -24,6 +24,9 @@ import { AddEditTasraPositionDialog } from "@/components/add-edit-tasra-position
 import { ReportingPanel } from "@/components/reporting-panel";
 import { useSearchParams } from "next/navigation";
 import { DashboardHome } from "@/components/dashboard-home";
+import { useAuth } from "@/contexts/auth-context";
+import { UserApprovalPanel } from "@/components/user-approval-panel";
+import { useUserManagement } from "@/hooks/use-user-management";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -94,6 +97,7 @@ const positionTitleOrder: { [key: string]: number } = {
 };
 
 function DashboardPageContent() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const activeView = searchParams.get('view') || 'dashboard';
   
@@ -128,6 +132,12 @@ function DashboardPageContent() {
     deleteTasraPersonnel,
     isInitialized: isTasraInitialized
   } = useTasraPositions();
+  
+  const { 
+    users, 
+    approveUser,
+    isInitialized: isUsersInitialized 
+  } = useUserManagement();
 
 
   const { toast } = useToast();
@@ -918,7 +928,7 @@ function DashboardPageContent() {
   };
 
 
-  if (!isMerkezInitialized || !isTasraInitialized) {
+  if (!isMerkezInitialized || !isTasraInitialized || !isUsersInitialized) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
             <div className="lg:col-span-2 space-y-6">
@@ -1131,6 +1141,20 @@ function DashboardPageContent() {
                     tasraPersonnel={tasraPersonnel}
                 />
             );
+        case 'kullanici-onay':
+             if (user?.role !== 'admin') {
+                return (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Erişim Reddedildi</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p>Bu sayfayı görüntüleme yetkiniz yok.</p>
+                        </CardContent>
+                    </Card>
+                );
+             }
+             return <UserApprovalPanel users={users} onApproveUser={approveUser} />;
         default:
             return (
                  <DashboardHome

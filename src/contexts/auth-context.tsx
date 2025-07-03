@@ -6,14 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-
-export interface AuthUser {
-  uid: string;
-  registryNumber: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-}
+import type { AppUser } from '@/lib/types';
 
 export interface SignUpData {
   email: string;
@@ -24,7 +17,7 @@ export interface SignUpData {
 }
 
 interface AuthContextType {
-  user: AuthUser | null;
+  user: AppUser | null;
   loading: boolean;
   login: (email: string, password:string) => Promise<{success: boolean, message?: string}>;
   signup: (data: SignUpData) => Promise<{success: boolean, message?: string}>;
@@ -34,24 +27,32 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
-  const fetchUserProfile = useCallback(async (firebaseUser: FirebaseUser): Promise<AuthUser | null> => {
+  const fetchUserProfile = useCallback(async (firebaseUser: FirebaseUser): Promise<AppUser | null> => {
     if (!db || !firebaseUser) return null;
     try {
       const userDocRef = doc(db, "users", firebaseUser.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         const userData = userDoc.data();
+        
+        // This is the approval check.
+        if (!userData.isApproved) {
+          return null; 
+        }
+
         return {
           uid: firebaseUser.uid,
           email: firebaseUser.email!,
           firstName: userData.firstName,
           lastName: userData.lastName,
           registryNumber: userData.registryNumber,
+          isApproved: userData.isApproved,
+          role: userData.role,
         };
       }
       console.warn(`No profile document found in 'users' for UID: ${firebaseUser.uid}.`);
@@ -75,7 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (userProfile) {
             setUser(userProfile);
           } else {
-            await signOut(auth);
+            // User exists in Auth but not in Firestore or is not approved, so sign them out.
+            await signOut(auth); 
             setUser(null);
           }
         } else {
@@ -108,11 +110,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   const login = async (email: string, password: string): Promise<{success: boolean, message?: string}> => {
-    if (!auth) return { success: false, message: "Kimlik doğrulama sistemi başlatılamadı." };
+    if (!auth || !db) return { success: false, message: "Kimlik doğrulama sistemi başlatılamadı." };
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      return { success: true };
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const profile = await fetchUserProfile(userCredential.user);
+
+      if (profile) {
+        return { success: true };
+      } else {
+        await signOut(auth);
+        return { success: false, message: "Hesabınız yönetici onayı bekliyor veya askıya alınmış." };
+      }
+
     } catch (error: any) {
       let message = "Beklenmedik bir hata oluştu.";
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
@@ -134,10 +144,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastName: data.lastName,
         registryNumber: data.registryNumber,
         email: data.email,
+        isApproved: false, // Default to not approved
+        createdAt: new Date(),
       };
       
       await setDoc(doc(db, "users", firebaseUser.uid), newUserProfile);
       
+      // Sign out the user immediately after signup, forcing them to wait for approval
+      await signOut(auth);
+
       return { success: true };
 
     } catch (error: any) {
