@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Building, Users, BarChart2, Map, Folder, Briefcase, LayoutDashboard, UserPlus } from 'lucide-react';
+import { Building, Users, BarChart2, Map, Folder, Briefcase, LayoutDashboard } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import * as React from 'react';
@@ -17,7 +17,6 @@ const menuItems = [
     subItems: [
       { href: 'merkez-pozisyon', title: 'Pozisyon Yönetimi', icon: Briefcase },
       { href: 'merkez-personel', title: 'Personel Yönetimi', icon: Users },
-      { href: 'kullanici-olustur', title: 'Yeni Kullanıcı Oluştur', icon: UserPlus },
       { href: 'merkez-sema', title: 'Organizasyon Şeması', icon: Folder },
     ],
   },

@@ -3,9 +3,9 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
 import type { Personnel } from '@/lib/types';
 
 export interface AuthUser {
@@ -15,10 +15,21 @@ export interface AuthUser {
   email: string;
 }
 
+export interface SignUpData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  registryNumber: string;
+  status: 'İHS' | '399';
+  unvan?: string | null;
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   login: (registryNumber: string, password: string) => Promise<boolean>;
+  signup: (data: SignUpData) => Promise<{success: boolean, message?: string}>;
   logout: () => void;
 }
 
@@ -49,9 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email: appUserData.email || '',
             });
         } else {
-            // This case can happen if the user was deleted from our DB but still has a valid Firebase session.
             setUser(null);
-            signOut(auth);
+            if (auth) {
+                signOut(auth);
+            }
         }
       } else {
         setUser(null);
@@ -68,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
     }
 
-    // Query firestore to find user by registry number.
     const q = query(collection(db, "merkez-personnel"), where("registryNumber", "==", registryNumber));
     const querySnapshot = await getDocs(q);
 
@@ -79,7 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userEmail) {
         try {
           await signInWithEmailAndPassword(auth, userEmail, password);
-          // The onAuthStateChanged listener will handle setting the user state.
           return true;
         } catch (error) {
           console.error("Firebase login error:", error);
@@ -90,6 +100,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     console.error(`Login failed: No user found with registry number: ${registryNumber}`);
     return false;
+  }, []);
+
+  const signup = useCallback(async (data: SignUpData): Promise<{success: boolean, message?: string}> => {
+    if (!auth || !db) {
+      const message = "Auth/DB service is not available. Check Firebase configuration.";
+      console.error(message);
+      return { success: false, message };
+    }
+
+    const q = query(collection(db, "merkez-personnel"), where("registryNumber", "==", data.registryNumber));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      return { success: false, message: "Bu sicil numarası zaten kayıtlı." };
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      
+      await addDoc(collection(db, 'merkez-personnel'), {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        registryNumber: data.registryNumber,
+        email: data.email,
+        status: data.status,
+        unvan: data.unvan || null,
+        lastModifiedBy: data.registryNumber,
+        lastModifiedAt: Timestamp.now(),
+        photoUrl: null,
+        phone: null,
+        dateOfBirth: null,
+      });
+      
+      return { success: true };
+
+    } catch (error: any) {
+      console.error("Firebase signup error:", error);
+      if (error.code === 'auth/email-already-in-use') {
+        return { success: false, message: "Bu e-posta adresi zaten kullanılıyor." };
+      }
+      if (error.code === 'auth/weak-password') {
+          return { success: false, message: "Şifre en az 6 karakter olmalıdır." };
+      }
+      return { success: false, message: "Kayıt sırasında bir hata oluştu." };
+    }
   }, []);
 
   const logout = useCallback(async () => {
@@ -107,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );
