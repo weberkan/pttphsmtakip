@@ -39,6 +39,7 @@ const viewTitles: { [key: string]: string } = {
     'dashboard': 'Anasayfa',
     'merkez-pozisyon': 'Merkez Pozisyon Yönetimi',
     'merkez-personel': 'Merkez Personel Yönetimi',
+    'kullanici-olustur': 'Yeni Kullanıcı Oluşturma',
     'merkez-sema': 'Merkez Organizasyon Şeması',
     'tasra-pozisyon': 'Taşra Pozisyon Yönetimi',
     'tasra-personel': 'Taşra Personel Yönetimi',

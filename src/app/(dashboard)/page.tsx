@@ -24,6 +24,7 @@ import { AddEditTasraPositionDialog } from "@/components/add-edit-tasra-position
 import { ReportingPanel } from "@/components/reporting-panel";
 import { useSearchParams } from "next/navigation";
 import { DashboardHome } from "@/components/dashboard-home";
+import { CreateUserPanel } from "@/components/create-user-panel";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -1034,6 +1035,13 @@ function DashboardPageContent() {
                     />
                   </CardContent>
                 </Card>
+            );
+        case 'kullanici-olustur':
+             return (
+                <CreateUserPanel 
+                    addPersonnel={addPersonnel}
+                    existingPersonnel={personnel}
+                />
             );
         case 'merkez-sema':
              return (
