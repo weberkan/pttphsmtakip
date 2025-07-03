@@ -54,7 +54,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 function LoginForm() {
-    const router = useRouter();
     const { login } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,7 +69,7 @@ function LoginForm() {
             const loginSuccessful = await login(data.email, data.password);
             if (loginSuccessful) {
                 toast({ title: "Giriş Başarılı", description: "Yönlendiriliyorsunuz..." });
-                router.push("/");
+                // Yönlendirme artık AuthPage'deki useEffect tarafından yapılacak.
             } else {
                 toast({ variant: "destructive", title: "Giriş Başarısız", description: "E-posta veya şifre hatalı." });
             }
@@ -120,7 +119,6 @@ function SignupForm() {
     const { signup } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const router = useRouter();
 
      const form = useForm<SignupFormValues>({
         resolver: zodResolver(signupSchema),
@@ -141,8 +139,7 @@ function SignupForm() {
         const result = await signup(data as SignUpData);
         if (result.success) {
             toast({ title: "Kayıt Başarılı!", description: "Giriş başarılı. Anasayfaya yönlendiriliyorsunuz..." });
-            // onAuthStateChanged in the context will handle setting the user and the redirect will be caught by the layout effect
-             router.push("/");
+            // Yönlendirme artık AuthPage'deki useEffect tarafından yapılacak.
         } else {
             toast({ variant: "destructive", title: "Kayıt Başarısız", description: result.message || "Bilinmeyen bir hata oluştu." });
         }
@@ -190,6 +187,8 @@ export default function AuthPage() {
   const { user, loading } = useAuth();
   
   useEffect(() => {
+    // This effect is the single source of truth for redirection.
+    // It will only redirect when the authentication state is fully resolved.
     if (!loading && user) {
       router.push("/");
     }
