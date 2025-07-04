@@ -1,49 +1,60 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the requesting user is an admin.
-    // It reads the user's own document from the 'users' collection.
-    function isRequestingUserAdmin() {
-      // Ensure the user is authenticated before trying to read their role.
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    function isParticipant(conversationId) {
+      return request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantUids;
     }
 
-    // Rules for the 'users' collection
     match /users/{userId} {
-      // An admin can list all user documents for the approval panel.
-      allow list: if isRequestingUserAdmin();
-      
-      // An authenticated user can read their own document.
-      // An admin can read any user's document.
-      allow get: if request.auth.uid == userId || isRequestingUserAdmin();
+      // Allow users to read their own profile
+      allow read: if request.auth.uid == userId;
 
-      // A new user can create their own document upon signup.
-      // We must check that they are not giving themselves admin rights or pre-approving.
-      allow create: if request.auth.uid == userId
-                    && request.resource.data.isApproved == false
-                    && !('role' in request.resource.data);
+      // Allow admin to read any user profile
+      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
 
-      // An admin can update a user's 'isApproved' field.
-      // A user cannot update their own document.
-      allow update: if isRequestingUserAdmin() 
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isApproved']);
+      // Allow users to create their own profile upon signup, but they cannot make themselves an admin or approved
+      allow create: if request.auth.uid == userId && 
+                     !('role' in request.resource.data) &&
+                     request.resource.data.isApproved == false;
+                     
+      // Allow admin to update any user's approval status
+      allow update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+                     request.resource.data.isApproved == true;
     }
 
-    // Allow any authenticated user to read/write from the main data collections.
-    // For a production app with more complex requirements, you might want more granular rules here.
-    match /merkez-personnel/{docId} {
-      allow read, write: if request.auth != null;
-    }
     match /merkez-positions/{docId} {
       allow read, write: if request.auth != null;
     }
+
+    match /merkez-personnel/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    match /tasra-positions/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
     match /tasra-personnel/{docId} {
       allow read, write: if request.auth != null;
     }
-    match /tasra-positions/{docId} {
-      allow read, write: if request.auth != null;
+
+    // Messaging Rules
+    match /conversations/{conversationId} {
+      // Users can read/update a conversation if they are a participant
+      allow read, update, delete: if request.auth.uid in resource.data.participantUids;
+      // Users can create a conversation if they are a participant in the new conversation
+      allow create: if request.auth.uid in request.resource.data.participantUids;
+    }
+    
+    match /conversations/{conversationId}/messages/{messageId} {
+        // Allow read if user is a participant
+        allow read: if isParticipant(conversationId);
+        
+        // Allow create if user is a participant and the senderId is their own uid.
+        allow create: if isParticipant(conversationId) && request.resource.data.senderId == request.auth.uid;
     }
   }
 }

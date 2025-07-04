@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Building, Users, BarChart2, Map, Folder, Briefcase } from 'lucide-react';
+import { Building, Users, BarChart2, Map, Folder, Briefcase, MessageSquare } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import * as React from 'react';
@@ -34,6 +34,12 @@ const menuItems = [
     title: 'Raporlama ve Analiz',
     icon: BarChart2,
     href: 'raporlama',
+  },
+  {
+    id: 'mesajlar',
+    title: 'Mesajlar',
+    icon: MessageSquare,
+    href: 'mesajlar',
   },
 ];
 

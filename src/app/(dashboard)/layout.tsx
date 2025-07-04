@@ -33,6 +33,7 @@ const viewTitles: { [key: string]: string } = {
     'tasra-personel': 'Taşra Personel Yönetimi',
     'raporlama': 'Raporlama ve Analiz',
     'kullanici-onay': 'Kullanıcı Onayları',
+    'mesajlar': 'Mesajlar',
 };
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
@@ -214,5 +215,3 @@ export default function Layout({children}: {children: React.ReactNode}) {
         </Suspense>
     )
 }
-
-    

@@ -27,6 +27,7 @@ import { DashboardHome } from "@/components/dashboard-home";
 import { useAuth } from "@/contexts/auth-context";
 import { UserApprovalPanel } from "@/components/user-approval-panel";
 import { useUserManagement } from "@/hooks/use-user-management";
+import { MessagesPage } from "@/components/messages-page";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -1159,6 +1160,8 @@ function DashboardPageContent() {
                 );
              }
              return <UserApprovalPanel users={users} onApproveUser={approveUser} />;
+        case 'mesajlar':
+             return <MessagesPage />;
         default:
             return (
                  <DashboardHome
