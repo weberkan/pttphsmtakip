@@ -151,7 +151,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex flex-col">
-                <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6">
+                <header className="flex h-14 items-center gap-4 bg-muted/40 px-6">
                     <Sheet>
                         <SheetTrigger asChild>
                             <Button variant="outline" size="icon" className="shrink-0 md:hidden">
@@ -250,7 +250,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         </DropdownMenu>
                     </div>
                 </header>
-                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background md:rounded-tl-2xl">
                     {children}
                 </main>
             </div>
