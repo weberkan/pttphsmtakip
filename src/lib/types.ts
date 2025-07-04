@@ -55,29 +55,4 @@ export interface AppUser {
   isApproved: boolean;
   role?: 'admin';
   photoUrl?: string | null;
-  presence?: 'online' | 'offline';
-}
-
-export interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  timestamp: Date | Timestamp;
-}
-
-export interface Conversation {
-  id: string;
-  participantUids: string[];
-  participants: {
-    [uid: string]: {
-      firstName: string;
-      lastName: string;
-      photoUrl?: string | null;
-    };
-  };
-  lastMessage?: {
-    text: string;
-    timestamp: Date | Timestamp;
-    senderId: string;
-  } | null;
 }

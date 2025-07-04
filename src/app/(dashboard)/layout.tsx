@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense, useState, ReactNode, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Menu, Briefcase, Network, UserCheck, Mail, Bell, ChevronLeft } from "lucide-react";
+import { Users, LogOut, Menu, Briefcase, Network, UserCheck, Bell, ChevronLeft } from "lucide-react";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -23,7 +23,6 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useUserManagement } from '@/hooks/use-user-management';
-import { useMessaging } from '@/hooks/use-messaging';
 
 
 const viewTitles: { [key: string]: string } = {
@@ -35,7 +34,6 @@ const viewTitles: { [key: string]: string } = {
     'tasra-personel': 'Taşra Personel Yönetimi',
     'raporlama': 'Raporlama ve Analiz',
     'kullanici-onay': 'Kullanıcı Onayları',
-    'mesajlar': 'Mesajlar',
 };
 
 // Moved SidebarContent outside of DashboardLayoutContent to prevent re-rendering
@@ -67,7 +65,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
     
     const { users } = useUserManagement();
-    const { conversations } = useMessaging();
     
     const view = searchParams.get('view') || 'dashboard';
 
@@ -75,13 +72,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         if (user?.role !== 'admin') return false;
         return users.some(u => !u.isApproved);
     }, [users, user?.role]);
-
-    const hasUnreadMessages = useMemo(() => {
-        if (!user) return false;
-        return conversations.some(c => 
-            c.lastMessage && c.lastMessage.senderId !== user.uid
-        );
-    }, [conversations, user]);
 
     if (!user) return null;
     
@@ -125,16 +115,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     
                     <div className="ml-auto flex items-center gap-2">
                         <ThemeToggle />
-                        
-                        <Link href="/?view=mesajlar" passHref>
-                           <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
-                                <Mail className="h-5 w-5" />
-                                {hasUnreadMessages && (
-                                    <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background" />
-                                )}
-                                <span className="sr-only">Mesajlar</span>
-                           </Button>
-                        </Link>
 
                         <Link href="/?view=kullanici-onay" passHref>
                           <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
