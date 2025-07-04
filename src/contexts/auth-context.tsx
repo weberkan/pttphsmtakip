@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   const login = async (email: string, password: string): Promise<{success: boolean, message?: string}> => {
-    if (!auth || !db) return { success: false, message: "Kimlik doğrulama sistemi başlatılamadı." };
+    if (!auth || !db) return { success: false, message: "Firebase yapılandırması eksik. Lütfen ortam değişkenlerini ayarlayın." };
     
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -177,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   
   const signup = async (data: SignUpData): Promise<{success: boolean, message?: string}> => {
-    if (!auth || !db) return { success: false, message: "Sistem başlatılamadı." };
+    if (!auth || !db) return { success: false, message: "Firebase yapılandırması eksik olduğu için kayıt yapılamıyor." };
     
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
