@@ -1,9 +1,8 @@
+
 "use client"
 
 import * as React from "react"
-import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
-
 import { cn } from "@/lib/utils"
 
 export function ThemeToggle() {
@@ -18,36 +17,77 @@ export function ThemeToggle() {
     setTheme(theme === 'dark' ? 'light' : 'dark')
   }
 
+  // To prevent hydration mismatch, only render the real component when mounted.
   if (!isMounted) {
-    return <div className="h-8 w-14 rounded-full bg-muted/50" /> // Placeholder to prevent layout shift
+    // Placeholder to avoid layout shift. It should approximate the size of the final component.
+    return <div className="h-10 w-48" />;
   }
+  
+  const isDark = theme === 'dark';
 
   return (
-    <button
-      onClick={toggleTheme}
-      className={cn(
-        "relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        theme === 'light' || theme === 'system' ? 'bg-sky-300' : 'bg-slate-800'
-      )}
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-    >
-      <span className="sr-only">Toggle theme</span>
+    <div className="flex items-center justify-center gap-3">
       <span
-        aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute inline-flex h-6 w-6 transform items-center justify-center rounded-full bg-white shadow-lg ring-0 transition-transform duration-300 ease-in-out",
-          theme === 'dark' ? "translate-x-7" : "translate-x-1"
+          "text-sm font-semibold transition-colors duration-300",
+          isDark ? "text-muted-foreground" : "text-foreground"
         )}
       >
-        <Sun className={cn(
-          "h-4 w-4 text-yellow-500 transition-opacity duration-300",
-          theme === 'dark' ? 'opacity-0' : 'opacity-100'
-        )} />
-        <Moon className={cn(
-          "absolute h-4 w-4 text-slate-400 transition-opacity duration-300",
-           theme === 'dark' ? 'opacity-100' : 'opacity-0'
-        )} />
+        Light
       </span>
-    </button>
+
+      <button
+        onClick={toggleTheme}
+        className={cn(
+          "relative flex h-9 w-[74px] cursor-pointer items-center rounded-full p-1 transition-colors duration-300 ease-in-out",
+          isDark ? 'bg-slate-800' : 'bg-sky-400'
+        )}
+        aria-label="Toggle theme"
+      >
+        <span className="sr-only">Toggle Theme</span>
+        
+        {/* Decorative elements on the track */}
+        <div className={cn(
+          "absolute inset-0 transition-opacity duration-300",
+          !isDark ? "opacity-100" : "opacity-0"
+        )}>
+            <div className="absolute right-[11px] top-[14px] h-2 w-2 rounded-full bg-white/70"></div>
+            <div className="absolute right-[22px] top-[4px] h-[5px] w-[5px] rounded-full bg-white/70"></div>
+        </div>
+        <div className={cn(
+          "absolute inset-0 transition-opacity duration-300",
+          isDark ? "opacity-100" : "opacity-0"
+        )}>
+             <div className="absolute left-[12px] top-[6px] h-[5px] w-[5px] rounded-full bg-white opacity-80 scale-75">
+                <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="white"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+             </div>
+             <div className="absolute left-[8px] top-[16px] h-0.5 w-0.5 rounded-full bg-white opacity-80"></div>
+             <div className="absolute left-[20px] top-[18px] h-0.5 w-0.5 rounded-full bg-white opacity-80"></div>
+        </div>
+        
+        {/* The moving Thumb */}
+        <div
+          className={cn(
+            "h-7 w-7 rounded-full bg-white shadow-md transition-transform duration-300 ease-in-out relative overflow-hidden",
+            isDark ? 'translate-x-[calc(74px-28px-8px)]' : 'translate-x-0'
+          )}
+        >
+          {/* This div slides in to create the crescent shape for the moon */}
+          <div className={cn(
+              "absolute h-[22px] w-[22px] rounded-full top-1/2 -translate-y-1/2 transition-all duration-300 ease-in-out",
+              isDark ? "left-[3px] bg-slate-800" : "-left-full bg-sky-400"
+          )}></div>
+        </div>
+      </button>
+
+      <span
+        className={cn(
+          "text-sm font-semibold transition-colors duration-300",
+          isDark ? "text-foreground" : "text-muted-foreground"
+        )}
+      >
+        Dark
+      </span>
+    </div>
   )
 }
