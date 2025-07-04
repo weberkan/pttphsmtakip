@@ -19,33 +19,50 @@ let db: Firestore | null = null;
 let auth: Auth | null = null;
 let rtdb: Database | null = null;
 
-// This check prevents Firebase from trying to initialize on the server
-// without credentials, which would cause a crash.
-if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.databaseURL) {
+// This check is critical. If any of these are missing, Firebase will not initialize.
+if (
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.storageBucket &&
+  firebaseConfig.messagingSenderId &&
+  firebaseConfig.appId &&
+  firebaseConfig.databaseURL
+) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     db = getFirestore(app);
     auth = getAuth(app);
     rtdb = getDatabase(app);
   } catch (error) {
-    console.error("Failed to initialize Firebase.", error);
-    // Set to null if initialization fails
+    console.error("Firebase başlatılırken bir hata oluştu. Yapılandırmanızı kontrol edin.", error);
     app = null;
     db = null;
     auth = null;
     rtdb = null;
   }
-} else if (process.env.NODE_ENV !== 'production') {
-  // In development, it's helpful to show a warning if Firebase is not configured.
-  console.warn(`
-    ** FIREBASE IS NOT CONFIGURED **
-    Your Firebase environment variables are not set. The app will run without 
-    database, authentication, or presence features.
-    
-    To fix this, set up your .env.local file with the necessary Firebase credentials.
-    See your project's Firebase console for details.
-  `);
-}
+} else {
+  // Only show this detailed warning in development mode.
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(`
+      ********************************************************************************
+      *** FIREBASE YAPILANDIRMASI EKSİK VEYA HATALI ***
+      ********************************************************************************
+      
+      Uygulamanın veritabanına bağlanması için gereken bir veya daha fazla Firebase
+      bilgisi eksik. Bu durum genellikle '.env.local' dosyasındaki bir hatadan
+      veya sunucunun yeniden başlatılmamasından kaynaklanır.
 
+      Lütfen kontrol edin:
+      1. Proje ana dizininde '.env.local' dosyası var mı?
+      2. Dosyanın içindeki TÜM 'NEXT_PUBLIC_FIREBASE_...' değişkenleri dolu ve doğru mu?
+      3. DEĞİŞİKLİKTEN SONRA GELİŞTİRME SUNUCUSUNU DURDURUP YENİDEN BAŞLATTINIZ MI? (npm run dev)
+
+      Bu sorun çözülene kadar kimlik doğrulama ve veritabanı özellikleri çalışmayacaktır.
+      
+      ********************************************************************************
+    `);
+  }
+}
 
 export { app, db, auth, rtdb };
