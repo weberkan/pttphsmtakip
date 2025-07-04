@@ -91,6 +91,15 @@ export function AddEditPositionDialog({
 
   const positionStatus = form.watch("status");
   const assignedPersonnelId = form.watch("assignedPersonnelId");
+  const positionName = form.watch("name");
+  const isGenelMudur = positionName?.trim().toLowerCase() === "genel müdür";
+
+  useEffect(() => {
+    if (isGenelMudur) {
+      form.setValue("reportsTo", null);
+    }
+  }, [isGenelMudur, form]);
+
 
   const [reportsToOpen, setReportsToOpen] = useState(false);
   const [personnelOpen, setPersonnelOpen] = useState(false);
@@ -129,7 +138,7 @@ export function AddEditPositionDialog({
           dutyLocation: positionToEdit.dutyLocation || "",
           status: positionToEdit.status,
           originalTitle: positionToEdit.originalTitle || "",
-          reportsTo: positionToEdit.reportsTo,
+          reportsTo: positionToEdit.name.trim().toLowerCase() === "genel müdür" ? null : positionToEdit.reportsTo,
           assignedPersonnelId: positionToEdit.assignedPersonnelId,
           startDate: positionToEdit.startDate ? new Date(positionToEdit.startDate) : null,
         });
@@ -185,7 +194,7 @@ export function AddEditPositionDialog({
       ...data,
       dutyLocation: data.dutyLocation || null,
       originalTitle: data.status === 'Vekalet' || data.status === 'Yürütme' ? data.originalTitle || null : null,
-      reportsTo: data.reportsTo === PLACEHOLDER_FOR_NULL_VALUE ? null : data.reportsTo,
+      reportsTo: data.name.trim().toLowerCase() === "genel müdür" ? null : (data.reportsTo === PLACEHOLDER_FOR_NULL_VALUE ? null : data.reportsTo),
       assignedPersonnelId: data.assignedPersonnelId === PLACEHOLDER_FOR_NULL_VALUE || data.status === "Boş" ? null : data.assignedPersonnelId,
       startDate: data.status === "Boş" ? null : data.startDate,
     };
@@ -430,10 +439,13 @@ export function AddEditPositionDialog({
                               variant="outline"
                               role="combobox"
                               aria-expanded={reportsToOpen}
+                              disabled={isGenelMudur}
                               className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
                             >
                               <span className="truncate">
-                                {field.value
+                                {isGenelMudur
+                                  ? "Yok (En üst düzey pozisyon)"
+                                  : field.value
                                   ? reportsToOptions.find(option => option.value === field.value)?.label
                                   : "Raporlayacağı yöneticiyi seçin"}
                               </span>
