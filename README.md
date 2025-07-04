@@ -35,7 +35,29 @@ Uygulamanın veritabanına erişebilmesi için güvenlik kurallarını manuel ol
 **2. Realtime Database Kurallarını Güncelleme (Kullanıcı Aktiflik Durumu İçin):**
 1.  **Firebase Konsolu**'nda, sol menüden **Build > Realtime Database**'e tıklayın.
 2.  Üstteki sekmelerden **Kurallar (Rules)** sekmesine geçin.
-3.  Editördeki mevcut tüm metni silin ve projenizdeki `database.rules.json` dosyasının içeriğini buraya yapıştırın.
+3.  Editördeki mevcut tüm metni silin ve aşağıdaki içeriği buraya yapıştırın:
+    ```json
+    {
+      "rules": {
+        "status": {
+          "$uid": {
+            ".read": "auth != null",
+            ".write": "(auth != null && auth.uid === $uid) || (data.exists() && auth == null && newData.child('state').val() === 'offline')",
+            ".validate": "newData.hasChildren(['state', 'last_changed'])",
+            "state": {
+              ".validate": "newData.isString() && (newData.val() === 'online' || newData.val() === 'offline')"
+            },
+            "last_changed": {
+              ".validate": "newData.val() === server.timestamp"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    }
+    ```
 4.  **Yayınla (Publish)** butonuna tıklayın.
 
 Bu iki adımı tamamladıktan sonra uygulamanızın veritabanı erişim izinleri doğru şekilde ayarlanmış olacaktır.
