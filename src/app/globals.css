@@ -121,71 +121,47 @@
 
 /* Animated Theme Toggle Styles */
 @layer components {
+  /* The main switch container */
   .theme-toggle-switch {
-    @apply bg-blue-300 dark:bg-gray-800;
+    /* Day mode background */
+    @apply bg-blue-400 dark:bg-gray-800;
   }
 
+  /* The sliding circle (thumb) */
   .toggle-thumb {
-    @apply bg-yellow-400 dark:bg-slate-400;
+    /* Moves the thumb from left (0px) to right (40px) */
     transform: translateX(0px);
+    /* Day mode thumb color */
+    @apply bg-white;
   }
+  
   .dark .toggle-thumb {
     transform: translateX(40px);
+    /* Night mode thumb color */
+    @apply bg-slate-500;
   }
 
+  /* The sun icon */
   .sun-icon {
-    @apply opacity-100 dark:opacity-0;
+    /* Starts visible and not rotated */
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+  .dark .sun-icon {
+    /* Rotates away and fades out */
+    transform: rotate(90deg);
+    opacity: 0;
   }
 
+  /* The moon icon */
   .moon-icon {
-    @apply opacity-0 dark:opacity-100;
+    /* Starts rotated and invisible */
+    transform: rotate(-90deg);
+    opacity: 0;
   }
-  
-  .cloud {
-    @apply opacity-0 transition-opacity duration-300;
-  }
-
-  .light .cloud-1 {
-    animation: float-cloud1 10s infinite linear;
-  }
-  .light .cloud-2 {
-     animation: float-cloud2 15s infinite linear;
-  }
-  .dark .cloud {
-    opacity: 0 !important;
-  }
-  .light .cloud {
+  .dark .moon-icon {
+    /* Rotates in and fades in */
+    transform: rotate(0deg);
     opacity: 1;
-  }
-  
-  .star {
-    @apply opacity-0 transition-opacity duration-300;
-    animation: twinkle 2s infinite;
-  }
-  
-  .dark .star {
-    opacity: 1;
-  }
-  
-  .star-2 {
-    animation-delay: -0.5s;
-  }
-  .star-3 {
-    animation-delay: -1s;
-  }
-  
-  @keyframes float-cloud1 {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(200%); }
-  }
-  
-  @keyframes float-cloud2 {
-    0% { transform: translateX(-150%); }
-    100% { transform: translateX(150%); }
-  }
-
-  @keyframes twinkle {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
   }
 }
