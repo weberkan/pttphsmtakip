@@ -1,10 +1,9 @@
-
 'use client';
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Building, Users, BarChart2, Map, Folder, Briefcase, Home } from 'lucide-react';
+import { Building, Users, BarChart2, Map, Folder, Briefcase } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import * as React from 'react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -54,6 +53,7 @@ export function SidebarNav({ isCollapsed }: { isCollapsed: boolean }) {
                         isCollapsed && "justify-center"
                       )}
                       disabled={isCollapsed}
+                      hideChevron={isCollapsed}
                     >
                       <div className="flex items-center gap-3">
                           <item.icon className="h-4 w-4" />
