@@ -64,16 +64,28 @@ const importTasraPositionSchema = z.object({
   originalTitle: z.string().optional().nullable().or(z.literal('')),
   assignedPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
   startDate: z.date().optional().nullable(),
-  actingAuthority: z.enum(["Başmüdürlük", "Genel Müdürlük"]).optional().nullable(),
-  receivesProxyPay: z.union([z.boolean(), z.string()]).transform(val => ['evet', 'true', '1', 'var', 'alıyor'].includes(String(val).toLowerCase())).optional().default(false),
-  hasDelegatedAuthority: z.union([z.boolean(), z.string()]).transform(val => ['evet', 'true', '1', 'var'].includes(String(val).toLowerCase())).optional().default(false),
+  actingAuthority: z.string().optional().nullable(),
+  receivesProxyPay: z.any().optional().nullable(),
+  hasDelegatedAuthority: z.any().optional().nullable(),
 }).superRefine((data, ctx) => {
-    if ((data.status === "Vekalet" || data.status === "Yürütme") && (!data.originalTitle || data.originalTitle.trim() === "")) {
-      ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["originalTitle"],
-          message: "Durum 'Vekalet' veya 'Yürütme' ise Asıl Ünvan zorunludur.",
-      });
+    const isProxyOrActing = data.status === "Vekalet" || data.status === "Yürütme";
+    
+    if (isProxyOrActing) {
+        if (!data.originalTitle || data.originalTitle.trim() === "") {
+          ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["originalTitle"],
+              message: "Durum 'Vekalet' veya 'Yürütme' ise Asıl Ünvan zorunludur.",
+          });
+        }
+        
+        if (data.actingAuthority && !["Başmüdürlük", "Genel Müdürlük"].includes(data.actingAuthority)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["actingAuthority"],
+                message: "Görevi Veren Makam 'Başmüdürlük' veya 'Genel Müdürlük' olmalıdır.",
+            });
+        }
     }
 });
 
@@ -843,6 +855,9 @@ function DashboardPageContent() {
               
               const isProxyOrActing = validatedData.status === 'Vekalet' || validatedData.status === 'Yürütme';
               
+              const receivesProxyPay = isProxyOrActing ? ['evet', 'true', '1', 'var', 'alıyor'].includes(String(validatedData.receivesProxyPay).trim().toLowerCase()) : false;
+              const hasDelegatedAuthority = isProxyOrActing ? ['evet', 'true', '1', 'var'].includes(String(validatedData.hasDelegatedAuthority).trim().toLowerCase()) : false;
+
               const positionDataFromExcel: Omit<TasraPosition, 'id'> = {
                 unit: validatedData.unit,
                 dutyLocation: validatedData.dutyLocation,
@@ -852,8 +867,8 @@ function DashboardPageContent() {
                 assignedPersonnelId: resolvedAssignedPersonnelId,
                 startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
                 actingAuthority: isProxyOrActing ? validatedData.actingAuthority || null : null,
-                receivesProxyPay: isProxyOrActing ? validatedData.receivesProxyPay || false : false,
-                hasDelegatedAuthority: isProxyOrActing ? validatedData.hasDelegatedAuthority || false : false,
+                receivesProxyPay: receivesProxyPay,
+                hasDelegatedAuthority: hasDelegatedAuthority,
               };
               
               const key = `${(positionDataFromExcel.unit || '').trim().toLowerCase()}|${(positionDataFromExcel.dutyLocation || '').trim().toLowerCase()}`;
