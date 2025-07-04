@@ -10,7 +10,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { Send, MessageSquare, Users, User, ArrowLeft } from 'lucide-react';
+import { Send, MessageSquare, Users, User, ArrowLeft, Search } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -27,10 +27,19 @@ export function MessagesPage() {
     const [newMessage, setNewMessage] = useState("");
     const messageEndRef = useRef<HTMLDivElement>(null);
     const [isStartingConversation, setIsStartingConversation] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
 
     const allOtherUsers = useMemo(() => 
         users.filter(u => u.uid !== currentUser?.uid).sort((a,b) => a.firstName.localeCompare(b.firstName)), 
     [users, currentUser]);
+
+    const filteredUsers = useMemo(() => 
+        allOtherUsers.filter(u => 
+            `${u.firstName} ${u.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            u.email.toLowerCase().includes(searchTerm.toLowerCase())
+        ), 
+    [allOtherUsers, searchTerm]);
+
 
     useEffect(() => {
         if (messageEndRef.current) {
@@ -72,11 +81,12 @@ export function MessagesPage() {
              <Card className="h-[calc(100vh-10rem)] w-full grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 shadow-lg overflow-hidden">
                 <div className="border-r flex flex-col bg-muted/20">
                      <div className="p-4 border-b">
-                        <Skeleton className="h-7 w-2/4" />
+                        <Skeleton className="h-7 w-2/4 mb-4" />
+                        <Skeleton className="h-9 w-full" />
                     </div>
                      <div className="flex-1 p-3 space-y-2">
                         {[...Array(8)].map((_, i) => (
-                           <div key={i} className="flex items-center gap-3">
+                           <div key={i} className="flex items-center gap-3 p-2">
                                <Skeleton className="h-10 w-10 rounded-full" />
                                <div className="flex-1 space-y-1">
                                    <Skeleton className="h-4 w-3/4" />
@@ -98,18 +108,27 @@ export function MessagesPage() {
     const UserListPanel = (
         <div className={cn("border-r flex flex-col bg-muted/20", selectedUser ? "hidden md:flex" : "flex")}>
             <div className="p-4 border-b">
-                <h2 className="text-xl font-bold flex items-center gap-2"><Users className="h-6 w-6"/> Kişiler</h2>
+                <h2 className="text-xl font-bold flex items-center gap-2 mb-4"><Users className="h-6 w-6"/> Kişiler</h2>
+                 <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        placeholder="Kişi ara..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-8 bg-background"
+                    />
+                </div>
             </div>
             <ScrollArea className="flex-1">
-                <div className="flex flex-col">
-                    {allOtherUsers.map(user => (
+                 <div className="flex flex-col gap-1 p-2">
+                    {filteredUsers.length > 0 ? filteredUsers.map(user => (
                         <button
                             key={user.uid}
                             onClick={() => handleSelectUser(user)}
                             className={cn(
-                                "w-full text-left justify-start h-auto shrink-0 gap-3 p-3 flex items-center transition-colors border-b",
+                                "w-full text-left justify-start h-auto shrink-0 gap-3 rounded-md p-2 flex items-center transition-colors",
                                 "hover:bg-accent focus-visible:bg-accent outline-none",
-                                selectedUser?.uid === user.uid ? "bg-accent" : "bg-transparent"
+                                selectedUser?.uid === user.uid ? "bg-accent" : ""
                             )}
                         >
                             <Avatar className="h-10 w-10">
@@ -121,7 +140,9 @@ export function MessagesPage() {
                                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                             </div>
                         </button>
-                    ))}
+                    )) : (
+                        <p className="p-4 text-center text-sm text-muted-foreground">Kişi bulunamadı.</p>
+                    )}
                 </div>
             </ScrollArea>
         </div>
