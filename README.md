@@ -21,28 +21,21 @@ To get started, take a look at src/app/page.tsx.
     ```
 4.  **Bekleyin:** Uygulamanın yeniden başlamasını bekleyin. Terminalde "ready" veya "started server" gibi bir mesaj göreceksiniz.
 
-### Veritabanı Güvenlik Kurallarını Güncelleme (Dağıtma)
+### Veritabanı Güvenlik Kurallarını Güncelleme (Firebase Konsolu)
 
-`firestore.rules` veya `database.rules.json` dosyalarında bir değişiklik yaptığınızda, bu yeni kuralların Firebase projenizde aktif hale gelmesi için onları "dağıtmanız" (deploy etmeniz) gerekir.
+Uygulamanın veritabanına erişebilmesi için güvenlik kurallarını manuel olarak Firebase Konsolu üzerinden ayarlamanız gerekir. Bu işlem, `PERMISSION_DENIED` hatalarını önlemek için kritik öneme sahiptir.
 
-Bu işlem, projenizin güvenliği için kritik öneme sahiptir.
+**1. Firestore Kurallarını Güncelleme:**
+1.  **Firebase Konsolu**'na gidin ve projenizi seçin.
+2.  Sol menüden **Build > Firestore Database**'e tıklayın.
+3.  Üstteki sekmelerden **Kurallar (Rules)** sekmesine geçin.
+4.  Editördeki mevcut tüm metni silin ve projenizdeki `firestore.rules` dosyasının içeriğini buraya yapıştırın.
+5.  **Yayınla (Publish)** butonuna tıklayın.
 
-**Gereksinimler:**
-*   Terminalde `firebase-tools` paketinin kurulu olması gerekir (projenin `devDependencies` bölümüne ekledik).
-*   Firebase hesabınızda oturum açmış olmanız gerekir.
+**2. Realtime Database Kurallarını Güncelleme (Kullanıcı Aktiflik Durumu İçin):**
+1.  **Firebase Konsolu**'nda, sol menüden **Build > Realtime Database**'e tıklayın.
+2.  Üstteki sekmelerden **Kurallar (Rules)** sekmesine geçin.
+3.  Editördeki mevcut tüm metni silin ve projenizdeki `database.rules.json` dosyasının içeriğini buraya yapıştırın.
+4.  **Yayınla (Publish)** butonuna tıklayın.
 
-**Adımlar:**
-
-1.  **Firebase'e Giriş Yapın (Sadece ilk seferde gerekli):**
-    Terminalinize aşağıdaki komutu yazın ve Enter'a basın:
-    ```bash
-    npx firebase login
-    ```
-    Bu komut, tarayıcınızda bir pencere açarak Google hesabınızla giriş yapmanızı isteyecektir. Giriş yaptıktan sonra terminale geri dönebilirsiniz.
-
-2.  **Kuralları Dağıtın:**
-    Giriş yaptıktan sonra, terminale aşağıdaki komutu yazarak yeni kurallarınızı Firebase'e gönderin:
-    ```bash
-    npm run deploy:rules
-    ```
-    Komut başarıyla tamamlandığında, `✔ Deploy complete!` mesajını göreceksiniz. Bu, yeni güvenlik kurallarınızın artık aktif olduğu anlamına gelir.
+Bu iki adımı tamamladıktan sonra uygulamanızın veritabanı erişim izinleri doğru şekilde ayarlanmış olacaktır.
