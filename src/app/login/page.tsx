@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -204,6 +203,7 @@ export default function AuthPage() {
                 alt="Logo"
                 width={120}
                 height={48}
+                style={{ height: 'auto' }}
                 className="object-contain"
                 />
             </div>
