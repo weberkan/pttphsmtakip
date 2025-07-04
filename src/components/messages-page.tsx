@@ -103,7 +103,7 @@ export function MessagesPage() {
     }
 
     const UserListPanel = (
-        <div className={cn("border-r flex flex-col bg-muted/20", selectedUser ? "hidden md:flex" : "flex")}>
+        <div className={cn("border-r flex flex-col bg-muted/20 min-h-0", selectedUser ? "hidden md:flex" : "flex")}>
             <div className="p-4 border-b">
                 <h2 className="text-xl font-bold flex items-center gap-2"><Users className="h-6 w-6"/> Kişiler</h2>
             </div>
@@ -143,7 +143,7 @@ export function MessagesPage() {
     );
     
     const ChatPanel = (
-        <div className={cn("md:col-span-2 lg:col-span-3 flex flex-col", selectedUser ? "flex" : "hidden md:flex")}>
+        <div className={cn("md:col-span-2 lg:col-span-3 flex flex-col min-h-0", selectedUser ? "flex" : "hidden md:flex")}>
             {selectedUser ? (
                 <>
                     <div className="p-3 border-b flex items-center gap-3">
