@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Building, Users, BarChart2, Map, Folder, Briefcase, Home } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import * as React from 'react';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const menuItems = [
   { href: 'dashboard', title: 'Anasayfa', icon: Home },
@@ -33,35 +34,57 @@ const menuItems = [
 ];
 
 
-export function SidebarNav() {
+export function SidebarNav({ isCollapsed }: { isCollapsed: boolean }) {
   const searchParams = useSearchParams();
   const currentView = searchParams.get('view') || 'dashboard';
 
-  const defaultOpenAccordion = menuItems.find(item => 'subItems' in item && item.subItems?.some(sub => sub.href === currentView))?.id;
+  const defaultOpenAccordion = isCollapsed ? undefined : menuItems.find(item => 'subItems' in item && item.subItems?.some(sub => sub.href === currentView))?.id;
   
   return (
     <nav className="flex flex-col gap-2 p-2 pt-4">
-      <Link
-          key="dashboard"
-          href="/?view=dashboard"
-          className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary',
-            currentView === 'dashboard' ? 'bg-muted text-primary' : 'text-muted-foreground'
-          )}
-        >
-          <Home className="h-4 w-4" />
-          <span>Anasayfa</span>
-        </Link>
-      <Accordion type="multiple" defaultValue={defaultOpenAccordion ? [defaultOpenAccordion] : []} className="w-full">
+      <TooltipProvider delayDuration={100}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+                key="dashboard"
+                href="/?view=dashboard"
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary',
+                  currentView === 'dashboard' ? 'bg-muted text-primary' : 'text-muted-foreground',
+                  isCollapsed && 'justify-center'
+                )}
+              >
+                <Home className="h-4 w-4" />
+                <span className={cn(isCollapsed && 'hidden')}>Anasayfa</span>
+              </Link>
+          </TooltipTrigger>
+          {isCollapsed && <TooltipContent side="right">Anasayfa</TooltipContent>}
+        </Tooltip>
+      </TooltipProvider>
+
+      <Accordion type="multiple" defaultValue={defaultOpenAccordion ? [defaultOpenAccordion] : []} className="w-full" value={isCollapsed ? [] : (defaultOpenAccordion ? [defaultOpenAccordion] : undefined)}>
         {menuItems.filter(item => 'subItems' in item).map((item) => (
           'subItems' in item && (
             <AccordionItem key={item.id} value={item.id} className="border-b-0">
-              <AccordionTrigger className="p-2 -mx-2 hover:bg-accent hover:no-underline rounded-md text-sm font-medium">
-                <div className="flex items-center gap-3">
-                    <item.icon className="h-4 w-4" />
-                    {item.title}
-                </div>
-              </AccordionTrigger>
+               <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AccordionTrigger 
+                      className={cn(
+                        "p-2 -mx-2 hover:bg-accent hover:no-underline rounded-md text-sm font-medium",
+                        isCollapsed && "justify-center"
+                      )}
+                      disabled={isCollapsed}
+                    >
+                      <div className="flex items-center gap-3">
+                          <item.icon className="h-4 w-4" />
+                          <span className={cn(isCollapsed && 'hidden')}>{item.title}</span>
+                      </div>
+                    </AccordionTrigger>
+                  </TooltipTrigger>
+                  {isCollapsed && <TooltipContent side="right">{item.title}</TooltipContent>}
+                </Tooltip>
+              </TooltipProvider>
               <AccordionContent className="pl-6 border-l ml-3 mt-1">
                 <div className="flex flex-col gap-1 mt-1">
                     {item.subItems.map((subItem) => (
@@ -83,17 +106,26 @@ export function SidebarNav() {
           )
         ))}
       </Accordion>
-      <Link
-        key="raporlama"
-        href="/?view=raporlama"
-        className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary',
-          currentView === 'raporlama' ? 'bg-muted text-primary' : 'text-muted-foreground'
-        )}
-      >
-        <BarChart2 className="h-4 w-4" />
-        <span>Raporlama ve Analiz</span>
-      </Link>
+
+      <TooltipProvider delayDuration={100}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              key="raporlama"
+              href="/?view=raporlama"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary',
+                currentView === 'raporlama' ? 'bg-muted text-primary' : 'text-muted-foreground',
+                isCollapsed && 'justify-center'
+              )}
+            >
+              <BarChart2 className="h-4 w-4" />
+              <span className={cn(isCollapsed && 'hidden')}>Raporlama ve Analiz</span>
+            </Link>
+          </TooltipTrigger>
+          {isCollapsed && <TooltipContent side="right">Raporlama ve Analiz</TooltipContent>}
+        </Tooltip>
+      </TooltipProvider>
     </nav>
   );
 }

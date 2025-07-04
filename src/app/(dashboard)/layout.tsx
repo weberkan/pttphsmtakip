@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense, useState, ReactNode, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Menu, Briefcase, Network, UserCheck, Mail, Bell } from "lucide-react";
+import { Users, LogOut, Menu, Briefcase, Network, UserCheck, Mail, Bell, ChevronLeft } from "lucide-react";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -42,6 +42,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const { user, logout } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
     
     const { users } = useUserManagement();
     const { conversations } = useMessaging();
@@ -64,31 +65,44 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     
     const headerTitle = viewTitles[view] || 'Pozisyon Takip Sistemi';
 
-    const SidebarContent = () => (
+    const SidebarContent = ({ isCollapsed }: { isCollapsed: boolean }) => (
       <>
-        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+        <div className={cn("flex h-14 items-center border-b lg:h-[60px]", isCollapsed ? 'justify-center px-2' : 'px-4 lg:px-6')}>
             <Link href="/?view=dashboard" className="flex items-center gap-2 font-semibold">
                 <Image
                     src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
                     alt="PTT Logo"
-                    width={80}
+                    width={isCollapsed ? 40 : 80}
                     height={32}
                     style={{ height: 'auto' }}
-                    className="object-contain"
+                    className="object-contain transition-all duration-300"
                 />
             </Link>
         </div>
         <div className="flex-1 overflow-auto">
-          <SidebarNav />
+          <SidebarNav isCollapsed={isCollapsed} />
         </div>
       </>
     );
 
     return (
-        <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+        <div className={cn(
+            "grid min-h-screen w-full transition-[grid-template-columns]",
+            isSidebarCollapsed 
+                ? "md:grid-cols-[70px_1fr]" 
+                : "md:grid-cols-[176px_1fr] lg:grid-cols-[224px_1fr]"
+        )}>
             <div className="hidden border-r bg-muted/40 md:block">
-                <div className="flex h-full max-h-screen flex-col gap-2">
-                    <SidebarContent />
+                <div className="flex h-full max-h-screen flex-col">
+                    <div className="flex-1 overflow-auto">
+                        <SidebarContent isCollapsed={isSidebarCollapsed} />
+                    </div>
+                    <div className="mt-auto border-t p-2">
+                        <Button variant="ghost" size="icon" className="w-full" onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}>
+                            <ChevronLeft className={cn("h-5 w-5 transition-transform", isSidebarCollapsed && "rotate-180")} />
+                            <span className="sr-only">Kenar çubuğunu daralt/genişlet</span>
+                        </Button>
+                    </div>
                 </div>
             </div>
             <div className="flex flex-col">
@@ -101,7 +115,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="flex flex-col p-0">
-                           <SidebarContent />
+                           <SidebarContent isCollapsed={false} />
                         </SheetContent>
                     </Sheet>
                     
