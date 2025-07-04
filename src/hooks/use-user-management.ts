@@ -1,13 +1,11 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { db, rtdb } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import type { AppUser } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { ref as rtdbRef, onValue } from 'firebase/database';
 
 export function useUserManagement() {
   const { user } = useAuth();
@@ -15,15 +13,10 @@ export function useUserManagement() {
 
   const [users, setUsers] = useState<AppUser[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  
-  // States for raw data from sources, initialized to null to track loading
-  const [firestoreUsers, setFirestoreUsers] = useState<Omit<AppUser, 'presence'>[] | null>(null);
-  const [presenceData, setPresenceData] = useState<{[uid: string]: { state: 'online' | 'offline' }} | null>(null);
 
-  // Listener for user profiles from Firestore
   useEffect(() => {
     if (!user || !db) {
-      setFirestoreUsers([]); // Set to empty array to indicate loading is done but no user/db
+      setIsInitialized(true);
       return;
     }
 
@@ -39,51 +32,18 @@ export function useUserManagement() {
           isApproved: data.isApproved || false,
           role: data.role,
           photoUrl: data.photoUrl,
-        } as Omit<AppUser, 'presence'>;
+          // 'presence' field is omitted here to revert to the previous state.
+        } as AppUser;
       });
-      setFirestoreUsers(fetchedUsers);
+      setUsers(fetchedUsers);
+      setIsInitialized(true);
     }, (error) => {
-      console.error("Error fetching users:", error);
-      setFirestoreUsers([]); // Set to empty array on error to unblock combination
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // Listener for presence status from RTDB
-  useEffect(() => {
-    if (!user || !rtdb) {
-        setPresenceData({});
-        return;
-    }
-
-    const statusRef = rtdbRef(rtdb, 'status');
-    const unsubscribe = onValue(statusRef, (snapshot) => {
-        setPresenceData(snapshot.val() || {});
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // Effect to combine data from both sources into the final `users` state
-  useEffect(() => {
-    // We can only combine when both data sources have returned something (even empty)
-    if (firestoreUsers === null || presenceData === null) {
-      return;
-    }
-
-    const combinedUsers = firestoreUsers.map(u => ({
-        ...u,
-        presence: presenceData[u.uid]?.state === 'online' ? 'online' : 'offline',
-    }));
-
-    setUsers(combinedUsers);
-    
-    // The hook is initialized once we have successfully combined data for the first time.
-    if (!isInitialized) {
+        console.error("Error fetching users collection:", error);
         setIsInitialized(true);
-    }
-  }, [firestoreUsers, presenceData, isInitialized]);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const approveUser = useCallback(async (uid: string) => {
     if (!user || user.role !== 'admin' || !db) {
