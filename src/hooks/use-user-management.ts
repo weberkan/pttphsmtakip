@@ -15,7 +15,9 @@ export function useUserManagement() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!user || user.role !== 'admin' || !db) {
+    // Any authenticated user should be able to see the list of other users for messaging.
+    // The admin check is now only relevant for specific actions like 'approveUser'.
+    if (!user || !db) {
       setUsers([]);
       setIsInitialized(true);
       return;
@@ -42,9 +44,9 @@ export function useUserManagement() {
       if (error.code === 'permission-denied') {
           toast({
               variant: "destructive",
-              title: "Yönetici İzin Hatası",
-              description: "Kullanıcı listesini çekerken izin hatası oluştu. Lütfen çıkış yapıp tekrar giriş yapmayı deneyin. Sorun devam ederse, Firestore'da 'role' alanının doğru ('admin') yazıldığından emin olun.",
-              duration: 12000,
+              title: "İzin Hatası",
+              description: "Kullanıcı listesini çekerken bir sorun oluştu. Lütfen Firestore güvenlik kurallarınızı kontrol edin.",
+              duration: 9000,
           });
       }
       setIsInitialized(true);
@@ -65,5 +67,3 @@ export function useUserManagement() {
 
   return { users, approveUser, isInitialized };
 }
-
-    

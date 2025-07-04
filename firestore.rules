@@ -1,60 +1,56 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- User Rules ---
+    // USER PROFILES
     match /users/{userId} {
-      // A user can read their own profile
-      allow read: if request.auth.uid == userId;
+      // Any authenticated user can read the user list for messaging.
+      allow read: if request.auth.uid != null;
+      
+      // New users can create their own profile, but cannot self-approve or assign a role.
+      allow create: if request.auth.uid == userId &&
+                      request.resource.data.isApproved == false &&
+                      !('role' in request.resource.data);
 
-      // Anyone can create a user document during signup
-      // Rules ensure they cannot set themselves as admin or approved
-      allow create: if request.resource.data.isApproved == false
-                    && !('role' in request.resource.data);
-
-      // Only an admin can list all users or approve another user by updating them
-      allow list, update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // An admin can approve a user by updating the isApproved field.
+      // A user cannot update their own document for now.
+      allow update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+                      'isApproved' in request.resource.data.diff(resource.data).affectedKeys();
     }
-
-    // --- Conversation Rules ---
+    
+    // CONVERSATIONS
     match /conversations/{conversationId} {
-      // Function to check if the requesting user is a valid participant of the conversation
-      // by checking if their UID is part of the conversation document's ID (e.g., "uid1_uid2")
-      function isConversationMember() {
-        let uids = conversationId.split('_');
-        return request.auth.uid in uids && uids.size() == 2;
-      }
-
-      // Allow read, write (e.g., update lastMessage), and create operations 
-      // only if the user is a member of the conversation.
-      allow read, write, create: if isConversationMember();
-
-      // --- Message Sub-collection Rules ---
+      // You can only read or write a conversation doc if your UID is part of the doc ID itself.
+      // This is a robust way to secure conversations based on the predictable ID format 'uid1_uid2'.
+      allow read, write: if request.auth.uid in conversationId.split('_');
+      
+      // MESSAGES SUB-COLLECTION
       match /messages/{messageId} {
-        // Allow reading messages only if the user is a member of the parent conversation
-        allow read: if isConversationMember();
+        // You can read/list messages only if you are part of the parent conversation.
+        allow read: if request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantUids;
         
-        // Allow creating a message only if the user is a member of the conversation
-        // AND they are the sender of the message.
-        allow create: if isConversationMember() && request.auth.uid == request.resource.data.senderId;
+        // You can only create a message if you are the sender AND part of the parent conversation.
+        allow create: if request.auth.uid == request.resource.data.senderId &&
+                       request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantUids;
       }
     }
 
-    // --- Merkez Teşkilatı Rules ---
+    // Default rules for MERKEZ collections
     match /merkez-positions/{docId} {
-      allow read, write, delete: if request.auth != null && request.auth.token.email_verified;
+      allow read, write: if request.auth.uid != null;
     }
     match /merkez-personnel/{docId} {
-      allow read, write, delete: if request.auth != null && request.auth.token.email_verified;
+      allow read, write: if request.auth.uid != null;
     }
-
-    // --- Taşra Teşkilatı Rules ---
+    
+    // Default rules for TASRA collections
     match /tasra-positions/{docId} {
-      allow read, write, delete: if request.auth != null && request.auth.token.email_verified;
+      allow read, write: if request.auth.uid != null;
     }
     match /tasra-personnel/{docId} {
-      allow read, write, delete: if request.auth != null && request.auth.token.email_verified;
+      allow read, write: if request.auth.uid != null;
     }
   }
 }

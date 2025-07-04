@@ -10,7 +10,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { Send, Paperclip, Mic, Smile, MessageSquare, Users, User, ArrowLeft } from 'lucide-react';
+import { Send, MessageSquare, Users, User, ArrowLeft } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -147,7 +147,6 @@ export function MessagesPage() {
                         </ScrollArea>
                         <div className="p-4 border-t">
                             <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                                <Button type="button" variant="ghost" size="icon"><Paperclip/></Button>
                                 <Input 
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
@@ -155,7 +154,6 @@ export function MessagesPage() {
                                     autoComplete='off'
                                     className="flex-1"
                                 />
-                                <Button type="button" variant="ghost" size="icon"><Smile/></Button>
                                 <Button type="submit" size="icon" disabled={!newMessage.trim()}>
                                     <Send />
                                 </Button>
