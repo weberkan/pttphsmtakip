@@ -53,8 +53,8 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
     const { status, actingAuthority } = position;
     const statusMap = {
       'Asıl': { letter: 'A', tooltip: 'Asıl', variant: 'default' as const, className: '' },
-      'Vekalet': { letter: 'V', tooltip: 'Vekalet', variant: 'secondary' as const, className: 'bg-orange-100 text-orange-800 border-orange-200' },
-      'Yürütme': { letter: 'Y', tooltip: 'Yürütme', variant: 'outline' as const, className: 'bg-blue-100 text-blue-800 border-blue-200' },
+      'Vekalet': { letter: 'V', tooltip: 'Vekalet', variant: 'secondary' as const, className: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800' },
+      'Yürütme': { letter: 'Y', tooltip: 'Yürütme', variant: 'outline' as const, className: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800' },
       'Boş': { letter: 'B', tooltip: 'Boş', variant: 'outline' as const, className: '' },
     };
     const authorityMap = {
