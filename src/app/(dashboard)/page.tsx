@@ -68,20 +68,12 @@ const importTasraPositionSchema = z.object({
   receivesProxyPay: z.union([z.boolean(), z.string()]).transform(val => ['evet', 'true', '1', 'var', 'alıyor'].includes(String(val).toLowerCase())).optional().default(false),
   hasDelegatedAuthority: z.union([z.boolean(), z.string()]).transform(val => ['evet', 'true', '1', 'var'].includes(String(val).toLowerCase())).optional().default(false),
 }).superRefine((data, ctx) => {
-    if (data.status === "Vekalet" || data.status === "Yürütme") {
-        if (!data.originalTitle || data.originalTitle.trim() === "") {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ["originalTitle"],
-                message: "Durum 'Vekalet' veya 'Yürütme' ise Asıl Ünvan zorunludur.",
-            });
-        } else if (["Vekalet", "Yürütme"].includes(data.originalTitle)) {
-             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ["originalTitle"],
-                message: "Asıl Ünvan 'Vekalet' veya 'Yürütme' olamaz. Geçerli bir kadro ünvanı girilmelidir.",
-            });
-        }
+    if ((data.status === "Vekalet" || data.status === "Yürütme") && (!data.originalTitle || data.originalTitle.trim() === "")) {
+      ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["originalTitle"],
+          message: "Durum 'Vekalet' veya 'Yürütme' ise Asıl Ünvan zorunludur.",
+      });
     }
 });
 
