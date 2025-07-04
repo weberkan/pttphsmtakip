@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense, useState, ReactNode, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Menu, Briefcase, ChevronsLeft, Network, UserCheck, Mail, Bell } from "lucide-react";
+import { Users, LogOut, Menu, Briefcase, ChevronsLeft, Network, UserCheck, Mail, Bell, SlidersHorizontal, BarChart2, Home } from "lucide-react";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -18,12 +18,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { SidebarNav } from '@/components/sidebar-nav';
+import { SidebarNav, menuConfig } from '@/components/sidebar-nav';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useUserManagement } from '@/hooks/use-user-management';
 import { useMessaging } from '@/hooks/use-messaging';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const viewTitles: { [key: string]: string } = {
@@ -40,14 +41,27 @@ const viewTitles: { [key: string]: string } = {
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const { user, logout } = useAuth();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    
+    const [activePrimaryNav, setActivePrimaryNav] = useState<'yonetim' | 'raporlama' | null>(null);
 
-    // Hooks for notifications
     const { users } = useUserManagement();
     const { conversations } = useMessaging();
     
+    const view = searchParams.get('view') || 'dashboard';
+
+    useEffect(() => {
+        if (view.startsWith('merkez-') || view.startsWith('tasra-')) {
+            setActivePrimaryNav('yonetim');
+        } else if (view === 'raporlama') {
+            setActivePrimaryNav('raporlama');
+        } else {
+            setActivePrimaryNav(null); // No primary nav selected for dashboard, messages, etc.
+        }
+    }, [view]);
+
     const hasPendingApprovals = useMemo(() => {
         if (user?.role !== 'admin') return false;
         return users.some(u => !u.isApproved);
@@ -55,54 +69,87 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
     const hasUnreadMessages = useMemo(() => {
         if (!user) return false;
-        // Simple heuristic: a conversation is "unread" if the last message wasn't from the current user.
         return conversations.some(c => 
             c.lastMessage && c.lastMessage.senderId !== user.uid
         );
     }, [conversations, user]);
 
-    // This should never happen if the protection in DashboardLayout works, but it's a good failsafe.
     if (!user) return null;
-
-    const view = searchParams.get('view') || 'dashboard';
     
     const headerTitle = viewTitles[view] || 'Pozisyon Takip Sistemi';
 
+    const handlePrimaryNavClick = (nav: 'yonetim' | 'raporlama') => {
+        setActivePrimaryNav(nav);
+        if (nav === 'yonetim') {
+             // Navigate to the first item in the management menu
+            router.push('/?view=merkez-pozisyon');
+        } else if (nav === 'raporlama') {
+            router.push('/?view=raporlama');
+        }
+    }
+
     return (
-        <div className={cn(
-            "grid min-h-screen w-full transition-[grid-template-columns] duration-300 ease-in-out",
-            isCollapsed ? "md:grid-cols-[68px_1fr]" : "md:grid-cols-[240px_1fr]"
-        )}>
-            <aside className="hidden border-r bg-muted/40 md:flex md:flex-col">
-                <div className="flex h-full max-h-screen flex-col">
-                    <div className={cn("flex h-14 items-center border-b px-6", isCollapsed && "px-2 justify-center")}>
-                        <Link href="/?view=dashboard" className="flex items-center gap-2 font-semibold">
-                            <Image
-                                src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
-                                alt="PTT Logo"
-                                width={isCollapsed ? 40 : 80}
-                                height={isCollapsed ? 16 : 32}
-                                style={{ height: 'auto' }}
-                                className="object-contain transition-all duration-300"
-                            />
-                        </Link>
-                    </div>
-                    <div className="flex-1 overflow-auto py-2">
-                        <SidebarNav isCollapsed={isCollapsed} />
-                    </div>
-                    <div className="mt-auto border-t p-2">
-                        <Button
-                            onClick={() => setIsCollapsed(!isCollapsed)}
-                            variant="ghost"
-                            size="icon"
-                            className="w-full h-10"
-                            aria-label={isCollapsed ? "Menüyü genişlet" : "Menüyü daralt"}
-                        >
-                            <ChevronsLeft className={cn("h-5 w-5 transition-transform duration-300", isCollapsed && "rotate-180")} />
-                        </Button>
-                    </div>
+        <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
+            {/* Sidebar Container */}
+            <div className="hidden border-r bg-background md:flex">
+                {/* Panel 1: Icon Rail */}
+                <div className="flex flex-col items-center gap-4 p-2 border-r bg-muted/40">
+                    <Link href="/?view=dashboard" className="flex h-14 w-full items-center justify-center">
+                         <Image
+                            src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
+                            alt="PTT Logo"
+                            width={40}
+                            height={16}
+                            style={{ height: 'auto' }}
+                            className="object-contain"
+                        />
+                    </Link>
+                    <TooltipProvider delayDuration={0}>
+                        <nav className="flex flex-col items-center gap-2 mt-4">
+                             <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant={activePrimaryNav === 'yonetim' ? 'secondary' : 'ghost'}
+                                        className="rounded-lg h-11 w-11"
+                                        size="icon"
+                                        aria-label="Yönetim"
+                                        onClick={() => handlePrimaryNavClick('yonetim')}
+                                    >
+                                        <SlidersHorizontal className="h-5 w-5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">Yönetim</TooltipContent>
+                            </Tooltip>
+                             <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant={activePrimaryNav === 'raporlama' ? 'secondary' : 'ghost'}
+                                        className="rounded-lg h-11 w-11"
+                                        size="icon"
+                                        aria-label="Raporlama"
+                                        onClick={() => handlePrimaryNavClick('raporlama')}
+                                    >
+                                        <BarChart2 className="h-5 w-5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">Raporlama ve Analiz</TooltipContent>
+                            </Tooltip>
+                        </nav>
+                    </TooltipProvider>
                 </div>
-            </aside>
+                {/* Panel 2: Sub-menu */}
+                {activePrimaryNav && (
+                    <div className="w-[260px] flex flex-col">
+                        <div className="flex h-14 items-center border-b px-4">
+                            <h2 className="font-semibold tracking-tight text-lg">{menuConfig[activePrimaryNav].title}</h2>
+                        </div>
+                        <div className="flex-1 overflow-auto py-2">
+                            <SidebarNav activePrimaryNav={activePrimaryNav} />
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <div className="flex flex-col">
                 <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6">
                     <Sheet>
@@ -129,7 +176,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                                     />
                                 </Link>
                             </div>
-                            <SidebarNav isCollapsed={false} />
+                            <div className="p-2">
+                                <SidebarNav activePrimaryNav={'yonetim'} />
+                                <SidebarNav activePrimaryNav={'raporlama'} />
+                            </div>
                         </SheetContent>
                     </Sheet>
                     
@@ -222,9 +272,6 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         );
     }
     
-    // AuthProvider is responsible for redirecting. If we reach here and there's
-    // no user, it means the redirect is about to happen. Returning null prevents
-    // the dashboard from flashing or attempting to render with no user data.
     if (!user) {
         return null; 
     }
