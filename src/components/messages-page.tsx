@@ -68,7 +68,31 @@ export function MessagesPage() {
     };
 
     if (!usersInitialized) {
-        return <Skeleton className="w-full h-[calc(100vh-10rem)]" />;
+        return (
+             <Card className="h-[calc(100vh-10rem)] w-full grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 shadow-lg overflow-hidden">
+                <div className="border-r flex flex-col bg-muted/20">
+                     <div className="p-4 border-b">
+                        <Skeleton className="h-7 w-2/4" />
+                    </div>
+                     <div className="flex-1 p-3 space-y-2">
+                        {[...Array(8)].map((_, i) => (
+                           <div key={i} className="flex items-center gap-3">
+                               <Skeleton className="h-10 w-10 rounded-full" />
+                               <div className="flex-1 space-y-1">
+                                   <Skeleton className="h-4 w-3/4" />
+                                   <Skeleton className="h-3 w-full" />
+                               </div>
+                           </div>
+                        ))}
+                    </div>
+                </div>
+                 <div className="hidden md:flex flex-col items-center justify-center h-full text-center text-muted-foreground bg-background md:col-span-2 lg:col-span-3">
+                    <MessageSquare className="h-16 w-16 mb-4 animate-pulse" />
+                    <h3 className="text-xl font-semibold">Yükleniyor...</h3>
+                    <p>Mesajlar ve kişiler hazırlanıyor.</p>
+                </div>
+            </Card>
+        );
     }
 
     const UserListPanel = (
@@ -120,7 +144,7 @@ export function MessagesPage() {
                             <p className="text-xs text-muted-foreground">Sohbet</p>
                         </div>
                     </div>
-                    <ScrollArea className="flex-1 p-4 bg-muted/20">
+                    <ScrollArea className="flex-1 p-4 bg-background">
                         <div className="space-y-4">
                         {(loadingMessages || isStartingConversation) ? (
                             <div className="flex justify-center items-center h-full"><p>Sohbet yükleniyor...</p></div>
@@ -147,7 +171,7 @@ export function MessagesPage() {
                          <div ref={messageEndRef} />
                         </div>
                     </ScrollArea>
-                    <div className="p-4 border-t">
+                    <div className="p-4 border-t bg-muted/20">
                         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                             <Input 
                                 value={newMessage}
