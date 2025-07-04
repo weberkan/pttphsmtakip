@@ -116,52 +116,6 @@
   }
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-/* Animated Theme Toggle Styles */
-@layer components {
-  /* The main switch container */
-  .theme-toggle-switch {
-    /* Day mode background */
-    @apply bg-blue-400 dark:bg-gray-800;
-  }
-
-  /* The sliding circle (thumb) */
-  .toggle-thumb {
-    /* Moves the thumb from left (0px) to right (40px) */
-    transform: translateX(0px);
-    /* Day mode thumb color */
-    @apply bg-white;
-  }
-  
-  .dark .toggle-thumb {
-    transform: translateX(40px);
-    /* Night mode thumb color */
-    @apply bg-slate-500;
-  }
-
-  /* The sun icon */
-  .sun-icon {
-    /* Starts visible and not rotated */
-    transform: rotate(0deg);
-    opacity: 1;
-  }
-  .dark .sun-icon {
-    /* Rotates away and fades out */
-    transform: rotate(90deg);
-    opacity: 0;
-  }
-
-  /* The moon icon */
-  .moon-icon {
-    /* Starts rotated and invisible */
-    transform: rotate(-90deg);
-    opacity: 0;
-  }
-  .dark .moon-icon {
-    /* Rotates in and fades in */
-    transform: rotate(0deg);
-    opacity: 1;
+    @apply transition-colors duration-300 ease-in-out;
   }
 }
