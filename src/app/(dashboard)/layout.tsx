@@ -38,6 +38,28 @@ const viewTitles: { [key: string]: string } = {
     'mesajlar': 'Mesajlar',
 };
 
+// Moved SidebarContent outside of DashboardLayoutContent to prevent re-rendering
+const SidebarContent = ({ isCollapsed }: { isCollapsed: boolean }) => (
+    <>
+      <div className={cn("flex h-14 items-center border-b lg:h-[60px]", isCollapsed ? 'justify-center px-2' : 'px-4 lg:px-6')}>
+          <Link href="/?view=dashboard" className="flex items-center gap-2 font-semibold">
+              <Image
+                  src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
+                  alt="PTT Logo"
+                  width={isCollapsed ? 40 : 80}
+                  height={32}
+                  style={{ height: 'auto' }}
+                  className="object-contain transition-all duration-300"
+              />
+          </Link>
+      </div>
+      <div className="flex-1 overflow-auto">
+        <SidebarNav isCollapsed={isCollapsed} />
+      </div>
+    </>
+);
+
+
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const { user, logout } = useAuth();
     const router = useRouter();
@@ -64,26 +86,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     if (!user) return null;
     
     const headerTitle = viewTitles[view] || 'Pozisyon Takip Sistemi';
-
-    const SidebarContent = ({ isCollapsed }: { isCollapsed: boolean }) => (
-      <>
-        <div className={cn("flex h-14 items-center border-b lg:h-[60px]", isCollapsed ? 'justify-center px-2' : 'px-4 lg:px-6')}>
-            <Link href="/?view=dashboard" className="flex items-center gap-2 font-semibold">
-                <Image
-                    src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
-                    alt="PTT Logo"
-                    width={isCollapsed ? 40 : 80}
-                    height={32}
-                    style={{ height: 'auto' }}
-                    className="object-contain transition-all duration-300"
-                />
-            </Link>
-        </div>
-        <div className="flex-1 overflow-auto">
-          <SidebarNav isCollapsed={isCollapsed} />
-        </div>
-      </>
-    );
 
     return (
         <div className={cn(
