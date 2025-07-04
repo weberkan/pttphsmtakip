@@ -91,9 +91,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     return (
         <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
             {/* Sidebar Container */}
-            <div className="hidden border-r bg-background md:flex">
+            <div className="hidden bg-muted/40 md:flex">
                 {/* Panel 1: Icon Rail */}
-                <div className="flex flex-col items-center gap-4 p-2 border-r bg-muted/40">
+                <div className="flex flex-col items-center gap-4 p-2">
                     <Link href="/?view=dashboard" className="flex h-14 w-full items-center justify-center">
                          <Image
                             src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
