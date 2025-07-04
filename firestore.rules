@@ -4,65 +4,49 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if a user is authenticated
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    // Helper function to check if the user is an admin
-    function isAdmin() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // --- Users Collection Rules ---
+    // Users collection rules
     match /users/{userId} {
-      // Any authenticated user can get any other user's profile for the messaging contact list.
-      allow get: if isAuthenticated();
-      // Only admins can list all users for the approval panel.
-      allow list: if isAdmin();
-      
-      // A user can update their own profile, OR an admin can approve another user.
-      // Admins can only change the 'isApproved' field.
-      allow update: if request.auth.uid == userId ||
-                       (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isApproved']));
-      
-      // A user can only create their own user document during signup.
-      // They cannot make themselves an admin or pre-approve themselves.
-      allow create: if request.auth.uid == userId &&
-                       request.resource.data.role != 'admin' &&
-                       request.resource.data.isApproved == false;
-      
-      // No one can delete users for now to maintain data integrity.
-      allow delete: if false;
+      // Any authenticated user can read user profiles (for messaging list).
+      allow read: if request.auth != null;
+
+      // A user can create their own user document during signup, but cannot self-approve or assign a role.
+      allow create: if request.auth != null && request.resource.data.isApproved == false && !('role' in request.resource.data);
+
+      // A user can update their own profile (but not their role or approval status).
+      // An admin can update any user's profile (including approval status).
+      allow update: if request.auth != null && (
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        (request.auth.uid == userId && !('role' in request.resource.data) && !('isApproved' in request.resource.data))
+      );
+
+      // Only admins can delete users.
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // --- Conversations and Messages Rules ---
+    // Conversations & Messages rules
     match /conversations/{conversationId} {
-      // Allow access if the user's UID is in the participantUids array.
-      allow read, write: if isAuthenticated() && request.auth.uid in resource.data.participantUids;
+      // A user can only read, write, or create a conversation if they are a participant.
+      allow read, write, create: if request.auth != null && request.auth.uid in resource.data.participantUids;
 
       match /messages/{messageId} {
-        // Allow access to messages if the user is a participant of the parent conversation.
-        allow read, write: if isAuthenticated() && get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantUids.hasAny([request.auth.uid]);
+        // A user can only read or create messages in conversations they are a part of.
+        allow read, create: if request.auth != null && get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantUids.hasAny([request.auth.uid]);
       }
     }
-    
-    // --- Organizational Data Rules (Positions and Personnel) ---
-    // These rules allow any authenticated user to read and write data.
-    match /merkez-positions/{docId} {
-      allow read, write: if isAuthenticated();
-    }
-    
-    match /merkez-personnel/{docId} {
-      allow read, write: if isAuthenticated();
-    }
 
-    match /tasra-positions/{docId} {
-      allow read, write: if isAuthenticated();
+    // Data collections (Merkez & Tasra)
+    // Any authenticated user can read or write data in these collections.
+    match /merkez-positions/{doc=**} {
+      allow read, write: if request.auth != null;
     }
-
-    match /tasra-personnel/{docId} {
-      allow read, write: if isAuthenticated();
+    match /merkez-personnel/{doc=**} {
+      allow read, write: if request.auth != null;
+    }
+    match /tasra-positions/{doc=**} {
+      allow read, write: if request.auth != null;
+    }
+    match /tasra-personnel/{doc=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
