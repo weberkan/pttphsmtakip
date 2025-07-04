@@ -3,7 +3,7 @@
 
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, Suspense, useState, ReactNode } from 'react';
+import { useEffect, Suspense, useState, ReactNode, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Users, LogOut, Menu, Briefcase, ChevronsLeft, Network, UserCheck, Mail, Bell } from "lucide-react";
@@ -22,6 +22,8 @@ import { SidebarNav } from '@/components/sidebar-nav';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useUserManagement } from '@/hooks/use-user-management';
+import { useMessaging } from '@/hooks/use-messaging';
 
 
 const viewTitles: { [key: string]: string } = {
@@ -41,6 +43,23 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
     const { toast } = useToast();
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    // Hooks for notifications
+    const { users } = useUserManagement();
+    const { conversations } = useMessaging();
+    
+    const hasPendingApprovals = useMemo(() => {
+        if (user?.role !== 'admin') return false;
+        return users.some(u => !u.isApproved);
+    }, [users, user?.role]);
+
+    const hasUnreadMessages = useMemo(() => {
+        if (!user) return false;
+        // Simple heuristic: a conversation is "unread" if the last message wasn't from the current user.
+        return conversations.some(c => 
+            c.lastMessage && c.lastMessage.senderId !== user.uid
+        );
+    }, [conversations, user]);
 
     // This should never happen if the protection in DashboardLayout works, but it's a good failsafe.
     if (!user) return null;
@@ -122,14 +141,22 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         <Link href="/?view=mesajlar" passHref>
                            <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
                                 <Mail className="h-5 w-5" />
+                                {hasUnreadMessages && (
+                                    <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background" />
+                                )}
                                 <span className="sr-only">Mesajlar</span>
                            </Button>
                         </Link>
 
-                        <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
-                            <Bell className="h-5 w-5" />
-                            <span className="sr-only">Bildirimler</span>
-                        </Button>
+                        <Link href="/?view=kullanici-onay" passHref>
+                          <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
+                              <Bell className="h-5 w-5" />
+                              {hasPendingApprovals && (
+                                <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background" />
+                              )}
+                              <span className="sr-only">Bildirimler</span>
+                          </Button>
+                        </Link>
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
