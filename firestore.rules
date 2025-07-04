@@ -1,60 +1,60 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isParticipant(conversationId) {
-      return request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantUids;
-    }
-
+    // --- User Rules ---
     match /users/{userId} {
-      // Allow users to read their own profile
+      // A user can read their own profile
       allow read: if request.auth.uid == userId;
 
-      // Allow admin to read any user profile
-      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Anyone can create a user document during signup
+      // Rules ensure they cannot set themselves as admin or approved
+      allow create: if request.resource.data.isApproved == false
+                    && !('role' in request.resource.data);
 
-      // Allow users to create their own profile upon signup, but they cannot make themselves an admin or approved
-      allow create: if request.auth.uid == userId && 
-                     !('role' in request.resource.data) &&
-                     request.resource.data.isApproved == false;
-                     
-      // Allow admin to update any user's approval status
-      allow update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
-                     request.resource.data.isApproved == true;
+      // Only an admin can list all users or approve another user by updating them
+      allow list, update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    match /merkez-positions/{docId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /merkez-personnel/{docId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    match /tasra-positions/{docId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /tasra-personnel/{docId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Messaging Rules
+    // --- Conversation Rules ---
     match /conversations/{conversationId} {
-      // Users can read/update a conversation if they are a participant
-      allow read, update, delete: if request.auth.uid in resource.data.participantUids;
-      // Users can create a conversation if they are a participant in the new conversation
-      allow create: if request.auth.uid in request.resource.data.participantUids;
-    }
-    
-    match /conversations/{conversationId}/messages/{messageId} {
-        // Allow read if user is a participant
-        allow read: if isParticipant(conversationId);
+      // Function to check if the requesting user is a valid participant of the conversation
+      // by checking if their UID is part of the conversation document's ID (e.g., "uid1_uid2")
+      function isConversationMember() {
+        let uids = conversationId.split('_');
+        return request.auth.uid in uids && uids.size() == 2;
+      }
+
+      // Allow read, write (e.g., update lastMessage), and create operations 
+      // only if the user is a member of the conversation.
+      allow read, write, create: if isConversationMember();
+
+      // --- Message Sub-collection Rules ---
+      match /messages/{messageId} {
+        // Allow reading messages only if the user is a member of the parent conversation
+        allow read: if isConversationMember();
         
-        // Allow create if user is a participant and the senderId is their own uid.
-        allow create: if isParticipant(conversationId) && request.resource.data.senderId == request.auth.uid;
+        // Allow creating a message only if the user is a member of the conversation
+        // AND they are the sender of the message.
+        allow create: if isConversationMember() && request.auth.uid == request.resource.data.senderId;
+      }
+    }
+
+    // --- Merkez Teşkilatı Rules ---
+    match /merkez-positions/{docId} {
+      allow read, write, delete: if request.auth != null && request.auth.token.email_verified;
+    }
+    match /merkez-personnel/{docId} {
+      allow read, write, delete: if request.auth != null && request.auth.token.email_verified;
+    }
+
+    // --- Taşra Teşkilatı Rules ---
+    match /tasra-positions/{docId} {
+      allow read, write, delete: if request.auth != null && request.auth.token.email_verified;
+    }
+    match /tasra-personnel/{docId} {
+      allow read, write, delete: if request.auth != null && request.auth.token.email_verified;
     }
   }
 }

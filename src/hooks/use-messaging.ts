@@ -12,7 +12,7 @@ import {
   addDoc,
   orderBy,
   Timestamp,
-  getDocs,
+  getDoc,
   doc,
   setDoc,
   serverTimestamp,
@@ -116,20 +116,15 @@ export function useMessaging() {
   const startConversation = useCallback(async (otherUser: AppUser): Promise<string> => {
     if (!currentUser || !db) throw new Error("User not authenticated");
     
-    // Sort UIDs to create a predictable conversation ID
+    // Create a predictable, unique conversation ID by sorting and joining UIDs.
     const participantUids = [currentUser.uid, otherUser.uid].sort();
+    const conversationId = participantUids.join('_');
+    
+    const conversationDocRef = doc(db, 'conversations', conversationId);
+    const conversationDoc = await getDoc(conversationDocRef);
 
-    const conversationQuery = query(
-        collection(db, 'conversations'),
-        where('participantUids', '==', participantUids)
-    );
-
-    const querySnapshot = await getDocs(conversationQuery);
-
-    if (!querySnapshot.empty) {
-        return querySnapshot.docs[0].id;
-    } else {
-        const newConversationRef = doc(collection(db, 'conversations'));
+    // If the conversation doesn't exist, create it.
+    if (!conversationDoc.exists()) {
         const newConversationData = {
             participantUids,
             participants: {
@@ -144,11 +139,13 @@ export function useMessaging() {
                     photoUrl: otherUser.photoUrl || null,
                 }
             },
-            lastMessage: null
+            lastMessage: null,
+            createdAt: serverTimestamp(),
         };
-        await setDoc(newConversationRef, newConversationData);
-        return newConversationRef.id;
+        await setDoc(conversationDocRef, newConversationData);
     }
+
+    return conversationId;
   }, [currentUser]);
 
 

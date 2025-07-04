@@ -35,12 +35,6 @@ const menuItems = [
     icon: BarChart2,
     href: 'raporlama',
   },
-  {
-    id: 'mesajlar',
-    title: 'Mesajlar',
-    icon: MessageSquare,
-    href: 'mesajlar',
-  },
 ];
 
 
