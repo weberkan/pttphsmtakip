@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -31,6 +32,7 @@ export function useUserManagement() {
           registryNumber: data.registryNumber,
           isApproved: data.isApproved || false,
           role: data.role,
+          photoUrl: data.photoUrl,
         } as AppUser;
       });
       setUsers(fetchedUsers);
@@ -63,3 +65,5 @@ export function useUserManagement() {
 
   return { users, approveUser, isInitialized };
 }
+
+    

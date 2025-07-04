@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense, useState, ReactNode } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Menu, Briefcase, ChevronsLeft, Network, UserCheck } from "lucide-react";
+import { Users, LogOut, Menu, Briefcase, ChevronsLeft, Network, UserCheck, Mail, Bell } from "lucide-react";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarNav } from '@/components/sidebar-nav';
 import { useToast } from "@/hooks/use-toast";
@@ -132,25 +132,44 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     </Sheet>
                     
                     <h1 className="flex-1 text-lg font-semibold">{headerTitle}</h1>
-
-                    <div className="flex items-center gap-4">
+                    
+                    <div className="ml-auto flex items-center gap-2">
                         <ThemeToggle />
+                        
+                        <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
+                            <Mail className="h-5 w-5" />
+                             <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+                            </span>
+                            <span className="sr-only">Mesajlar</span>
+                        </Button>
+
+                        <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
+                            <Bell className="h-5 w-5" />
+                            <span className="sr-only">Bildirimler</span>
+                        </Button>
+
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                                     <Avatar className="h-10 w-10">
+                                        <AvatarImage src={user.photoUrl || ''} alt={`${user.firstName} ${user.lastName}`} />
                                         <AvatarFallback>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56" align="end" forceMount>
+                            <DropdownMenuContent className="w-64" align="end" forceMount>
                                 <DropdownMenuLabel className="font-normal">
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
-
-                                        <p className="text-xs leading-none text-muted-foreground">
-                                            Sicil: {user.registryNumber}
-                                        </p>
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-12 w-12">
+                                            <AvatarImage src={user.photoUrl || ''} alt={`${user.firstName} ${user.lastName}`} />
+                                            <AvatarFallback>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex flex-col space-y-1">
+                                            <p className="text-sm font-medium leading-none">{user.firstName} {user.lastName}</p>
+                                            <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                                        </div>
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
@@ -213,3 +232,5 @@ export default function Layout({children}: {children: React.ReactNode}) {
         </Suspense>
     )
 }
+
+    

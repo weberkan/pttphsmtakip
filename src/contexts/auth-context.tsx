@@ -5,7 +5,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, query, where, getDocs, limit } from 'firebase/firestore';
 import type { AppUser } from '@/lib/types';
 
 export interface SignUpData {
@@ -44,6 +44,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!userData.isApproved) {
           return null; 
         }
+        
+        // Fetch photoUrl from personnel collections
+        let photoUrl: string | null = null;
+        if (userData.registryNumber) {
+          try {
+            const merkezPersonnelQuery = query(collection(db, "merkez-personnel"), where("registryNumber", "==", userData.registryNumber), limit(1));
+            const tasraPersonnelQuery = query(collection(db, "tasra-personnel"), where("registryNumber", "==", userData.registryNumber), limit(1));
+
+            const [merkezSnapshot, tasraSnapshot] = await Promise.all([
+              getDocs(merkezPersonnelQuery),
+              getDocs(tasraPersonnelQuery)
+            ]);
+            
+            if (!merkezSnapshot.empty) {
+              photoUrl = merkezSnapshot.docs[0].data().photoUrl || null;
+            } else if (!tasraSnapshot.empty) {
+              photoUrl = tasraSnapshot.docs[0].data().photoUrl || null;
+            }
+          } catch (e) {
+            console.error("Could not fetch personnel photo for user", e);
+          }
+        }
 
         return {
           uid: firebaseUser.uid,
@@ -53,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           registryNumber: userData.registryNumber,
           isApproved: userData.isApproved,
           role: userData.role,
+          photoUrl: photoUrl
         };
       }
       console.warn(`No profile document found in 'users' for UID: ${firebaseUser.uid}.`);
@@ -77,9 +100,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(userProfile);
           } else {
             // User exists in Auth but not in Firestore or is not approved.
-            // We just set the local user to null, we don't force a sign-out here,
-            // as that causes a race condition during the initial login process.
-            // The login function itself will handle the sign-out for unapproved users.
             setUser(null);
           }
         } else {
@@ -191,3 +211,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    

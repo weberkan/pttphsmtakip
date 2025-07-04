@@ -54,4 +54,7 @@ export interface AppUser {
   email: string;
   isApproved: boolean;
   role?: 'admin';
+  photoUrl?: string | null;
 }
+
+    
