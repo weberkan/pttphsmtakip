@@ -3,7 +3,7 @@
 
 import type { Position, Personnel, TasraPosition } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { Users, Briefcase, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
@@ -201,7 +201,7 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
                 <ChartContainer config={chartConfig} className="h-[300px] w-full">
                     <PieChart>
                         <ChartTooltip content={<ChartTooltipContent nameKey="value" hideLabel />} />
-                        <Pie data={tasraPieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
+                        <Pie data={tasraPieChartData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={90} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
                             const RADIAN = Math.PI / 180;
                             const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                             const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -216,6 +216,7 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
                                 <Cell key={`cell-${index}`} fill={entry.fill} />
                             ))}
                         </Pie>
+                        <ChartLegend content={<ChartLegendContent />} />
                     </PieChart>
                 </ChartContainer>
             </CardContent>
