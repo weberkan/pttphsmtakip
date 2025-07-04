@@ -36,11 +36,31 @@ export function SidebarNav({ isCollapsed }: { isCollapsed: boolean }) {
   const searchParams = useSearchParams();
   const currentView = searchParams.get('view') || 'dashboard';
 
-  const defaultOpenAccordion = isCollapsed ? undefined : menuItems.find(item => 'subItems' in item && item.subItems?.some(sub => sub.href === currentView))?.id;
+  const activeAccordion = menuItems.find(item => 'subItems' in item && item.subItems?.some(sub => sub.href === currentView))?.id;
+
+  // State to manage which accordion items are open
+  const [openItems, setOpenItems] = React.useState<string[]>([]);
+
+  // Effect to set the open accordion based on navigation and collapse state
+  React.useEffect(() => {
+    if (isCollapsed) {
+      setOpenItems([]);
+    } else if (activeAccordion) {
+      setOpenItems([activeAccordion]);
+    } else {
+      // If no accordion is active (e.g., on dashboard), close all.
+      setOpenItems([]);
+    }
+  }, [activeAccordion, isCollapsed]);
   
   return (
     <nav className="flex flex-col gap-2 p-2 pt-4">
-      <Accordion type="multiple" defaultValue={defaultOpenAccordion ? [defaultOpenAccordion] : []} className="w-full" value={isCollapsed ? [] : (defaultOpenAccordion ? [defaultOpenAccordion] : undefined)}>
+      <Accordion 
+        type="multiple" 
+        className="w-full"
+        value={openItems}
+        onValueChange={setOpenItems}
+      >
         {menuItems.filter(item => 'subItems' in item).map((item) => (
           'subItems' in item && (
             <AccordionItem key={item.id} value={item.id} className="border-b-0">
