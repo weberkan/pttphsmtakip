@@ -50,23 +50,25 @@ export function ThemeToggle() {
         <div className="absolute left-[9px] top-[11px] h-1 w-1 rounded-full bg-white opacity-70"></div>
       </div>
       
-      {/* The moving Thumb which becomes a crescent */}
+      {/* Clouds for light mode, positioned on the right side of the track */}
+      <div className={cn(
+        "absolute right-0.5 top-1/2 -translate-y-1/2 transition-all duration-500 pointer-events-none",
+        isDark ? "opacity-0 -translate-x-3" : "opacity-100 translate-x-0"
+      )}>
+        <div className="h-2 w-4 rounded-full bg-white/90 relative -right-1 shadow"></div>
+        <div className="h-2 w-3 rounded-full bg-white/90 relative -top-1 shadow"></div>
+      </div>
+      
+      {/* The moving Thumb (Sun/Moon) */}
       <div
         className={cn(
-          "h-5 w-5 rounded-full shadow-md transition-all duration-300 ease-in-out relative overflow-hidden",
-          // Light Mode: Yellow Sun
-          !isDark && 'translate-x-0 bg-yellow-300',
-          // Dark Mode: White Crescent
-          isDark && 'translate-x-[20px] bg-white'
+          "h-5 w-5 rounded-full transition-all duration-500 ease-in-out",
+          // Light Mode: Yellow Sun, no special shadow
+          !isDark && 'translate-x-0 bg-yellow-400 shadow-lg',
+          // Dark Mode: White Moon with a CSS inset shadow to create the crescent
+          isDark && 'translate-x-5 bg-white shadow-[-4px_2px_0_0_#0f172a_inset]'
         )}
-      >
-         {/* The "hole" that creates the crescent effect. It's a circle of the track's color that slides into the thumb */}
-         <div className={cn(
-            "absolute top-[1.5px] h-4 w-4 rounded-full bg-slate-900 transition-all duration-300 ease-in-out",
-            // In dark mode, it's visible and positioned to make the crescent. In light mode, it's hidden.
-            isDark ? 'right-[1px] opacity-100' : 'right-full opacity-0'
-         )}></div>
-      </div>
+      />
     </button>
   )
 }
