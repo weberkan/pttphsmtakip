@@ -1,0 +1,13 @@
+
+{
+  "rules": {
+    "status": {
+      "$uid": {
+        // Any authenticated user can read presence data
+        ".read": "auth != null",
+        // Only the owner of the status can write to it
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

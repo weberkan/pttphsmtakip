@@ -3,50 +3,42 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Users collection rules
+    
+    // Users can read other user profiles, but only create/update their own.
+    // Admins can do anything to user profiles.
     match /users/{userId} {
-      // Any authenticated user can read user profiles (for messaging list).
       allow read: if request.auth != null;
-
-      // A user can create their own user document during signup, but cannot self-approve or assign a role.
-      allow create: if request.auth != null && request.resource.data.isApproved == false && !('role' in request.resource.data);
-
-      // A user can update their own profile (but not their role or approval status).
-      // An admin can update any user's profile (including approval status).
-      allow update: if request.auth != null && (
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
-        (request.auth.uid == userId && !('role' in request.resource.data) && !('isApproved' in request.resource.data))
-      );
-
-      // Only admins can delete users.
-      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if request.auth.uid == userId;
+      // Admins can approve users by writing to their doc.
+      allow update: if request.auth.uid == userId || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Conversations & Messages rules
+    // Any authenticated user can manage position and personnel data.
+    // This allows for the collaborative nature of the application.
+    match /merkez-positions/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /merkez-personnel/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /tasra-positions/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /tasra-personnel/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Only participants can access a conversation and its messages.
     match /conversations/{conversationId} {
-      // A user can only read, write, or create a conversation if they are a participant.
-      allow read, write, create: if request.auth != null && request.auth.uid in resource.data.participantUids;
-
+      // Allow read/create/update if the user is a participant.
+      allow read, update: if request.auth.uid in resource.data.participantUids;
+      allow create: if request.auth.uid in request.resource.data.participantUids;
+      
       match /messages/{messageId} {
-        // A user can only read or create messages in conversations they are a part of.
-        allow read, create: if request.auth != null && get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantUids.hasAny([request.auth.uid]);
+        // Allow read/create if user is a participant of the parent conversation.
+        allow read, create: if request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantUids;
       }
-    }
-
-    // Data collections (Merkez & Tasra)
-    // Any authenticated user can read or write data in these collections.
-    match /merkez-positions/{doc=**} {
-      allow read, write: if request.auth != null;
-    }
-    match /merkez-personnel/{doc=**} {
-      allow read, write: if request.auth != null;
-    }
-    match /tasra-positions/{doc=**} {
-      allow read, write: if request.auth != null;
-    }
-    match /tasra-personnel/{doc=**} {
-      allow read, write: if request.auth != null;
     }
   }
 }
