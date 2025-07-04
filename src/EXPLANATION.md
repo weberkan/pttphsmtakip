@@ -114,11 +114,11 @@ Taşra pozisyon listesini yüklemek için Excel dosyanızda aşağıdaki sütunl
 *   **`Durum`** (Değerler: `Asıl`, `Vekalet`, `Yürütme` veya `Boş` olmalıdır)
 *   `Kadro Ünvanı` (Opsiyonel. Pozisyonun resmi kadro ünvanı.)
 *   `Asıl Ünvan` (Opsiyonel, genellikle `Vekalet` veya `Yürütme` durumlarında kullanılır)
-*   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin sicil numarası. `Durum` "Boş" ise bu alan dikkate alınmaz.)
+*   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin **sicil numarası**. Alternatif başlıklar: `Atanan Personel`, `Personel Sicil`. `Durum` "Boş" ise bu alan dikkate alınmaz.)
 *   `Başlama Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında. `Durum` "Boş" ise dikkate alınmaz.)
 *   `Görevi Veren Makam` (Opsiyonel. Değerler: `Başmüdürlük` veya `Genel Müdürlük`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
-*   `Vekalet Ücreti Alıyor Mu?` (Opsiyonel. Değerler: `Evet`, `Hayır`, `True`, `False`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
-*   `Yetki Devri Var Mı?` (Opsiyonel. Değerler: `Evet`, `Hayır`, `True`, `False`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
+*   `Vekalet Ücreti Alıyor Mu?` (Opsiyonel. Değerler: `Evet`, `Hayır`, `True`, `False`. Alternatif başlık: `Vekalet Ücreti`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
+*   `Yetki Devri Var Mı?` (Opsiyonel. Değerler: `Evet`, `Hayır`, `True`, `False`. Alternatif başlık: `Yetki Devri`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
 
 _Önemli Notlar:_
 *   `Atanan Personel Sicil` alanına yazdığınız sicil numarasının sistemde (Taşra Personel listesinde) kayıtlı bir personele ait olması gerekir.

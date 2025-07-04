@@ -784,7 +784,7 @@ function DashboardPageContent() {
           'kadrounvani': 'kadroUnvani',
           'durum': 'status', 
           'asilunvan': 'originalTitle',
-          'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber',
+          'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber', 'atananpersonel': 'assignedPersonnelRegistryNumber',
           'baslamatarihi': 'startDate',
           'goreviverenmakam': 'actingAuthority', 'makam': 'actingAuthority',
           'vekaletucretialiyormu': 'receivesProxyPay', 'vekaletucreti': 'receivesProxyPay',
