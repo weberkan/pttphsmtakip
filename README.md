@@ -48,7 +48,7 @@ Uygulamanın veritabanına erişebilmesi için güvenlik kurallarını manuel ol
               ".validate": "newData.isString() && (newData.val() === 'online' || newData.val() === 'offline')"
             },
             "last_changed": {
-              ".validate": "newData.val() === server.timestamp"
+              ".validate": "newData.val() === now"
             },
             "$other": {
               ".validate": false
