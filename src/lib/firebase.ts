@@ -35,35 +35,15 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.database
     auth = null;
     rtdb = null;
   }
-} else {
-  console.error(`
-    ********************************************************************************
-    *** FIREBASE IS NOT CONFIGURED ***
-    ********************************************************************************
+} else if (process.env.NODE_ENV !== 'production') {
+  // In development, it's helpful to show a warning if Firebase is not configured.
+  console.warn(`
+    ** FIREBASE IS NOT CONFIGURED **
+    Your Firebase environment variables are not set. The app will run without 
+    database, authentication, or presence features.
     
-    Firebase credentials (including Database URL for presence) are not available
-    in your environment.
-    
-    To fix this:
-    
-    1. LOCAL DEVELOPMENT:
-       - Make sure you have a '.env.local' file in the root of your project.
-       - Copy the contents of '.env.local.example' into it.
-       - Fill it with your actual Firebase project credentials, INCLUDING the
-         'NEXT_PUBLIC_FIREBASE_DATABASE_URL' from your Realtime Database.
-       - Restart your development server.
-    
-    2. DEPLOYMENT (Vercel, etc.):
-       - Go to your hosting provider's dashboard (e.g., Vercel).
-       - Navigate to your project's 'Settings' > 'Environment Variables'.
-       - Add all the variables from '.env.local.example' there, ensuring
-         'NEXT_PUBLIC_FIREBASE_DATABASE_URL' is set.
-       - Redeploy your application.
-    
-    The app will not have database, authentication, or presence functionality until
-    this is resolved.
-    
-    ********************************************************************************
+    To fix this, set up your .env.local file with the necessary Firebase credentials.
+    See your project's Firebase console for details.
   `);
 }
 
