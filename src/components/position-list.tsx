@@ -97,8 +97,8 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
   const getStatusBadge = (status: Position['status']) => {
     const statusMap = {
       'Asıl': { letter: 'A', tooltip: 'Asıl', variant: 'default' as const, className: '' },
-      'Vekalet': { letter: 'V', tooltip: 'Vekalet', variant: 'secondary' as const, className: '' },
-      'Yürütme': { letter: 'Y', tooltip: 'Yürütme', variant: 'outline' as const, className: 'bg-accent/20 border-accent/50' },
+      'Vekalet': { letter: 'V', tooltip: 'Vekalet', variant: 'secondary' as const, className: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800' },
+      'Yürütme': { letter: 'Y', tooltip: 'Yürütme', variant: 'outline' as const, className: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800' },
       'Boş': { letter: 'B', tooltip: 'Boş', variant: 'outline' as const, className: '' },
     };
     
@@ -173,7 +173,7 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                 </TableCell>
                 <TableCell>
                   {assignedPerson && position.status !== 'Boş' ? (
-                    assignedPerson.status
+                    <Badge variant={assignedPerson.status === "İHS" ? "default" : "secondary"}>{assignedPerson.status}</Badge>
                   ) : (
                     <span className="text-muted-foreground italic">Yok</span>
                   )}

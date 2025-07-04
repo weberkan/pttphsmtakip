@@ -110,7 +110,7 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
             <TableHead>Kadro Ünvanı</TableHead>
             <TableHead>Sicil</TableHead>
             <TableHead>Personel</TableHead>
-            <TableHead>Personel Statü</TableHead>
+            <TableHead>Statü</TableHead>
             <TableHead>Asıl Ünvan</TableHead>
             <TableHead>Durum / Makam</TableHead>
             <TableHead>Başlama Tarihi</TableHead>
