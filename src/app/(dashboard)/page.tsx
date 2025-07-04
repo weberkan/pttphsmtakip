@@ -64,7 +64,7 @@ const importTasraPositionSchema = z.object({
   originalTitle: z.string().optional().nullable().or(z.literal('')),
   assignedPersonnelRegistryNumber: z.string().optional().nullable().or(z.literal('')),
   startDate: z.date().optional().nullable(),
-  actingAuthority: z.string().optional().nullable(),
+  actingAuthority: z.enum(["Başmüdürlük", "Genel Müdürlük"]).optional().nullable(),
   receivesProxyPay: z.any().optional().nullable(),
   hasDelegatedAuthority: z.any().optional().nullable(),
 }).superRefine((data, ctx) => {
@@ -77,14 +77,6 @@ const importTasraPositionSchema = z.object({
               path: ["originalTitle"],
               message: "Durum 'Vekalet' veya 'Yürütme' ise Asıl Ünvan zorunludur.",
           });
-        }
-        
-        if (data.actingAuthority && !["Başmüdürlük", "Genel Müdürlük"].includes(data.actingAuthority)) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ["actingAuthority"],
-                message: "Görevi Veren Makam 'Başmüdürlük' veya 'Genel Müdürlük' olmalıdır.",
-            });
         }
     }
 });
@@ -603,10 +595,10 @@ function DashboardPageContent() {
           'birim': 'department',
           'gorevyeri': 'dutyLocation',
           'asilunvan': 'originalTitle',
-          'durum': 'status', 
+          'durum': 'status',
           'baglioldugupersonelsicil': 'reportsToPersonnelRegistryNumber', 'raporladigisicil': 'reportsToPersonnelRegistryNumber',
-          'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber',
-          'baslamatarihi': 'startDate',
+          'atananpersonelsicil': 'assignedPersonnelRegistryNumber', 'personelsicil': 'assignedPersonnelRegistryNumber', 'atananpersonel': 'assignedPersonnelRegistryNumber',
+          'baslamatarihi': 'startDate', 'tarih': 'startDate',
         };
         
         const positionHeaderMappingReverse: { [key: string]: string } = {
@@ -866,9 +858,9 @@ function DashboardPageContent() {
                 status: validatedData.status,
                 assignedPersonnelId: resolvedAssignedPersonnelId,
                 startDate: validatedData.startDate && validatedData.status !== "Boş" ? new Date(validatedData.startDate) : null,
-                actingAuthority: isProxyOrActing ? validatedData.actingAuthority || null : null,
-                receivesProxyPay: receivesProxyPay,
-                hasDelegatedAuthority: hasDelegatedAuthority,
+                actingAuthority: isProxyOrActing ? validatedData.actingAuthority : null,
+                receivesProxyPay: isProxyOrActing ? receivesProxyPay : false,
+                hasDelegatedAuthority: isProxyOrActing ? hasDelegatedAuthority : false,
               };
               
               const key = `${(positionDataFromExcel.unit || '').trim().toLowerCase()}|${(positionDataFromExcel.dutyLocation || '').trim().toLowerCase()}`;

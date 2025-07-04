@@ -86,9 +86,9 @@ Pozisyon listesini yüklemek için Excel dosyanızda aşağıdaki sütunlar bulu
 *   **`Durum`** (Değerler: `Asıl`, `Vekalet`, `Yürütme` veya `Boş` olmalıdır)
 *   `Görev Yeri` (Opsiyonel. Alternatif başlıklar: `Gorevyeri`)
 *   `Asıl Ünvan` (Opsiyonel, genellikle `Vekalet` veya `Yürütme` durumlarında kullanılır. Alternatif başlıklar: `Asil Unvan`)
-*   `Bağlı Olduğu Personel Sicil` (Opsiyonel. Üst pozisyondaki kişinin sicil numarası. Alternatif: `Raporladığı Sicil`)
-*   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin sicil numarası. `Durum` "Boş" ise bu alan dikkate alınmaz.)
-*   `Başlama Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında. `Durum` "Boş" ise dikkate alınmaz.)
+*   `Bağlı Olduğu Personel Sicil` (Opsiyonel. Üst pozisyondaki kişinin **sicil numarası**. Alternatif: `Raporladığı Sicil`)
+*   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin **sicil numarası**. Alternatif başlıklar: `Personel Sicil`, `Atanan Personel`. `Durum` "Boş" ise bu alan dikkate alınmaz.)
+*   `Başlama Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında. Alternatif başlık: `Tarih`. `Durum` "Boş" ise dikkate alınmaz.)
 
 _Önemli Notlar:_
 *   `Bağlı Olduğu Personel Sicil` alanına yazdığınız sicil numarasının sistemde kayıtlı bir personele ait olması ve o personelin bir pozisyona atanmış olması gerekir.

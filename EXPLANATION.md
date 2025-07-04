@@ -85,9 +85,9 @@ Pozisyon listesini yüklemek için Excel dosyanızda aşağıdaki sütunlar bulu
 *   **`Durum`** (Değerler: `Asıl`, `Vekalet`, `Yürütme` veya `Boş` olmalıdır)
 *   `Görev Yeri` (Opsiyonel. Alternatif başlıklar: `Gorevyeri`)
 *   `Asıl Ünvan` (Opsiyonel, genellikle `Vekalet` veya `Yürütme` durumlarında kullanılır. Alternatif başlıklar: `Asil Unvan`)
-*   `Bağlı Olduğu Personel Sicil` (Opsiyonel. Üst pozisyondaki kişinin sicil numarası. Alternatif: `Raporladığı Sicil`)
-*   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin sicil numarası. `Durum` "Boş" ise bu alan dikkate alınmaz.)
-*   `Başlama Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında. `Durum` "Boş" ise dikkate alınmaz.)
+*   `Bağlı Olduğu Personel Sicil` (Opsiyonel. Üst pozisyondaki kişinin **sicil numarası**. Alternatif: `Raporladığı Sicil`)
+*   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin **sicil numarası**. Alternatif başlıklar: `Personel Sicil`, `Atanan Personel`. `Durum` "Boş" ise bu alan dikkate alınmaz.)
+*   `Başlama Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında. Alternatif başlık: `Tarih`. `Durum` "Boş" ise dikkate alınmaz.)
 
 _Önemli Notlar:_
 *   `Bağlı Olduğu Personel Sicil` alanına yazdığınız sicil numarasının sistemde kayıtlı bir personele ait olması ve o personelin bir pozisyona atanmış olması gerekir.
@@ -111,15 +111,23 @@ Taşra pozisyon listesini yüklemek için Excel dosyanızda aşağıdaki sütunl
 *   **`Ünite`**
 *   **`Görev Yeri`**
 *   **`Durum`** (Değerler: `Asıl`, `Vekalet`, `Yürütme` veya `Boş` olmalıdır)
+*   `Kadro Ünvanı` (Opsiyonel. Pozisyonun resmi kadro ünvanı.)
 *   `Asıl Ünvan` (Opsiyonel, genellikle `Vekalet` veya `Yürütme` durumlarında kullanılır)
-*   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin sicil numarası. `Durum` "Boş" ise bu alan dikkate alınmaz.)
+*   `Atanan Personel Sicil` (Opsiyonel. Pozisyona atanan kişinin **sicil numarası**. Alternatif başlıklar: `Atanan Personel`, `Personel Sicil`. `Durum` "Boş" ise bu alan dikkate alınmaz.)
 *   `Başlama Tarihi` (Opsiyonel. `GG.AA.YYYY` formatında. `Durum` "Boş" ise dikkate alınmaz.)
 *   `Görevi Veren Makam` (Opsiyonel. Değerler: `Başmüdürlük` veya `Genel Müdürlük`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
-*   `Vekalet Ücreti Alıyor Mu?` (Opsiyonel. Değerler: `Evet`, `Hayır`, `True`, `False`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
-*   `Yetki Devri Var Mı?` (Opsiyonel. Değerler: `Evet`, `Hayır`, `True`, `False`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
+*   `Vekalet Ücreti Alıyor Mu?` (Opsiyonel. Değerler: `Evet`, `Hayır`, `True`, `False`. Alternatif başlık: `Vekalet Ücreti`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
+*   `Yetki Devri Var Mı?` (Opsiyonel. Değerler: `Evet`, `Hayır`, `True`, `False`. Alternatif başlık: `Yetki Devri`. Sadece `Durum` "Vekalet" veya "Yürütme" ise geçerlidir.)
 
 _Önemli Notlar:_
 *   `Atanan Personel Sicil` alanına yazdığınız sicil numarasının sistemde (Taşra Personel listesinde) kayıtlı bir personele ait olması gerekir.
 *   Bir pozisyonu güncellemek için (örn: atanan kişiyi değiştirmek), Excel'de `Ünite` ve `Görev Yeri` alanları sistemdekiyle birebir aynı olan bir satır ekleyin. Sistem bu pozisyonu bulup diğer sütunlardaki bilgilerle güncelleyecektir.
 
+_Örnek Taşra Pozisyon Excel Dosyası:_
+
+| Ünite | Görev Yeri | Kadro Ünvanı | Durum | Atanan Personel Sicil | Asıl Ünvan | Görevi Veren Makam | Vekalet Ücreti Alıyor Mu? | Yetki Devri Var Mı? |
+|---|---|---|---|---|---|---|---|---|
+| Adana P.İ.M. | Müdür | Müdür | Vekalet | 123456 | Başdağıtıcı | Başmüdürlük | Evet | Hayır |
+| Ankara P.İ.M. | Memur | Memur | Asıl | 789012 | | | | |
+| İzmir P.İ.M. | Şef | Şef | Boş | | | | | |
     
