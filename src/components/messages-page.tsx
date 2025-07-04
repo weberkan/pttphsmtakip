@@ -75,7 +75,7 @@ export function MessagesPage() {
 
     if (!usersInitialized) {
         return (
-             <Card className="h-[calc(100vh-10rem)] w-full grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 shadow-lg overflow-hidden">
+             <Card className="h-full w-full grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 shadow-lg overflow-hidden">
                 <div className="border-r flex flex-col bg-muted/20">
                      <div className="p-4 border-b">
                         <Skeleton className="h-7 w-2/4 mb-4" />
@@ -218,7 +218,7 @@ export function MessagesPage() {
     );
     
     return (
-        <Card className="h-[calc(100vh-10rem)] w-full grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 shadow-lg overflow-hidden">
+        <Card className="h-full w-full grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 shadow-lg overflow-hidden">
             {UserListPanel}
             {ChatPanel}
         </Card>
