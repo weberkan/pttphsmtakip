@@ -4,9 +4,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, rtdb } from '@/lib/firebase';
 import { collection, doc, getDoc, setDoc, query, where, getDocs, limit } from 'firebase/firestore';
 import type { AppUser } from '@/lib/types';
+import { ref as rtdbRef, set as rtdbSet, onValue, serverTimestamp, onDisconnect } from 'firebase/database';
 
 export interface SignUpData {
   email: string;
@@ -87,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!auth) {
+    if (!auth || !rtdb) {
       setLoading(false);
       return;
     }
@@ -98,6 +99,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userProfile = await fetchUserProfile(firebaseUser);
           if (userProfile) {
             setUser(userProfile);
+            
+            // Set up presence management in Realtime Database
+            const userStatusDatabaseRef = rtdbRef(rtdb, '/status/' + firebaseUser.uid);
+            const isOnline = {
+                state: 'online',
+                last_changed: serverTimestamp(),
+            };
+            const isOffline = {
+                state: 'offline',
+                last_changed: serverTimestamp(),
+            };
+            
+            onValue(rtdbRef(rtdb, '.info/connected'), (snapshot) => {
+                if (snapshot.val() === false) {
+                    return;
+                }
+                onDisconnect(userStatusDatabaseRef).set(isOffline).then(() => {
+                    rtdbSet(userStatusDatabaseRef, isOnline);
+                });
+            });
+
           } else {
             // User exists in Auth but not in Firestore or is not approved.
             setUser(null);
@@ -189,8 +211,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    if (!auth) return;
+    if (!auth || !user || !rtdb) return;
     try {
+        const userStatusDatabaseRef = rtdbRef(rtdb, '/status/' + user.uid);
+        await rtdbSet(userStatusDatabaseRef, {
+            state: 'offline',
+            last_changed: serverTimestamp(),
+        });
         await signOut(auth);
     } catch (error) {
         console.error("Error signing out: ", error);
@@ -211,5 +238,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    

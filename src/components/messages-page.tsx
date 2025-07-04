@@ -27,19 +27,16 @@ export function MessagesPage() {
     const [newMessage, setNewMessage] = useState("");
     const messageEndRef = useRef<HTMLDivElement>(null);
     const [isStartingConversation, setIsStartingConversation] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
-
+    
     const allOtherUsers = useMemo(() => 
-        users.filter(u => u.uid !== currentUser?.uid).sort((a,b) => a.firstName.localeCompare(b.firstName)), 
+        users.filter(u => u.uid !== currentUser?.uid)
+             .sort((a,b) => {
+                // Sort by presence first (online users on top), then by name
+                if (a.presence === 'online' && b.presence !== 'online') return -1;
+                if (a.presence !== 'online' && b.presence === 'online') return 1;
+                return a.firstName.localeCompare(b.firstName);
+             }), 
     [users, currentUser]);
-
-    const filteredUsers = useMemo(() => 
-        allOtherUsers.filter(u => 
-            `${u.firstName} ${u.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.email.toLowerCase().includes(searchTerm.toLowerCase())
-        ), 
-    [allOtherUsers, searchTerm]);
-
 
     useEffect(() => {
         if (messageEndRef.current) {
@@ -108,20 +105,11 @@ export function MessagesPage() {
     const UserListPanel = (
         <div className={cn("border-r flex flex-col bg-muted/20", selectedUser ? "hidden md:flex" : "flex")}>
             <div className="p-4 border-b">
-                <h2 className="text-xl font-bold flex items-center gap-2 mb-4"><Users className="h-6 w-6"/> Kişiler</h2>
-                 <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        placeholder="Kişi ara..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8 bg-background"
-                    />
-                </div>
+                <h2 className="text-xl font-bold flex items-center gap-2"><Users className="h-6 w-6"/> Kişiler</h2>
             </div>
             <ScrollArea className="flex-1">
                  <div className="flex flex-col gap-1 p-2">
-                    {filteredUsers.length > 0 ? filteredUsers.map(user => (
+                    {allOtherUsers.length > 0 ? allOtherUsers.map(user => (
                         <button
                             key={user.uid}
                             onClick={() => handleSelectUser(user)}
@@ -131,9 +119,15 @@ export function MessagesPage() {
                                 selectedUser?.uid === user.uid ? "bg-accent" : ""
                             )}
                         >
-                            <Avatar className="h-10 w-10">
+                            <Avatar className="h-10 w-10 relative">
                                 <AvatarImage src={user.photoUrl || ''} alt={user.firstName} />
                                 <AvatarFallback>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</AvatarFallback>
+                                {user.presence && (
+                                     <span className={cn(
+                                        "absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-background",
+                                        user.presence === 'online' ? "bg-green-500" : "bg-gray-400"
+                                    )} />
+                                )}
                             </Avatar>
                             <div className="flex-1 min-w-0">
                                 <p className="font-semibold truncate">{user.firstName} {user.lastName}</p>
@@ -141,7 +135,7 @@ export function MessagesPage() {
                             </div>
                         </button>
                     )) : (
-                        <p className="p-4 text-center text-sm text-muted-foreground">Kişi bulunamadı.</p>
+                        <p className="p-4 text-center text-sm text-muted-foreground">Sistemde başka kullanıcı bulunamadı.</p>
                     )}
                 </div>
             </ScrollArea>
@@ -156,13 +150,19 @@ export function MessagesPage() {
                          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSelectedUser(null)}>
                             <ArrowLeft />
                          </Button>
-                         <Avatar className="h-10 w-10">
+                         <Avatar className="h-10 w-10 relative">
                             <AvatarImage src={selectedUser.photoUrl || ''} />
                             <AvatarFallback>{selectedUser.firstName.charAt(0)}{selectedUser.lastName.charAt(0)}</AvatarFallback>
+                             {selectedUser.presence && (
+                                <span className={cn(
+                                    "absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-background",
+                                    selectedUser.presence === 'online' ? "bg-green-500" : "bg-gray-400"
+                                )} />
+                            )}
                         </Avatar>
                         <div>
                             <h3 className="text-lg font-bold">{selectedUser.firstName} {selectedUser.lastName}</h3>
-                            <p className="text-xs text-muted-foreground">Sohbet</p>
+                            <p className="text-xs text-muted-foreground">{selectedUser.presence === 'online' ? 'Çevrimiçi' : 'Çevrimdışı'}</p>
                         </div>
                     </div>
                     <ScrollArea className="flex-1 p-4 bg-background">
@@ -180,9 +180,9 @@ export function MessagesPage() {
                                         <AvatarFallback>{selectedUser.firstName.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                 )}
-                                <div className={cn("max-w-xs lg:max-w-md rounded-xl p-3 text-sm", msg.senderId === currentUser?.uid ? "bg-primary text-primary-foreground rounded-br-none" : "bg-card border rounded-bl-none")}>
-                                    <p>{msg.text}</p>
-                                    <p className={cn("text-xs mt-1", msg.senderId === currentUser?.uid ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                                <div className={cn("max-w-[80%] lg:max-w-[65%] rounded-xl p-2 px-3 text-sm", msg.senderId === currentUser?.uid ? "bg-primary text-primary-foreground rounded-br-none" : "bg-card border rounded-bl-none")}>
+                                    <p className="break-words">{msg.text}</p>
+                                    <p className={cn("text-xs mt-1 text-right", msg.senderId === currentUser?.uid ? "text-primary-foreground/70" : "text-muted-foreground")}>
                                         {format(new Date(msg.timestamp as any), 'HH:mm')}
                                     </p>
                                 </div>

@@ -55,6 +55,7 @@ export interface AppUser {
   isApproved: boolean;
   role?: 'admin';
   photoUrl?: string | null;
+  presence?: 'online' | 'offline';
 }
 
 export interface Message {

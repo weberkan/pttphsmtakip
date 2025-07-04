@@ -3,10 +3,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
+import { db, rtdb } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import type { AppUser } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { ref as rtdbRef, onValue } from 'firebase/database';
 
 export function useUserManagement() {
   const { user } = useAuth();
@@ -15,15 +16,14 @@ export function useUserManagement() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Any authenticated user should be able to see the list of other users for messaging.
-    // The admin check is now only relevant for specific actions like 'approveUser'.
     if (!user || !db) {
       setUsers([]);
       setIsInitialized(true);
       return;
     }
 
-    const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+    // Listener for user profiles from Firestore
+    const unsubscribeFirestore = onSnapshot(collection(db, "users"), (snapshot) => {
       const fetchedUsers = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -37,23 +37,40 @@ export function useUserManagement() {
           photoUrl: data.photoUrl,
         } as AppUser;
       });
-      setUsers(fetchedUsers);
+      
+      // Update state, potentially merging with existing presence data
+      setUsers(currentUsers => {
+          const presenceMap = new Map(currentUsers.map(u => [u.uid, u.presence]));
+          return fetchedUsers.map(u => ({ ...u, presence: presenceMap.get(u.uid) || 'offline' }));
+      });
       setIsInitialized(true);
     }, (error) => {
       console.error("Error fetching users:", error);
-      if (error.code === 'permission-denied') {
-          toast({
-              variant: "destructive",
-              title: "İzin Hatası",
-              description: "Kullanıcı listesini çekerken bir sorun oluştu. Lütfen Firestore güvenlik kurallarınızı kontrol edin.",
-              duration: 9000,
-          });
-      }
       setIsInitialized(true);
     });
 
-    return () => unsubscribe();
-  }, [user, toast]);
+    // Listener for presence status from RTDB
+    let unsubscribeRtdb = () => {};
+    if (rtdb) {
+        const statusRef = rtdbRef(rtdb, 'status');
+        unsubscribeRtdb = onValue(statusRef, (snapshot) => {
+            const statuses = snapshot.val() || {};
+            setUsers(currentUsers => {
+                if (currentUsers.length === 0 && !isInitialized) return []; 
+                return currentUsers.map(u => ({
+                    ...u,
+                    presence: statuses[u.uid]?.state === 'online' ? 'online' : 'offline',
+                }));
+            });
+        });
+    }
+
+    return () => {
+      unsubscribeFirestore();
+      unsubscribeRtdb();
+    };
+
+  }, [user, toast, isInitialized]);
 
   const approveUser = useCallback(async (uid: string) => {
     if (!user || user.role !== 'admin' || !db) {
