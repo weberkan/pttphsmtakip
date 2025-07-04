@@ -10,7 +10,6 @@ import * as React from 'react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const menuItems = [
-  { href: 'dashboard', title: 'Anasayfa', icon: Home },
   {
     id: 'merkez',
     title: 'Merkez Teşkilatı',
@@ -42,26 +41,6 @@ export function SidebarNav({ isCollapsed }: { isCollapsed: boolean }) {
   
   return (
     <nav className="flex flex-col gap-2 p-2 pt-4">
-      <TooltipProvider delayDuration={100}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-                key="dashboard"
-                href="/?view=dashboard"
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary',
-                  currentView === 'dashboard' ? 'bg-muted text-primary' : 'text-muted-foreground',
-                  isCollapsed && 'justify-center'
-                )}
-              >
-                <Home className="h-4 w-4" />
-                <span className={cn(isCollapsed && 'hidden')}>Anasayfa</span>
-              </Link>
-          </TooltipTrigger>
-          {isCollapsed && <TooltipContent side="right">Anasayfa</TooltipContent>}
-        </Tooltip>
-      </TooltipProvider>
-
       <Accordion type="multiple" defaultValue={defaultOpenAccordion ? [defaultOpenAccordion] : []} className="w-full" value={isCollapsed ? [] : (defaultOpenAccordion ? [defaultOpenAccordion] : undefined)}>
         {menuItems.filter(item => 'subItems' in item).map((item) => (
           'subItems' in item && (
