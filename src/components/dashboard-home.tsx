@@ -1,10 +1,15 @@
+
 "use client";
 
 import type { Position, Personnel, TasraPosition } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
-import { Users, Briefcase } from 'lucide-react';
+import { Users, Briefcase, Calendar } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
+import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 interface DashboardHomeProps {
   positions: Position[];
@@ -13,7 +18,44 @@ interface DashboardHomeProps {
   tasraPersonnel: Personnel[];
 }
 
+const motivationalQuotes = [
+  "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.",
+  "Bugünün işini yarına bırakma, çünkü yarının da kendi işleri olacak.",
+  "Harika işler yapmanın tek yolu, yaptığınız işi sevmektir.",
+  "En büyük zafer, hiç düşmemek değil, her düştüğünde yeniden ayağa kalkabilmektir.",
+  "Geleceği tahmin etmenin en iyi yolu, onu yaratmaktır.",
+  "Küçük başlangıçlar, büyük sonuçlar doğurur.",
+  "Sadece başaranlar değil, deneyenler de değerlidir.",
+  "Motivasyon, sizi başlatan şeydir. Alışkanlık ise devam etmenizi sağlayan.",
+  "Her başarı hikayesinin arkasında, kararlılıkla atılmış adımlar vardır."
+];
+
 export function DashboardHome({ positions, personnel, tasraPositions, tasraPersonnel }: DashboardHomeProps) {
+  const { user } = useAuth();
+  const [greeting, setGreeting] = useState("");
+  const [quote, setQuote] = useState("");
+  const [currentDate, setCurrentDate] = useState("");
+
+  useEffect(() => {
+    if (user) {
+        const hour = new Date().getHours();
+        let timeOfDayGreeting = '';
+        if (hour < 12) {
+            timeOfDayGreeting = 'Günaydın';
+        } else if (hour < 18) {
+            timeOfDayGreeting = 'İyi Günler';
+        } else {
+            timeOfDayGreeting = 'Hayırlı Akşamlar';
+        }
+        setGreeting(`${timeOfDayGreeting}, ${user.firstName}!`);
+    }
+    
+    setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+    
+    const today = new Date();
+    const formattedDate = format(today, 'd MMMM yyyy', { locale: tr });
+    setCurrentDate(formattedDate);
+  }, [user]);
 
   const merkezStats = {
     total: positions.length,
@@ -59,6 +101,17 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-start mb-6">
+        <div>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">{greeting}</h2>
+            <p className="text-muted-foreground mt-1">{quote}</p>
+        </div>
+        <div className="hidden sm:flex items-center gap-3 rounded-md border bg-card px-4 py-2 text-sm font-medium">
+           <Calendar className="h-5 w-5 text-muted-foreground" />
+           <span>{currentDate}</span>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-soft-blue text-soft-blue-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

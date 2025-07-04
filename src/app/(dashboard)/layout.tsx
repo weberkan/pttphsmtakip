@@ -40,31 +40,13 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams();
     const { toast } = useToast();
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [greeting, setGreeting] = useState("");
 
     // This should never happen if the protection in DashboardLayout works, but it's a good failsafe.
     if (!user) return null;
 
-    useEffect(() => {
-        if (user) {
-            const hour = new Date().getHours();
-            let timeOfDayGreeting = '';
-            if (hour < 12) {
-                timeOfDayGreeting = 'Günaydın';
-            } else if (hour < 18) {
-                timeOfDayGreeting = 'İyi Günler';
-            } else {
-                timeOfDayGreeting = 'Hayırlı Akşamlar';
-            }
-            setGreeting(`${timeOfDayGreeting}, ${user.firstName}`);
-        }
-    }, [user]);
-
     const view = searchParams.get('view') || 'dashboard';
     
-    const headerTitle = view === 'dashboard' && greeting
-      ? greeting
-      : (viewTitles[view] || 'Pozisyon Takip Sistemi');
+    const headerTitle = viewTitles[view] || 'Pozisyon Takip Sistemi';
 
     return (
         <div className={cn(
