@@ -39,8 +39,8 @@ export function usePositions() {
         return {
           id: doc.id,
           ...data,
-          startDate: data.startDate?.toDate ? data.startDate.toDate() : data.startDate,
-          lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+          startDate: (data.startDate as Timestamp)?.toDate() || null,
+          lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate() || null,
         } as Position;
       });
       const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
@@ -57,8 +57,8 @@ export function usePositions() {
         return {
           id: doc.id,
           ...data,
-          dateOfBirth: data.dateOfBirth?.toDate ? data.dateOfBirth.toDate() : data.dateOfBirth,
-          lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+          dateOfBirth: (data.dateOfBirth as Timestamp)?.toDate() || null,
+          lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate() || null,
         } as Personnel;
       });
       const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());

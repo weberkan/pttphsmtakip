@@ -60,8 +60,9 @@ export function useDepposh() {
           return {
               id: doc.id,
               ...data,
-              dueDate: (data.dueDate as Timestamp)?.toDate(),
-              lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate()
+              startDate: (data.startDate as Timestamp)?.toDate() || null,
+              dueDate: (data.dueDate as Timestamp)?.toDate() || null,
+              lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate() || null
             } as KanbanCard;
         });
       setCards(fetchedCards);
@@ -78,7 +79,7 @@ export function useDepposh() {
         return {
             id: doc.id,
             ...data,
-            lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate()
+            lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate() || null
           } as DepposhFile;
         });
       setFiles(fetchedFiles);
