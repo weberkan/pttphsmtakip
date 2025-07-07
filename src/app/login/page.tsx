@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -104,11 +105,10 @@ function LoginForm() {
     );
 }
 
-function SignupForm() {
+function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void; }) {
     const { signup } = useAuth();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [activeTab, setActiveTab] = useState("login");
 
      const form = useForm<SignupFormValues>({
         resolver: zodResolver(signupSchema),
@@ -128,8 +128,7 @@ function SignupForm() {
         if (result.success) {
             toast({ title: "Kayıt Başarılı!", description: "Hesabınız oluşturuldu. Yönetici onayı sonrası giriş yapabilirsiniz." });
             form.reset();
-            // This is a way to switch the tab programmatically, but since Tabs component doesn't expose a setter, 
-            // we'd need to lift state up. For now, a toast is enough.
+            onSignupSuccess();
         } else {
             toast({ variant: "destructive", title: "Kayıt Başarısız", description: result.message || "Bilinmeyen bir hata oluştu." });
         }
@@ -171,6 +170,7 @@ function SignupForm() {
 
 export default function AuthPage() {
   const { user, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState("login");
   
   // While loading, show a spinner. This prevents a flash of the login form
   // if the user is already authenticated.
@@ -194,7 +194,7 @@ export default function AuthPage() {
   // If loading is finished and there's no user, show the login page.
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Tabs defaultValue="login" className="w-full max-w-sm">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-sm">
         <Card>
             <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-16 items-center justify-center">
@@ -221,7 +221,7 @@ export default function AuthPage() {
                     <LoginForm />
                 </TabsContent>
                 <TabsContent value="signup">
-                    <SignupForm />
+                    <SignupForm onSignupSuccess={() => setActiveTab("login")} />
                 </TabsContent>
             </CardContent>
         </Card>

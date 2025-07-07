@@ -5,7 +5,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { usePathname, useRouter } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User as FirebaseUser, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDoc, setDoc, query, where, getDocs, limit } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, query, where, getDocs, limit, Timestamp } from 'firebase/firestore';
 import type { AppUser } from '@/lib/types';
 
 export interface SignUpData {
@@ -171,19 +171,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: data.email,
         isApproved: false, // Default to not approved
         role: 'user', // Default role
-        createdAt: new Date(),
+        createdAt: Timestamp.now(),
       };
       await setDoc(doc(db, "users", firebaseUser.uid), newUserProfile);
       
       // Step 3: Explicitly sign the new, unapproved user out.
-      // This prevents onAuthStateChanged from finding an unapproved user and redirecting.
-      // The user will remain on the login page and see the success toast.
       await signOut(auth);
 
       return { success: true };
 
-    } catch (error: any)
-        {
+    } catch (error: any) {
       let message = "Kayıt sırasında bir hata oluştu.";
       if (error.code === 'auth/email-already-in-use') {
         message = "Bu e-posta adresi zaten kullanılıyor.";
