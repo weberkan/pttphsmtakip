@@ -21,9 +21,9 @@ To get started, take a look at src/app/page.tsx.
     ```
 4.  **Bekleyin:** Uygulamanın yeniden başlamasını bekleyin. Terminalde "ready" veya "started server" gibi bir mesaj göreceksiniz.
 
-### Veritabanı Yapılandırmasını Güncelleme (Firebase Konsolu)
+### Veritabanı ve Depolama Yapılandırmasını Güncelleme (Firebase Konsolu)
 
-Uygulamanın veritabanına doğru ve verimli bir şekilde erişebilmesi için güvenlik kurallarının ve dizinlerin (index) Firebase Konsolu üzerinden ayarlanması gerekir.
+Uygulamanın veritabanına ve depolama alanına doğru ve verimli bir şekilde erişebilmesi için güvenlik kurallarının ve dizinlerin (index) Firebase Konsolu üzerinden ayarlanması gerekir.
 
 **1. Firestore Güvenlik Kurallarını Güncelleme:**
 Bu işlem, `PERMISSION_DENIED` hatalarını önlemek için kritik öneme sahiptir.
@@ -47,4 +47,12 @@ Bazı karmaşık sorgular, Firebase'in verileri hızlıca bulabilmesi için bir 
 3.  Editördeki mevcut tüm metni silin ve projenizdeki `database.rules.json` dosyasının içeriğini buraya yapıştırın.
 4.  **Yayınla (Publish)** butonuna tıklayın.
 
-Bu adımları tamamladıktan sonra uygulamanızın veritabanı erişim izinleri doğru şekilde ayarlanmış olacaktır.
+**4. Storage Kurallarını Güncelleme (Dosya Yükleme/İndirme İçin):**
+Bu işlem, dosyaların (`Depposh` modülündeki gibi) yüklenip indirilebilmesi için gereklidir.
+1.  **Firebase Konsolu**'nda, sol menüden **Build > Storage**'a tıklayın.
+2.  Eğer Storage'ı ilk kez kullanıyorsanız, kurulumu tamamlamak için ekrandaki adımları izleyin.
+3.  Üstteki sekmelerden **Kurallar (Rules)** sekmesine geçin.
+4.  Editördeki mevcut tüm metni silin ve projenizdeki `storage.rules` dosyasının içeriğini buraya yapıştırın.
+5.  **Yayınla (Publish)** butonuna tıklayın.
+
+Bu adımları tamamladıktan sonra uygulamanızın veritabanı ve depolama erişim izinleri doğru şekilde ayarlanmış olacaktır.
