@@ -50,7 +50,7 @@ import { CheckCircle, Edit, Flame, Loader, Minus, MoreHorizontal, Signal, AlertT
 
 const statusConfig = {
     todo: { label: "Yapılacak", icon: AlertTriangle, color: "text-red-500 bg-red-500/10" },
-    inProgress: { label: "Devam Ediyor", icon: Loader, color: "text-blue-500 bg-blue-500/10 animate-spin" },
+    inProgress: { label: "Devam Ediyor", icon: Loader, color: "text-blue-500 bg-blue-500/10" },
     done: { label: "Tamamlandı", icon: CheckCircle, color: "text-green-500 bg-green-500/10" },
 };
 
