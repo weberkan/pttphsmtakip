@@ -29,6 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSigningUp, setIsSigningUp] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -93,6 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (isSigningUp) return; // Prevent race condition during signup
+
       try {
         if (firebaseUser) {
           const userProfile = await fetchUserProfile(firebaseUser);
@@ -115,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, isSigningUp]);
   
   useEffect(() => {
     if (loading) {
@@ -158,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (data: SignUpData): Promise<{success: boolean, message?: string}> => {
     if (!auth || !db) return { success: false, message: "Firebase yapılandırması eksik olduğu için kayıt yapılamıyor." };
     
+    setIsSigningUp(true);
     try {
       // Step 1: Create user in Auth, which also signs them in.
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
@@ -170,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         registryNumber: data.registryNumber,
         email: data.email,
         isApproved: false, // Default to not approved
-        role: 'user', // Default role
+        role: 'user' as const, // Default role
         createdAt: Timestamp.now(),
       };
       await setDoc(doc(db, "users", firebaseUser.uid), newUserProfile);
@@ -189,6 +193,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       console.error("Signup Error:", error);
       return { success: false, message: message };
+    } finally {
+      setIsSigningUp(false);
     }
   };
 
