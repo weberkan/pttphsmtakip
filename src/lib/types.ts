@@ -53,7 +53,7 @@ export interface AppUser {
   lastName: string;
   email: string;
   isApproved: boolean;
-  role?: 'admin';
+  role?: 'admin' | 'user';
   photoUrl?: string | null;
   presence?: 'online' | 'offline';
   lastSeen?: Date | Timestamp | null;

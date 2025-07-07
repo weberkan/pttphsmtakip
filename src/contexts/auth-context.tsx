@@ -159,34 +159,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth || !db) return { success: false, message: "Firebase yapılandırması eksik olduğu için kayıt yapılamıyor." };
     
     try {
+      // Step 1: Create user in Auth, which also signs them in.
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const firebaseUser = userCredential.user;
       
+      // Step 2: Create the user's profile document in Firestore while they are authenticated.
       const newUserProfile = {
         firstName: data.firstName,
         lastName: data.lastName,
         registryNumber: data.registryNumber,
         email: data.email,
         isApproved: false, // Default to not approved
+        role: 'user', // Default role
         createdAt: new Date(),
       };
-      
       await setDoc(doc(db, "users", firebaseUser.uid), newUserProfile);
       
-      // The onAuthStateChanged listener will handle signing out the user if they are not approved.
-      // Signing out here creates a race condition.
-      // await signOut(auth);
+      // Step 3: Explicitly sign the new, unapproved user out.
+      // This prevents onAuthStateChanged from finding an unapproved user and redirecting.
+      // The user will remain on the login page and see the success toast.
+      await signOut(auth);
 
       return { success: true };
 
-    } catch (error: any) {
+    } catch (error: any)
+        {
       let message = "Kayıt sırasında bir hata oluştu.";
       if (error.code === 'auth/email-already-in-use') {
         message = "Bu e-posta adresi zaten kullanılıyor.";
       } else if (error.code === 'auth/weak-password') {
           message = "Şifre en az 6 karakter olmalıdır.";
       }
-      return { success: false, message };
+      console.error("Signup Error:", error);
+      return { success: false, message: message };
     }
   };
 
