@@ -167,7 +167,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                                                   <p className="text-sm font-medium">{notification.message}</p>
                                                </div>
                                                <p className="text-xs text-muted-foreground pl-6">
-                                                   {notification.senderInfo} &middot; {formatDistanceToNow(new Date(notification.createdAt as any), { locale: tr, addSuffix: true })}
+                                                   {formatDistanceToNow(new Date(notification.createdAt as any), { locale: tr, addSuffix: true })}
                                                </p>
                                             </DropdownMenuItem>
                                         ))

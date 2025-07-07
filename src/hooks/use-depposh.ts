@@ -94,12 +94,12 @@ export function useDepposh() {
     };
   }, [user]);
 
-  const createAssignmentNotification = useCallback(async (assigneeUid: string, cardTitle: string, sender: AppUser) => {
+  const createAssignmentNotification = useCallback(async (assigneeUid: string, cardTitle: string) => {
     if (!db) return;
     await addDoc(collection(db, 'notifications'), {
         recipientUid: assigneeUid,
-        senderInfo: `${sender.firstName} ${sender.lastName} (${sender.registryNumber})`,
-        message: `Tarafından size "${cardTitle}" görevi atandı.`,
+        senderInfo: 'Depposh Sistemi',
+        message: `Müdür tarafından size "${cardTitle}" görevi atandı.`,
         link: '/?view=depposh-talimatlar',
         isRead: false,
         createdAt: Timestamp.now(),
@@ -119,12 +119,12 @@ export function useDepposh() {
       lastModifiedAt: Timestamp.now(),
     };
 
-    await addDoc(collection(db, 'talimatlar'), newCardData);
+    const newDocRef = await addDoc(collection(db, 'talimatlar'), newCardData);
 
     // Send notifications to new assignees
     if (newCardData.assignedUids) {
         for (const uid of newCardData.assignedUids) {
-            await createAssignmentNotification(uid, newCardData.title, user);
+            await createAssignmentNotification(uid, newCardData.title);
         }
     }
 
@@ -149,7 +149,7 @@ export function useDepposh() {
     // Find newly added users and send them notifications
     for (const uid of newUids) {
         if (!oldUids.has(uid)) {
-            await createAssignmentNotification(uid, data.title, user);
+            await createAssignmentNotification(uid, data.title);
         }
     }
 
@@ -217,7 +217,8 @@ export function useDepposh() {
   const deleteFile = useCallback(async (fileId: string) => {
     if (!user || !db || !storage) return;
 
-    const fileDoc = await getDoc(doc(db, 'depposh-files', fileId));
+    const fileDocRef = doc(db, 'depposh-files', fileId);
+    const fileDoc = await getDoc(fileDocRef);
 
     if (fileDoc.exists()) {
         const fileData = fileDoc.data() as DepposhFile;
@@ -227,7 +228,7 @@ export function useDepposh() {
             await deleteObject(fileStorageRef).catch(err => console.error("Could not delete file from storage", err));
         }
         // Then delete from Firestore
-        await deleteDoc(doc(db, 'depposh-files', fileId));
+        await deleteDoc(fileDocRef);
         toast({ title: "Dosya Silindi", description: `${fileData.name} başarıyla silindi.` });
     } else {
         toast({ variant: "destructive", title: "Hata", description: "Silinecek dosya bulunamadı." });

@@ -52,24 +52,19 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
     const canAddTalimat = useMemo(() => {
         if (!user || !isPositionsInitialized) return false;
 
-        // 1. Find the specific "Şube Müdürü" position for "Personel Hareketleri"
-        const managerPosition = positions.find(p =>
+        const managerPositions = positions.filter(p =>
             p.department === 'İnsan Kaynakları Daire Başkanlığı' &&
             p.dutyLocation === 'Personel Hareketleri Şube Müdürlüğü' &&
             p.name === 'Şube Müdürü'
         );
 
-        // If this specific position doesn't exist or isn't filled, no permission.
-        if (!managerPosition || !managerPosition.assignedPersonnelId) {
-            return false;
-        }
-
-        // 2. Find the person assigned to that exact position.
-        const assignedPerson = personnel.find(per => per.id === managerPosition.assignedPersonnelId);
-
-        // 3. Check if the logged-in user is that assigned person.
-        // This works even if the person's own title (unvan) is "Memur" or something else.
-        return assignedPerson?.registryNumber === user.registryNumber;
+        if (managerPositions.length === 0) return false;
+        
+        return managerPositions.some(p => {
+            if (!p.assignedPersonnelId) return false;
+            const assignedPerson = personnel.find(per => per.id === p.assignedPersonnelId);
+            return assignedPerson?.registryNumber === user.registryNumber;
+        });
 
     }, [user, positions, personnel, isPositionsInitialized]);
     
@@ -236,8 +231,8 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
                             color={statusMap[status].color}
                             cards={columns[status]}
                         >
-                            {canAddTalimat && (
-                                <Button variant="ghost" className="w-full justify-start mt-2" onClick={() => handleAddClick(status)}>
+                            {canAddTalimat && status === 'todo' && (
+                                <Button variant="ghost" className="w-full justify-start mt-2" onClick={() => handleAddClick('todo')}>
                                     <PlusCircle className="h-4 w-4 mr-2" />
                                     Yeni Talimat Ekle
                                 </Button>

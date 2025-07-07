@@ -40,6 +40,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Badge } from "../ui/badge";
 import { Calendar } from "../ui/calendar";
 import { format } from "date-fns";
+import { tr } from 'date-fns/locale';
 
 
 const cardSchema = z.object({
@@ -192,7 +193,7 @@ export function AddEditTalimatDialog({
                                     )}
                                 >
                                     {field.value ? (
-                                    format(field.value, "PPP", { locale: require('date-fns/locale/tr') })
+                                    format(field.value, "PPP", { locale: tr })
                                     ) : (
                                     <span>Tarih seçin</span>
                                     )}
