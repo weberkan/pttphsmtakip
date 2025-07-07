@@ -18,59 +18,12 @@ import {
 } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 
-const MIGRATION_KEY = 'positionTrackerApp_firestoreMigrationComplete_v4_merkez_delete_all';
-
 export function usePositions() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [positions, setPositions] = useState<Position[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-
-  const performOneTimeMigration = useCallback(async () => {
-    if (!db || localStorage.getItem(MIGRATION_KEY)) {
-      return;
-    }
-
-    console.log("Performing one-time data DELETION for merkez...");
-    toast({
-      title: "Veri Temizleme",
-      description: "Merkez teşkilatı için mevcut tüm pozisyon ve personel verileri temizleniyor...",
-    });
-
-    try {
-      const positionsCollectionRef = collection(db, 'merkez-positions');
-      const personnelCollectionRef = collection(db, 'merkez-personnel');
-
-      const positionsSnapshot = await getDocs(positionsCollectionRef);
-      const personnelSnapshot = await getDocs(personnelCollectionRef);
-
-      if (positionsSnapshot.empty && personnelSnapshot.empty) {
-        console.log("Merkez data is already empty. No deletion needed.");
-      } else {
-        const batch = writeBatch(db);
-        positionsSnapshot.forEach(doc => batch.delete(doc.ref));
-        personnelSnapshot.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
-        console.log("Successfully deleted all Merkez data.");
-        toast({
-          title: "Merkez Verileri Temizlendi",
-          description: "Tüm merkez pozisyon ve personel kayıtları kalıcı olarak silindi.",
-        });
-      }
-      
-      localStorage.setItem(MIGRATION_KEY, 'true');
-      console.log("Merkez data deletion complete. Migration key set.");
-
-    } catch (error) {
-      console.error("Merkez data deletion failed:", error);
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: "Merkez verileri temizlenirken bir sorun oluştu.",
-      });
-    }
-  }, [toast]);
 
   useEffect(() => {
     if (!user || !db) {
@@ -79,8 +32,6 @@ export function usePositions() {
       setIsInitialized(!db);
       return;
     }
-
-    performOneTimeMigration();
 
     const positionsUnsubscribe = onSnapshot(collection(db, "merkez-positions"), (snapshot) => {
       const fetchedPositions = snapshot.docs.map(doc => {
@@ -122,7 +73,7 @@ export function usePositions() {
       positionsUnsubscribe();
       personnelUnsubscribe();
     };
-  }, [user, db, performOneTimeMigration]);
+  }, [user, db]);
 
   const addPosition = useCallback(async (positionData: Omit<Position, 'id'>) => {
     if (!user || !db) return;

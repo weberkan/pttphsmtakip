@@ -18,59 +18,12 @@ import {
 } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 
-const MIGRATION_KEY = 'tasraTrackerApp_firestoreMigrationComplete_v4_tasra_delete_all';
-
 export function useTasraPositions() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [tasraPositions, setTasraPositions] = useState<TasraPosition[]>([]);
   const [tasraPersonnel, setTasraPersonnel] = useState<Personnel[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-
-  const performOneTimeMigration = useCallback(async () => {
-    if (!db || localStorage.getItem(MIGRATION_KEY)) {
-      return; 
-    }
-
-    console.log("Performing one-time data DELETION for tasra...");
-    toast({
-      title: "Veri Temizleme",
-      description: "Taşra teşkilatı için mevcut tüm pozisyon ve personel verileri temizleniyor...",
-    });
-
-    try {
-      const positionsCollectionRef = collection(db, 'tasra-positions');
-      const personnelCollectionRef = collection(db, 'tasra-personnel');
-
-      const positionsSnapshot = await getDocs(positionsCollectionRef);
-      const personnelSnapshot = await getDocs(personnelCollectionRef);
-      
-      if (positionsSnapshot.empty && personnelSnapshot.empty) {
-          console.log("Tasra data is already empty. No deletion needed.");
-      } else {
-        const batch = writeBatch(db);
-        positionsSnapshot.forEach(doc => batch.delete(doc.ref));
-        personnelSnapshot.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
-        console.log("Successfully deleted all Tasra data.");
-        toast({
-          title: "Taşra Verileri Temizlendi",
-          description: "Tüm taşra pozisyon ve personel kayıtları kalıcı olarak silindi.",
-        });
-      }
-      
-      localStorage.setItem(MIGRATION_KEY, 'true');
-      console.log("Tasra data deletion complete. Migration key set.");
-      
-    } catch(error) {
-      console.error("Tasra data deletion failed:", error);
-       toast({
-        variant: "destructive",
-        title: "Hata",
-        description: "Taşra verileri temizlenirken bir sorun oluştu.",
-      });
-    }
-  }, [toast]);
 
   useEffect(() => {
     if (!user || !db) {
@@ -79,8 +32,6 @@ export function useTasraPositions() {
       setIsInitialized(!db);
       return;
     }
-
-    performOneTimeMigration();
 
     const positionsUnsubscribe = onSnapshot(collection(db, "tasra-positions"), (snapshot) => {
       const fetchedPositions = snapshot.docs.map(doc => {
@@ -122,7 +73,7 @@ export function useTasraPositions() {
       positionsUnsubscribe();
       personnelUnsubscribe();
     };
-  }, [user, db, performOneTimeMigration]);
+  }, [user, db]);
 
   const addTasraPosition = useCallback(async (positionData: Omit<TasraPosition, 'id'>) => {
     if (!user || !db) return;
