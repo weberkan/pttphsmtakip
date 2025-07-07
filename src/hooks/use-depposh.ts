@@ -46,10 +46,14 @@ export function useDepposh() {
 
     const cardsQuery = query(collection(db, "talimatlar"), orderBy("order", "asc"));
     const cardsUnsubscribe = onSnapshot(cardsQuery, (snapshot) => {
-      const fetchedCards = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        } as KanbanCard));
+      const fetchedCards = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+              id: doc.id,
+              ...data,
+              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+            } as KanbanCard;
+        });
       setCards(fetchedCards);
       markInitialized();
     }, (error) => {
@@ -59,10 +63,14 @@ export function useDepposh() {
 
     const filesQuery = query(collection(db, "depposh-files"), orderBy("order", "asc"));
     const filesUnsubscribe = onSnapshot(filesQuery, (snapshot) => {
-      const fetchedFiles = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        } as DepposhFile));
+      const fetchedFiles = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+          } as DepposhFile;
+        });
       setFiles(fetchedFiles);
       markInitialized();
     }, (error) => {
