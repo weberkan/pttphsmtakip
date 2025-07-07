@@ -39,14 +39,13 @@ import { Check, ChevronsUpDown, X, Calendar as CalendarIcon, Flame, Signal, Minu
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../ui/command";
 import { Badge } from "../ui/badge";
 import { Calendar } from "../ui/calendar";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { tr } from 'date-fns/locale';
 
 
 const cardSchema = z.object({
   title: z.string().min(1, "Başlık boş olamaz."),
   description: z.string().optional(),
-  status: z.enum(["todo", "inProgress", "done"]),
   assignedUids: z.array(z.string()).optional(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
   dueDate: z.date().nullable().optional(),
@@ -84,7 +83,6 @@ export function AddEditTalimatDialog({
         form.reset({
           title: cardToEdit.title,
           description: cardToEdit.description || "",
-          status: cardToEdit.status,
           assignedUids: cardToEdit.assignedUids || [],
           priority: cardToEdit.priority || 'medium',
           dueDate: cardToEdit.dueDate ? new Date(cardToEdit.dueDate as any) : null,
@@ -93,20 +91,20 @@ export function AddEditTalimatDialog({
         form.reset({
           title: "",
           description: "",
-          status: initialStatus,
           assignedUids: [],
           priority: 'medium',
           dueDate: null,
         });
       }
     }
-  }, [cardToEdit, initialStatus, form, isOpen]);
+  }, [cardToEdit, form, isOpen]);
 
   const onSubmit = (data: CardFormData) => {
     const dataToSave = {
       ...data,
       priority: data.priority || 'medium',
       dueDate: data.dueDate || null,
+      status: cardToEdit?.status || initialStatus, // Use initialStatus for new cards, or existing for edited cards
     };
     if (cardToEdit) {
       onSave({ ...cardToEdit, ...dataToSave });
@@ -126,7 +124,7 @@ export function AddEditTalimatDialog({
         <DialogHeader>
           <DialogTitle>{cardToEdit ? "Talimatı Düzenle" : "Yeni Talimat Ekle"}</DialogTitle>
           <DialogDescription>
-            Talimat detaylarını girin, durumunu seçin ve ilgili kullanıcıları atayın.
+            Talimat detaylarını girin ve ilgili kullanıcıları atayın.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -179,40 +177,83 @@ export function AddEditTalimatDialog({
                      <FormField
                         control={form.control}
                         name="dueDate"
-                        render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        render={({ field }) => {
+                            const [open, setOpen] = useState(false);
+                            const [inputValue, setInputValue] = useState(
+                              field.value ? format(new Date(field.value), "dd.MM.yyyy") : ""
+                            );
+
+                            useEffect(() => {
+                              if (field.value) {
+                                setInputValue(format(new Date(field.value), "dd.MM.yyyy"));
+                              } else {
+                                setInputValue("");
+                              }
+                            }, [field.value]);
+
+                            const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                              setInputValue(e.target.value);
+                            };
+
+                            const handleInputBlur = () => {
+                              if (inputValue.trim() === "") {
+                                field.onChange(null);
+                                return;
+                              }
+                              const parsedDate = parse(inputValue, "dd.MM.yyyy", new Date());
+                              if (isValid(parsedDate)) {
+                                field.onChange(parsedDate);
+                              } else {
+                                setInputValue(field.value ? format(new Date(field.value), "dd.MM.yyyy") : "");
+                              }
+                            };
+                        
+                        return (
+                          <FormItem className="flex flex-col">
                             <FormLabel>Bitiş Tarihi (Opsiyonel)</FormLabel>
-                            <Popover>
-                            <PopoverTrigger asChild>
-                                <FormControl>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                    "pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                    )}
-                                >
-                                    {field.value ? (
-                                    format(field.value, "PPP", { locale: tr })
-                                    ) : (
-                                    <span>Tarih seçin</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                                </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                mode="single"
-                                selected={field.value ?? undefined}
-                                onSelect={field.onChange}
-                                initialFocus
-                                />
-                            </PopoverContent>
+                            <Popover open={open} onOpenChange={setOpen}>
+                                <div className="relative">
+                                    <FormControl>
+                                        <Input
+                                          placeholder="gg.aa.yyyy"
+                                          value={inputValue}
+                                          onChange={handleInputChange}
+                                          onBlur={handleInputBlur}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              e.preventDefault();
+                                              handleInputBlur();
+                                            }
+                                          }}
+                                          className="pr-10"
+                                        />
+                                    </FormControl>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant={"ghost"}
+                                            className="absolute right-0 top-0 h-full px-3"
+                                        >
+                                            <CalendarIcon className="h-4 w-4 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                </div>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                    mode="single"
+                                    selected={field.value ? new Date(field.value) : undefined}
+                                    onSelect={(date) => {
+                                        field.onChange(date || null);
+                                        setOpen(false);
+                                    }}
+                                    initialFocus
+                                    />
+                                </PopoverContent>
                             </Popover>
                             <FormMessage />
-                        </FormItem>
-                        )}
+                          </FormItem>
+                        );
+                      }}
                     />
                 </div>
                  <FormField
@@ -286,28 +327,6 @@ export function AddEditTalimatDialog({
                             </Popover>
                             <FormMessage />
                         </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Durum</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="Durum seçin" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="todo">Yapılacak</SelectItem>
-                                <SelectItem value="inProgress">Devam Ediyor</SelectItem>
-                                <SelectItem value="done">Tamamlandı</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
                     )}
                 />
                 <DialogFooter>

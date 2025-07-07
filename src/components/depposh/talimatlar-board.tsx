@@ -13,6 +13,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates } from '@dnd-ki
 import { KanbanColumn } from './kanban-column';
 import { KanbanCardItem } from './kanban-card-item';
 import { useDepposh } from '@/hooks/use-depposh';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 const statusMap = {
@@ -48,25 +50,27 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
     useEffect(() => {
         setCards(initialCards);
     }, [initialCards]);
-
-    const canAddTalimat = useMemo(() => {
-        if (!user || !isPositionsInitialized) return false;
-
-        const managerPositions = positions.filter(p =>
+    
+    const managerUser = useMemo(() => {
+        if (!isPositionsInitialized || !allUsers.length) return null;
+    
+        const managerPosition = positions.find(p =>
             p.department === 'İnsan Kaynakları Daire Başkanlığı' &&
             p.dutyLocation === 'Personel Hareketleri Şube Müdürlüğü' &&
-            p.name === 'Şube Müdürü'
+            p.name === 'Şube Müdürü' &&
+            p.status !== 'Boş' &&
+            p.assignedPersonnelId
         );
-
-        if (managerPositions.length === 0) return false;
+    
+        if (!managerPosition) return null;
         
-        return managerPositions.some(p => {
-            if (!p.assignedPersonnelId) return false;
-            const assignedPerson = personnel.find(per => per.id === p.assignedPersonnelId);
-            return assignedPerson?.registryNumber === user.registryNumber;
-        });
+        const assignedPerson = personnel.find(per => per.id === managerPosition.assignedPersonnelId);
+        if (!assignedPerson) return null;
+    
+        return allUsers.find(u => u.registryNumber === assignedPerson.registryNumber) || null;
+    }, [positions, personnel, isPositionsInitialized, allUsers]);
 
-    }, [user, positions, personnel, isPositionsInitialized]);
+    const isManager = useMemo(() => !!managerUser && managerUser.uid === user?.uid, [managerUser, user]);
     
     const handleAddClick = (status: Status) => {
         setEditingCard(null);
@@ -148,7 +152,7 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
         }
     }
 
-    function handleDragEnd(event: DragEndEvent) {
+    async function handleDragEnd(event: DragEndEvent) {
         const { active, over } = event;
         if (!over) {
             setActiveCard(null);
@@ -162,20 +166,34 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
             overId = over.data.current.card.status;
         }
         
-        if (activeId === overId) {
+        if (activeId === overId && active.data.current?.card.status === over.data.current?.card.status) {
+             // Just reordering within the same column
+        }
+
+        const oldCard = initialCards.find(c => c.id === activeId);
+        if (!oldCard) {
             setActiveCard(null);
             return;
         }
 
-        const oldCard = cards.find(c => c.id === activeId);
-        if (!oldCard) return;
-
-        const newStatus = overId as Status;
+        const newStatus = over.data.current?.type === 'Column' ? over.id as Status : over.data.current?.card.status as Status;
+        
+        // Check for status change to 'done' and create notification
+        if (newStatus === 'done' && oldCard.status !== 'done' && managerUser) {
+            if (!db) return;
+             await addDoc(collection(db, 'notifications'), {
+                recipientUid: managerUser.uid,
+                senderInfo: "Depposh Sistemi",
+                message: `Atadığınız '${oldCard.title}' görevi tamamlandı.`,
+                link: '/?view=depposh-talimatlar',
+                isRead: false,
+                createdAt: Timestamp.now(),
+            });
+        }
         
         let newCards = [...cards];
         const oldIndex = newCards.findIndex(c => c.id === activeId);
         
-        // Find the index in the new column
         const overIndex = over.data.current?.type === 'Card'
           ? newCards.findIndex(c => c.id === over.id)
           : -1;
@@ -193,19 +211,19 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
         newCards.forEach(c => columnStates[c.status].push(c));
         
         Object.values(columnStates).forEach(column => {
-            column.sort((a,b) => a.order - b.order) // Ensure correct sorting before re-indexing
-                .forEach((card, index) => {
-                    const originalCard = initialCards.find(c => c.id === card.id);
-                    if (originalCard && (originalCard.status !== card.status || originalCard.order !== index)) {
-                         cardsToUpdate.push({
-                            id: card.id,
-                            status: card.status,
-                            order: index
-                        });
-                    }
-                });
+            const originalColumnState = initialCards.filter(c => c.status === column[0]?.status);
+            column.forEach((card, index) => {
+                const originalCard = originalColumnState.find(c => c.id === card.id);
+                if (!originalCard || originalCard.order !== index || originalCard.status !== card.status) {
+                    cardsToUpdate.push({
+                        id: card.id,
+                        status: card.status,
+                        order: index
+                    });
+                }
+            });
         });
-        
+
         if (cardsToUpdate.length > 0) {
             updateCardBatch(cardsToUpdate);
         }
@@ -231,7 +249,7 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
                             color={statusMap[status].color}
                             cards={columns[status]}
                         >
-                            {canAddTalimat && status === 'todo' && (
+                            {isManager && status === 'todo' && (
                                 <Button variant="ghost" className="w-full justify-start mt-2" onClick={() => handleAddClick('todo')}>
                                     <PlusCircle className="h-4 w-4 mr-2" />
                                     Yeni Talimat Ekle
@@ -242,6 +260,7 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
                                     key={card.id}
                                     card={card}
                                     allUsers={allUsers}
+                                    isManager={isManager}
                                     onEdit={handleEditClick}
                                     onDelete={deleteCard}
                                 />

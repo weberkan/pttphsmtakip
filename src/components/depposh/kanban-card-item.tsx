@@ -85,11 +85,13 @@ const PriorityIcon = ({ priority }: { priority: KanbanCard['priority'] }) => {
 export function KanbanCardItem({
     card,
     allUsers,
+    isManager,
     onEdit,
     onDelete,
 }: {
     card: KanbanCard;
     allUsers: AppUser[];
+    isManager: boolean;
     onEdit: (card: KanbanCard) => void;
     onDelete: (cardId: string) => void;
 }) {
@@ -117,37 +119,41 @@ export function KanbanCardItem({
                             <CardDescription className="text-sm text-muted-foreground whitespace-pre-wrap">{card.description}</CardDescription>
                         )}
                     </div>
-                    <AlertDialog>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 -mt-2 -mr-2 flex-shrink-0">
-                                    <MoreVertical className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => onEdit(card)}>
-                                    <Edit className="mr-2 h-4 w-4" /> Düzenle
-                                </DropdownMenuItem>
-                                 <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive focus:text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" /> Sil
+                    {isManager && (
+                         <AlertDialog>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mt-2 -mr-2 flex-shrink-0">
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => onEdit(card)}>
+                                        <Edit className="mr-2 h-4 w-4" /> Düzenle
                                     </DropdownMenuItem>
-                                 </AlertDialogTrigger>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Bu işlem geri alınamaz. "{card.title}" talimatını kalıcı olarak silmek istediğinizden emin misiniz?
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>İptal</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onDelete(card.id)} className="bg-destructive hover:bg-destructive/90">Sil</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                                    {card.status === 'done' && (
+                                        <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" /> Sil
+                                            </DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                     )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Bu işlem geri alınamaz. "{card.title}" talimatını kalıcı olarak silmek istediğinizden emin misiniz?
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>İptal</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => onDelete(card.id)} className="bg-destructive hover:bg-destructive/90">Sil</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
                 </CardHeader>
                 <CardContent className="p-4 pt-0 flex justify-between items-center">
                     {(card.assignedUids && card.assignedUids.length > 0) ? (

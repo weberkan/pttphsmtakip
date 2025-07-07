@@ -30,12 +30,9 @@ export function useNotifications() {
       return;
     }
 
-    const thirtyMinutesAgo = Timestamp.fromMillis(Date.now() - 30 * 60 * 1000);
-
     const q = query(
       collection(db, 'notifications'),
       where('recipientUid', '==', user.uid),
-      where('createdAt', '>=', thirtyMinutesAgo),
       orderBy('createdAt', 'desc'),
       limit(20) // Limit to last 20 notifications for performance
     );
