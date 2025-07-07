@@ -34,9 +34,13 @@ const viewTitles: { [key: string]: string } = {
     'tasra-personel': 'Taşra Personel Yönetimi',
     'raporlama': 'Raporlama ve Analiz',
     'kullanici-onay': 'Kullanıcı Onayları',
+    'depposh-talimatlar': 'Depposh - Talimatlar',
+    'depposh-taslak': 'Depposh - Taslak Dosyalar',
+    'depposh-matbu': 'Depposh - Matbu Dosyalar',
+    'depposh-guncel': 'Depposh - Güncel Dosyalar',
+    'depposh-mevzuat': 'Depposh - Mevzuat Dosyaları',
 };
 
-// Moved SidebarContent outside of DashboardLayoutContent to prevent re-rendering
 const SidebarContent = ({ isCollapsed }: { isCollapsed: boolean }) => (
     <>
       <div className={cn("flex h-14 items-center border-b lg:h-[60px]", isCollapsed ? 'justify-center px-2' : 'px-4 lg:px-6')}>

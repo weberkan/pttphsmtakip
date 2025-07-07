@@ -55,4 +55,30 @@ export interface AppUser {
   isApproved: boolean;
   role?: 'admin';
   photoUrl?: string | null;
+  presence?: 'online' | 'offline';
+  lastSeen?: Date | Timestamp | null;
+}
+
+export interface KanbanCard {
+  id: string;
+  title: string;
+  description: string;
+  status: 'todo' | 'inProgress' | 'done';
+  order: number;
+  lastModifiedBy?: string;
+  lastModifiedAt?: Date | Timestamp | null;
+}
+
+export type DepposhFileCategory = 'taslak' | 'matbu' | 'güncel' | 'mevzuat';
+
+export interface DepposhFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  category: DepposhFileCategory;
+  downloadUrl: string; 
+  order: number;
+  lastModifiedBy?: string;
+  lastModifiedAt?: Date | Timestamp | null;
 }

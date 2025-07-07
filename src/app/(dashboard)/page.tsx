@@ -27,6 +27,9 @@ import { DashboardHome } from "@/components/dashboard-home";
 import { useAuth } from "@/contexts/auth-context";
 import { UserApprovalPanel } from "@/components/user-approval-panel";
 import { useUserManagement } from "@/hooks/use-user-management";
+import { useDepposh } from "@/hooks/use-depposh";
+import { TalimatlarBoard } from "@/components/depposh/talimatlar-board";
+import { FileListView } from "@/components/depposh/file-list-view";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -135,6 +138,12 @@ function DashboardPageContent() {
     approveUser,
     isInitialized: isUsersInitialized 
   } = useUserManagement();
+
+  const {
+    cards, addCard, updateCard, deleteCard,
+    files, addFile, deleteFile, updateFileOrder,
+    isDepposhInitialized
+  } = useDepposh();
 
 
   const { toast } = useToast();
@@ -931,7 +940,7 @@ function DashboardPageContent() {
   };
 
 
-  if (!isMerkezInitialized || !isTasraInitialized || !isUsersInitialized) {
+  if (!isMerkezInitialized || !isTasraInitialized || !isUsersInitialized || !isDepposhInitialized) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
             <div className="lg:col-span-2 space-y-6">
@@ -1158,6 +1167,16 @@ function DashboardPageContent() {
                 );
              }
              return <UserApprovalPanel users={users} onApproveUser={approveUser} />;
+        case 'depposh-talimatlar':
+            return <TalimatlarBoard cards={cards} addCard={addCard} updateCard={updateCard} deleteCard={deleteCard} />;
+        case 'depposh-taslak':
+            return <FileListView category="taslak" files={files} addFile={addFile} deleteFile={deleteFile} updateFileOrder={updateFileOrder} />;
+        case 'depposh-matbu':
+            return <FileListView category="matbu" files={files} addFile={addFile} deleteFile={deleteFile} updateFileOrder={updateFileOrder} />;
+        case 'depposh-guncel':
+            return <FileListView category="güncel" files={files} addFile={addFile} deleteFile={deleteFile} updateFileOrder={updateFileOrder} />;
+        case 'depposh-mevzuat':
+            return <FileListView category="mevzuat" files={files} addFile={addFile} deleteFile={deleteFile} updateFileOrder={updateFileOrder} />;
         default:
             return (
                  <DashboardHome
