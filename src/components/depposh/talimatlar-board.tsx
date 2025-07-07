@@ -52,24 +52,25 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
     const canAddTalimat = useMemo(() => {
         if (!user || !isPositionsInitialized) return false;
 
-        // Find positions that match the specific criteria for the "Personel Hareketleri Şube Müdürü" role
-        const targetPositions = positions.filter(p =>
+        // 1. Find the specific "Şube Müdürü" position for "Personel Hareketleri"
+        const managerPosition = positions.find(p =>
             p.department === 'İnsan Kaynakları Daire Başkanlığı' &&
-            p.name === 'Şube Müdürü' &&
             p.dutyLocation === 'Personel Hareketleri Şube Müdürlüğü' &&
-            p.assignedPersonnelId
+            p.name === 'Şube Müdürü'
         );
-        
-        // If no such filled positions exist, no permission
-        if (targetPositions.length === 0) return false;
 
-        // Check if the current user is assigned to any of these positions
-        const isUserAssigned = targetPositions.some(p => {
-            const assignedPerson = personnel.find(per => per.id === p.assignedPersonnelId);
-            return assignedPerson && assignedPerson.registryNumber === user.registryNumber;
-        });
+        // If this specific position doesn't exist or isn't filled, no permission.
+        if (!managerPosition || !managerPosition.assignedPersonnelId) {
+            return false;
+        }
 
-        return isUserAssigned;
+        // 2. Find the person assigned to that exact position.
+        const assignedPerson = personnel.find(per => per.id === managerPosition.assignedPersonnelId);
+
+        // 3. Check if the logged-in user is that assigned person.
+        // This works even if the person's own title (unvan) is "Memur" or something else.
+        return assignedPerson?.registryNumber === user.registryNumber;
+
     }, [user, positions, personnel, isPositionsInitialized]);
     
     const handleAddClick = (status: Status) => {
