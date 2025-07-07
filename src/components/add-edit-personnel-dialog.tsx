@@ -30,13 +30,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Personnel } from "@/lib/types";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { tr } from "date-fns/locale";
 
@@ -259,44 +259,77 @@ export function AddEditPersonnelDialog({
                     <FormField
                       control={form.control}
                       name="dateOfBirth"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Doğum Tarihi (Opsiyonel)</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                  variant={"outline"}
-                                  className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {field.value ? (
-                                    format(field.value, "PPP", { locale: tr })
-                                  ) : (
-                                    <span>Tarih seçin</span>
-                                  )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                mode="single"
-                                captionLayout="dropdown-buttons"
-                                fromYear={1950}
-                                toYear={new Date().getFullYear()}
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                    date > new Date() || date < new Date("1900-01-01")
+                      render={({ field }) => {
+                        const [inputValue, setInputValue] = useState<string>("");
+
+                        useEffect(() => {
+                            if (field.value) {
+                                setInputValue(format(field.value, 'dd.MM.yyyy'));
+                            } else {
+                                setInputValue("");
+                            }
+                        }, [field.value]);
+
+                        const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                            setInputValue(e.target.value);
+                        };
+
+                        const handleInputBlur = () => {
+                            if (inputValue === "") {
+                                field.onChange(null);
+                                return;
+                            }
+                            try {
+                                const parsedDate = parse(inputValue, 'dd.MM.yyyy', new Date());
+                                if (!isNaN(parsedDate.getTime())) {
+                                    field.onChange(parsedDate);
+                                } else {
+                                    setInputValue(field.value ? format(field.value, 'dd.MM.yyyy') : "");
                                 }
-                                initialFocus
-                                />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                            } catch {
+                                setInputValue(field.value ? format(field.value, 'dd.MM.yyyy') : "");
+                            }
+                        };
+                        
+                        return (
+                            <FormItem className="flex flex-col">
+                                <FormLabel>Doğum Tarihi (Opsiyonel)</FormLabel>
+                                <Popover>
+                                    <div className="relative">
+                                        <FormControl>
+                                            <Input
+                                                placeholder="GG.AA.YYYY"
+                                                value={inputValue}
+                                                onChange={handleInputChange}
+                                                onBlur={handleInputBlur}
+                                            />
+                                        </FormControl>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="ghost" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground">
+                                                <CalendarIcon className="h-4 w-4" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                    </div>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            locale={tr}
+                                            mode="single"
+                                            captionLayout="dropdown-buttons"
+                                            fromYear={1950}
+                                            toYear={new Date().getFullYear()}
+                                            selected={field.value ?? undefined}
+                                            onSelect={(date) => field.onChange(date)}
+                                            disabled={(date) =>
+                                                date > new Date() || date < new Date("1900-01-01")
+                                            }
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )
+                      }}
                     />
                     <FormField
                         control={form.control}
