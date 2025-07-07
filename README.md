@@ -21,43 +21,30 @@ To get started, take a look at src/app/page.tsx.
     ```
 4.  **Bekleyin:** Uygulamanın yeniden başlamasını bekleyin. Terminalde "ready" veya "started server" gibi bir mesaj göreceksiniz.
 
-### Veritabanı Güvenlik Kurallarını Güncelleme (Firebase Konsolu)
+### Veritabanı Yapılandırmasını Güncelleme (Firebase Konsolu)
 
-Uygulamanın veritabanına erişebilmesi için güvenlik kurallarını manuel olarak Firebase Konsolu üzerinden ayarlamanız gerekir. Bu işlem, `PERMISSION_DENIED` hatalarını önlemek için kritik öneme sahiptir.
+Uygulamanın veritabanına doğru ve verimli bir şekilde erişebilmesi için güvenlik kurallarının ve dizinlerin (index) Firebase Konsolu üzerinden ayarlanması gerekir.
 
-**1. Firestore Kurallarını Güncelleme:**
+**1. Firestore Güvenlik Kurallarını Güncelleme:**
+Bu işlem, `PERMISSION_DENIED` hatalarını önlemek için kritik öneme sahiptir.
 1.  **Firebase Konsolu**'na gidin ve projenizi seçin.
 2.  Sol menüden **Build > Firestore Database**'e tıklayın.
 3.  Üstteki sekmelerden **Kurallar (Rules)** sekmesine geçin.
 4.  Editördeki mevcut tüm metni silin ve projenizdeki `firestore.rules` dosyasının içeriğini buraya yapıştırın.
 5.  **Yayınla (Publish)** butonuna tıklayın.
 
-**2. Realtime Database Kurallarını Güncelleme (Kullanıcı Aktiflik Durumu İçin):**
+**2. Firestore Dizinlerini (Indexes) Güncelleme:**
+Bazı karmaşık sorgular, Firebase'in verileri hızlıca bulabilmesi için bir dizin gerektirir. Eğer uygulamada gezinirken `The query requires an index` şeklinde bir hata alırsanız:
+1.  **En Kolay Yol:** Hata mesajının içinde size verilen ve `https://console.firebase.google.com/...` ile başlayan linke tıklayın.
+2.  Bu link sizi, tüm ayarları önceden doldurulmuş olan doğru dizin oluşturma sayfasına götürecektir.
+3.  Açılan sayfada **Dizini Oluştur (Create Index)** veya **Kaydet (Save)** butonuna tıklamanız yeterlidir.
+4.  Dizinin oluşturulması birkaç dakika sürebilir. Firebase Konsolu'nda durumu "Etkin (Enabled)" olduğunda, uygulamaya geri dönüp sayfayı yenileyebilirsiniz. Hata çözülmüş olacaktır.
+
+
+**3. Realtime Database Kurallarını Güncelleme (Kullanıcı Aktiflik Durumu İçin):**
 1.  **Firebase Konsolu**'nda, sol menüden **Build > Realtime Database**'e tıklayın.
 2.  Üstteki sekmelerden **Kurallar (Rules)** sekmesine geçin.
-3.  Editördeki mevcut tüm metni silin ve aşağıdaki içeriği buraya yapıştırın:
-    ```json
-    {
-      "rules": {
-        "status": {
-          "$uid": {
-            ".read": "auth != null",
-            ".write": "(auth != null && auth.uid === $uid) || (data.exists() && auth == null && newData.child('state').val() === 'offline')",
-            ".validate": "newData.hasChildren(['state', 'last_changed'])",
-            "state": {
-              ".validate": "newData.isString() && (newData.val() === 'online' || newData.val() === 'offline')"
-            },
-            "last_changed": {
-              ".validate": "newData.val() === now"
-            },
-            "$other": {
-              ".validate": false
-            }
-          }
-        }
-      }
-    }
-    ```
+3.  Editördeki mevcut tüm metni silin ve projenizdeki `database.rules.json` dosyasının içeriğini buraya yapıştırın.
 4.  **Yayınla (Publish)** butonuna tıklayın.
 
-Bu iki adımı tamamladıktan sonra uygulamanızın veritabanı erişim izinleri doğru şekilde ayarlanmış olacaktır.
+Bu adımları tamamladıktan sonra uygulamanızın veritabanı erişim izinleri doğru şekilde ayarlanmış olacaktır.
