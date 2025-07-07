@@ -4,21 +4,16 @@
 import { useState, useMemo } from 'react';
 import type { KanbanCard, AppUser } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PlusCircle, MoreVertical, Edit, Trash2, User } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { PlusCircle } from 'lucide-react';
 import { AddEditTalimatDialog } from './add-edit-talimat-dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { useAuth } from '@/contexts/auth-context';
+import { usePositions } from '@/hooks/use-positions';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { KanbanColumn } from './kanban-column';
+import { KanbanCardItem } from './kanban-card-item';
+import { useDepposh } from '@/hooks/use-depposh';
 
-interface TalimatlarBoardProps {
-    cards: KanbanCard[];
-    allUsers: AppUser[];
-    addCard: (cardData: Omit<KanbanCard, 'id' | 'order'>) => void;
-    updateCard: (card: KanbanCard) => void;
-    deleteCard: (cardId: string) => void;
-}
 
 const statusMap = {
     todo: { title: 'Yapılacaklar', color: 'bg-gray-500' },
@@ -27,55 +22,47 @@ const statusMap = {
 };
 type Status = keyof typeof statusMap;
 
-const AvatarStack = ({ uids, allUsers }: { uids: string[], allUsers: AppUser[] }) => {
-    const assignedUsers = uids.map(uid => allUsers.find(u => u.uid === uid)).filter(Boolean) as AppUser[];
+export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, updateCard, deleteCard }: {
+    cards: KanbanCard[];
+    allUsers: AppUser[];
+    addCard: (cardData: Omit<KanbanCard, 'id' | 'order' | 'lastModifiedBy' | 'lastModifiedAt'>) => void;
+    updateCard: (card: KanbanCard) => void;
+    deleteCard: (cardId: string) => void;
+}) {
+    const { user } = useAuth();
+    const { positions, personnel, isInitialized: isPositionsInitialized } = usePositions();
+    const { updateCardBatch } = useDepposh();
 
-    if (assignedUsers.length === 0) {
-        return null;
-    }
+    const [cards, setCards] = useState(initialCards);
+    const [activeCard, setActiveCard] = useState<KanbanCard | null>(null);
 
-    const visibleAvatars = assignedUsers.slice(0, 3);
-    const hiddenCount = assignedUsers.length - visibleAvatars.length;
-
-    return (
-        <div className="flex -space-x-2 overflow-hidden">
-            <TooltipProvider>
-                {visibleAvatars.map(user => (
-                    <Tooltip key={user.uid}>
-                        <TooltipTrigger>
-                            <Avatar className="h-6 w-6 border-2 border-background">
-                                <AvatarImage src={user.photoUrl || ''} />
-                                <AvatarFallback>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           {user.firstName} {user.lastName}
-                        </TooltipContent>
-                    </Tooltip>
-                ))}
-                {hiddenCount > 0 && (
-                     <Tooltip>
-                        <TooltipTrigger>
-                             <Avatar className="h-6 w-6 border-2 border-background">
-                                <AvatarFallback>+{hiddenCount}</AvatarFallback>
-                            </Avatar>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           ve {hiddenCount} diğer kullanıcı
-                        </TooltipContent>
-                    </Tooltip>
-                )}
-            </TooltipProvider>
-        </div>
-    );
-};
-
-
-export function TalimatlarBoard({ cards, allUsers, addCard, updateCard, deleteCard }: TalimatlarBoardProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCard, setEditingCard] = useState<KanbanCard | null>(null);
     const [initialStatus, setInitialStatus] = useState<Status>('todo');
 
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    useEffect(() => {
+        setCards(initialCards);
+    }, [initialCards]);
+
+    const canAddTalimat = useMemo(() => {
+        if (!user || !isPositionsInitialized) return false;
+        const targetPosition = positions.find(p =>
+            p.department === 'İnsan Kaynakları Daire Başkanlığı' &&
+            p.name === 'Personel Hareketleri Şube Müdürü'
+        );
+        if (!targetPosition || !targetPosition.assignedPersonnelId) return false;
+        
+        const assignedPerson = personnel.find(p => p.id === targetPosition.assignedPersonnelId);
+        if (!assignedPerson) return false;
+
+        return assignedPerson.registryNumber === user.registryNumber;
+    }, [user, positions, personnel, isPositionsInitialized]);
+    
     const handleAddClick = (status: Status) => {
         setEditingCard(null);
         setInitialStatus(status);
@@ -87,7 +74,7 @@ export function TalimatlarBoard({ cards, allUsers, addCard, updateCard, deleteCa
         setIsDialogOpen(true);
     };
 
-    const handleSaveCard = (data: Omit<KanbanCard, 'id' | 'order'> | KanbanCard) => {
+    const handleSaveCard = (data: Omit<KanbanCard, 'id' | 'order' | 'lastModifiedBy' | 'lastModifiedAt'> | KanbanCard) => {
         if ('id' in data) {
             updateCard(data);
         } else {
@@ -102,85 +89,161 @@ export function TalimatlarBoard({ cards, allUsers, addCard, updateCard, deleteCa
                 grouped[card.status].push(card);
             }
         });
-        // Sort cards within each group by their order property
         for (const status in grouped) {
-            grouped[status as Status].sort((a,b) => a.order - b.order);
+            grouped[status as Status].sort((a, b) => a.order - b.order);
         }
         return grouped;
     }, [cards]);
 
+    function handleDragStart(event: DragStartEvent) {
+        const card = cards.find(c => c.id === event.active.id);
+        if (card) {
+            setActiveCard(card);
+        }
+    }
+
+    function handleDragOver(event: DragOverEvent) {
+        const { active, over } = event;
+        if (!over) return;
+    
+        const activeId = active.id;
+        const overId = over.id;
+    
+        if (activeId === overId) return;
+    
+        const isActiveACard = active.data.current?.type === 'Card';
+        const isOverACard = over.data.current?.type === 'Card';
+    
+        if (!isActiveACard) return;
+    
+        // Dropping a Card over another Card
+        if (isActiveACard && isOverACard) {
+            setCards(prev => {
+                const activeIndex = prev.findIndex(c => c.id === activeId);
+                const overIndex = prev.findIndex(c => c.id === overId);
+    
+                if (prev[activeIndex].status !== prev[overIndex].status) {
+                    const newCards = [...prev];
+                    newCards[activeIndex].status = prev[overIndex].status;
+                    return arrayMove(newCards, activeIndex, overIndex - 1);
+                }
+    
+                return arrayMove(prev, activeIndex, overIndex);
+            });
+        }
+    
+        // Dropping a Card over a column
+        const isOverAColumn = over.data.current?.type === 'Column';
+        if (isActiveACard && isOverAColumn) {
+            setCards(prev => {
+                const activeIndex = prev.findIndex(c => c.id === activeId);
+                prev[activeIndex].status = overId as Status;
+                return arrayMove(prev, activeIndex, activeIndex);
+            });
+        }
+    }
+
+    function handleDragEnd(event: DragEndEvent) {
+        const { active, over } = event;
+        if (!over) {
+            setActiveCard(null);
+            return;
+        }
+
+        const activeId = String(active.id);
+        let overId = over.id;
+
+        if (over.data.current?.type === 'Card') {
+            overId = over.data.current.card.status;
+        }
+        
+        if (activeId === overId) {
+            setActiveCard(null);
+            return;
+        }
+
+        const oldCard = cards.find(c => c.id === activeId);
+        if (!oldCard) return;
+
+        const newStatus = overId as Status;
+        
+        let newCards = [...cards];
+        const oldIndex = newCards.findIndex(c => c.id === activeId);
+        
+        // Find the index in the new column
+        const overIndex = over.data.current?.type === 'Card'
+          ? newCards.findIndex(c => c.id === over.id)
+          : -1;
+
+        if (overIndex !== -1) {
+            newCards[oldIndex].status = newCards[overIndex].status;
+            newCards = arrayMove(newCards, oldIndex, overIndex);
+        } else {
+             newCards[oldIndex].status = newStatus;
+        }
+
+        const cardsToUpdate: (Partial<KanbanCard> & { id: string })[] = [];
+        
+        const columnStates: Record<Status, KanbanCard[]> = { todo: [], inProgress: [], done: [] };
+        newCards.forEach(c => columnStates[c.status].push(c));
+        
+        Object.values(columnStates).forEach(column => {
+            column.sort((a,b) => a.order - b.order) // Ensure correct sorting before re-indexing
+                .forEach((card, index) => {
+                    const originalCard = initialCards.find(c => c.id === card.id);
+                    if (originalCard && (originalCard.status !== card.status || originalCard.order !== index)) {
+                         cardsToUpdate.push({
+                            id: card.id,
+                            status: card.status,
+                            order: index
+                        });
+                    }
+                });
+        });
+        
+        if (cardsToUpdate.length > 0) {
+            updateCardBatch(cardsToUpdate);
+        }
+
+        setActiveCard(null);
+    }
+
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full items-start">
-                {(Object.keys(statusMap) as Status[]).map(status => (
-                    <div key={status} className="flex flex-col gap-4 bg-muted/50 p-4 rounded-lg h-full">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className={`w-3 h-3 rounded-full ${statusMap[status].color}`}></div>
-                                <h2 className="font-semibold text-lg">{statusMap[status].title}</h2>
-                                <span className="text-muted-foreground text-sm">({columns[status].length})</span>
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => handleAddClick(status)}>
-                                <PlusCircle className="h-5 w-5" />
-                            </Button>
-                        </div>
-
-                        <div className="flex flex-col gap-4 overflow-y-auto">
-                           {columns[status].length > 0 ? columns[status].map(card => (
-                                <Card key={card.id} className="bg-background">
-                                    <CardHeader className="p-4 flex flex-row items-start justify-between">
-                                        <div className="space-y-1">
-                                            <CardTitle className="text-base font-medium">{card.title}</CardTitle>
-                                             {card.description && (
-                                                <CardDescription className="text-sm text-muted-foreground whitespace-pre-wrap">{card.description}</CardDescription>
-                                            )}
-                                        </div>
-                                        <AlertDialog>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mt-2 -mr-2 flex-shrink-0">
-                                                        <MoreVertical className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => handleEditClick(card)}>
-                                                        <Edit className="mr-2 h-4 w-4" /> Düzenle
-                                                    </DropdownMenuItem>
-                                                     <AlertDialogTrigger asChild>
-                                                        <DropdownMenuItem className="text-destructive focus:text-destructive">
-                                                            <Trash2 className="mr-2 h-4 w-4" /> Sil
-                                                        </DropdownMenuItem>
-                                                     </AlertDialogTrigger>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Emin misiniz?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        Bu işlem geri alınamaz. "{card.title}" talimatını kalıcı olarak silmek istediğinizden emin misiniz?
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>İptal</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => deleteCard(card.id)} className="bg-destructive hover:bg-destructive/90">Sil</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </CardHeader>
-                                    {(card.assignedUids && card.assignedUids.length > 0) && (
-                                        <CardContent className="p-4 pt-0">
-                                            <AvatarStack uids={card.assignedUids} allUsers={allUsers} />
-                                        </CardContent>
-                                    )}
-                                </Card>
-                            )) : (
-                                <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                                    <p>Henüz talimat yok.</p>
-                                </div>
+                <DndContext
+                    sensors={sensors}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={handleDragOver}
+                    collisionDetection={closestCenter}
+                >
+                    {(Object.keys(statusMap) as Status[]).map(status => (
+                        <KanbanColumn
+                            key={status}
+                            id={status}
+                            title={statusMap[status].title}
+                            color={statusMap[status].color}
+                            cards={columns[status]}
+                        >
+                            {canAddTalimat && (
+                                <Button variant="ghost" className="w-full justify-start mt-2" onClick={() => handleAddClick(status)}>
+                                    <PlusCircle className="h-4 w-4 mr-2" />
+                                    Yeni Talimat Ekle
+                                </Button>
                             )}
-                        </div>
-                    </div>
-                ))}
+                             {columns[status].map(card => (
+                                <KanbanCardItem
+                                    key={card.id}
+                                    card={card}
+                                    allUsers={allUsers}
+                                    onEdit={handleEditClick}
+                                    onDelete={deleteCard}
+                                />
+                            ))}
+                        </KanbanColumn>
+                    ))}
+                </DndContext>
             </div>
 
             <AddEditTalimatDialog

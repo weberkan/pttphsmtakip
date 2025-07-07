@@ -66,6 +66,8 @@ export interface KanbanCard {
   status: 'todo' | 'inProgress' | 'done';
   order: number;
   assignedUids?: string[];
+  priority?: 'low' | 'medium' | 'high';
+  dueDate?: Date | Timestamp | null;
   lastModifiedBy?: string;
   lastModifiedAt?: Date | Timestamp | null;
 }

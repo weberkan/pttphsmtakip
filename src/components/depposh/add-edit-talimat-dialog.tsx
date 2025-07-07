@@ -35,15 +35,20 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown, X, Calendar as CalendarIcon, Flame, Signal, Minus } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../ui/command";
 import { Badge } from "../ui/badge";
+import { Calendar } from "../ui/calendar";
+import { format } from "date-fns";
+
 
 const cardSchema = z.object({
   title: z.string().min(1, "Başlık boş olamaz."),
   description: z.string().optional(),
   status: z.enum(["todo", "inProgress", "done"]),
   assignedUids: z.array(z.string()).optional(),
+  priority: z.enum(['low', 'medium', 'high']).optional(),
+  dueDate: z.date().nullable().optional(),
 });
 
 type CardFormData = z.infer<typeof cardSchema>;
@@ -80,6 +85,8 @@ export function AddEditTalimatDialog({
           description: cardToEdit.description || "",
           status: cardToEdit.status,
           assignedUids: cardToEdit.assignedUids || [],
+          priority: cardToEdit.priority || 'medium',
+          dueDate: cardToEdit.dueDate ? new Date(cardToEdit.dueDate as any) : null,
         });
       } else {
         form.reset({
@@ -87,17 +94,24 @@ export function AddEditTalimatDialog({
           description: "",
           status: initialStatus,
           assignedUids: [],
+          priority: 'medium',
+          dueDate: null,
         });
       }
     }
   }, [cardToEdit, initialStatus, form, isOpen]);
 
   const onSubmit = (data: CardFormData) => {
+    const dataToSave = {
+      ...data,
+      priority: data.priority || 'medium',
+      dueDate: data.dueDate || null,
+    };
     if (cardToEdit) {
-      onSave({ ...cardToEdit, ...data });
+      onSave({ ...cardToEdit, ...dataToSave });
       toast({ title: "Talimat Güncellendi"});
     } else {
-      onSave(data as Omit<KanbanCard, 'id' | 'order'>);
+      onSave(dataToSave as Omit<KanbanCard, 'id' | 'order' | 'lastModifiedBy' | 'lastModifiedAt'>);
       toast({ title: "Talimat Eklendi"});
     }
     onOpenChange(false);
@@ -138,6 +152,68 @@ export function AddEditTalimatDialog({
                     </FormItem>
                     )}
                 />
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="priority"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Öncelik</FormLabel>
+                             <Select onValueChange={field.onChange} defaultValue={field.value || 'medium'}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="Öncelik seçin" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="high"><div className="flex items-center gap-2"><Flame className="h-4 w-4 text-red-500" /> Yüksek</div></SelectItem>
+                                    <SelectItem value="medium"><div className="flex items-center gap-2"><Signal className="h-4 w-4 text-yellow-500" /> Orta</div></SelectItem>
+                                    <SelectItem value="low"><div className="flex items-center gap-2"><Minus className="h-4 w-4 text-gray-500" /> Düşük</div></SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="dueDate"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Bitiş Tarihi (Opsiyonel)</FormLabel>
+                            <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                    )}
+                                >
+                                    {field.value ? (
+                                    format(field.value, "PPP", { locale: require('date-fns/locale/tr') })
+                                    ) : (
+                                    <span>Tarih seçin</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                mode="single"
+                                selected={field.value ?? undefined}
+                                onSelect={field.onChange}
+                                initialFocus
+                                />
+                            </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
                  <FormField
                     control={form.control}
                     name="assignedUids"

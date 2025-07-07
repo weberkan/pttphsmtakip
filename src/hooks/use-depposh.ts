@@ -18,7 +18,8 @@ import {
   orderBy,
   where,
   getDocs,
-  getDoc
+  getDoc,
+  updateDoc
 } from "firebase/firestore";
 import { 
   ref as storageRef, 
@@ -27,7 +28,7 @@ import {
   deleteObject 
 } from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
-import { v4 as uuidv4 } from 'uuid'; // I'll add this dependency to package.json
+import { v4 as uuidv4 } from 'uuid';
 
 export function useDepposh() {
   const { user } = useAuth();
@@ -59,6 +60,7 @@ export function useDepposh() {
           return {
               id: doc.id,
               ...data,
+              dueDate: (data.dueDate as Timestamp)?.toDate(),
               lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate()
             } as KanbanCard;
         });
@@ -158,6 +160,30 @@ export function useDepposh() {
     await deleteDoc(doc(db, 'talimatlar', cardId));
   }, [user]);
 
+  const updateCardBatch = useCallback(async (cardsToUpdate: (Partial<KanbanCard> & { id: string })[]) => {
+    if (!user || !db || cardsToUpdate.length === 0) return;
+    const batch = writeBatch(db);
+  
+    cardsToUpdate.forEach(cardUpdate => {
+      const { id, ...data } = cardUpdate;
+      const cardRef = doc(db, 'talimatlar', id);
+      batch.update(cardRef, {
+        ...data,
+        lastModifiedBy: user.registryNumber,
+        lastModifiedAt: Timestamp.now(),
+      });
+    });
+  
+    try {
+      await batch.commit();
+      toast({ title: 'Pano Güncellendi' });
+    } catch (e) {
+      console.error("Error updating board", e);
+      toast({ variant: 'destructive', title: "Hata", description: "Pano güncellenirken bir sorun oluştu." });
+    }
+  }, [user, db, toast]);
+
+
   // Depposh File operations
   const addFile = useCallback(async (file: File, category: DepposhFileCategory) => {
     if (!user || !db || !storage) return;
@@ -191,18 +217,17 @@ export function useDepposh() {
   const deleteFile = useCallback(async (fileId: string) => {
     if (!user || !db || !storage) return;
 
-    const fileRef = doc(db, 'depposh-files', fileId);
-    const fileDoc = await getDoc(fileRef);
+    const fileDoc = await getDoc(doc(db, 'depposh-files', fileId));
 
     if (fileDoc.exists()) {
         const fileData = fileDoc.data() as DepposhFile;
         // Delete from Storage first
         if (fileData.storagePath) {
             const fileStorageRef = storageRef(storage, fileData.storagePath);
-            await deleteObject(fileStorageRef);
+            await deleteObject(fileStorageRef).catch(err => console.error("Could not delete file from storage", err));
         }
         // Then delete from Firestore
-        await deleteDoc(fileRef);
+        await deleteDoc(doc(db, 'depposh-files', fileId));
         toast({ title: "Dosya Silindi", description: `${fileData.name} başarıyla silindi.` });
     } else {
         toast({ variant: "destructive", title: "Hata", description: "Silinecek dosya bulunamadı." });
@@ -236,6 +261,7 @@ export function useDepposh() {
     addCard, 
     updateCard, 
     deleteCard,
+    updateCardBatch,
     files,
     addFile,
     deleteFile,
