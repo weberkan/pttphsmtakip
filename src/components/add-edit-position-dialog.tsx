@@ -35,10 +35,11 @@ import type { Position, Personnel } from "@/lib/types";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
-import { format, parse, isValid } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { tr } from "date-fns/locale";
 
 const positionSchema = z.object({
   name: z.string().min(2, "Ünvan en az 2 karakter olmalıdır."),
@@ -344,87 +345,44 @@ export function AddEditPositionDialog({
                 <FormField
                   control={form.control}
                   name="startDate"
-                  render={({ field }) => {
-                    const [open, setOpen] = useState(false);
-                    const [inputValue, setInputValue] = useState(
-                      field.value ? format(new Date(field.value), "dd.MM.yyyy") : ""
-                    );
-
-                    useEffect(() => {
-                      if (field.value) {
-                        setInputValue(format(new Date(field.value), "dd.MM.yyyy"));
-                      } else {
-                        setInputValue("");
-                      }
-                    }, [field.value]);
-
-                    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                      setInputValue(e.target.value);
-                    };
-
-                    const handleInputBlur = () => {
-                      if (inputValue.trim() === "") {
-                        field.onChange(null);
-                        return;
-                      }
-                      const parsedDate = parse(inputValue, "dd.MM.yyyy", new Date());
-                      if (isValid(parsedDate)) {
-                        field.onChange(parsedDate);
-                      } else {
-                        setInputValue(field.value ? format(new Date(field.value), "dd.MM.yyyy") : "");
-                      }
-                    };
-
-                    return (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>{getStartDateLabel(positionStatus)} (Opsiyonel)</FormLabel>
-                        <Popover open={open} onOpenChange={setOpen}>
-                            <div className="relative">
-                                <FormControl>
-                                    <Input
-                                      placeholder="gg.aa.yyyy"
-                                      value={inputValue}
-                                      onChange={handleInputChange}
-                                      onBlur={handleInputBlur}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          e.preventDefault();
-                                          handleInputBlur();
-                                        }
-                                      }}
-                                      disabled={positionStatus === "Boş"}
-                                      className="pr-10"
-                                    />
-                                </FormControl>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant={"ghost"}
-                                        className="absolute right-0 top-0 h-full px-3"
-                                        disabled={positionStatus === "Boş"}
-                                    >
-                                        <CalendarIcon className="h-4 w-4 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                            </div>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value ? new Date(field.value) : undefined}
-                                onSelect={(date) => {
-                                  field.onChange(date || null)
-                                  setOpen(false)
-                                }}
-                                disabled={(date) =>
-                                  date > new Date() || date < new Date("1900-01-01") || positionStatus === "Boş"
-                                }
-                              />
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )
-                  }}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>{getStartDateLabel(positionStatus)} (Opsiyonel)</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              disabled={positionStatus === "Boş"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP", { locale: tr })
+                              ) : (
+                                <span>Tarih seçin</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("1900-01-01") || positionStatus === "Boş"
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
                  <FormField
                   control={form.control}
