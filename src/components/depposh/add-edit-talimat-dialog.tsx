@@ -58,7 +58,7 @@ const cardSchema = z.object({
             message: 'Bitiş tarihi, başlangıç tarihinden önce olamaz.',
         });
     }
-});;
+});
 
 type CardFormData = z.infer<typeof cardSchema>;
 
@@ -214,9 +214,10 @@ export function AddEditTalimatDialog({
                             }
                             try {
                                 const parsedDate = parse(inputValue, 'dd.MM.yyyy', new Date());
-                                if (!isNaN(parsedDate.getTime())) {
+                                if (!isNaN(parsedDate.getTime()) && parsedDate >= new Date(new Date().setHours(0,0,0,0))) {
                                     field.onChange(parsedDate);
                                 } else {
+                                    form.setError("startDate", { message: "Lütfen bugün veya ileri bir tarih girin." });
                                     setInputValue(field.value ? format(field.value, 'dd.MM.yyyy') : "");
                                 }
                             } catch {
@@ -227,35 +228,34 @@ export function AddEditTalimatDialog({
                         return (
                             <FormItem className="flex flex-col">
                             <FormLabel>Başlangıç Tarihi (Opsiyonel)</FormLabel>
-                            <Popover>
-                                <div className="relative">
-                                    <FormControl>
+                                <Popover>
+                                    <div className="relative">
                                         <Input
                                             placeholder="GG.AA.YYYY"
                                             value={inputValue}
                                             onChange={handleInputChange}
                                             onBlur={handleInputBlur}
+                                            className="pr-8"
                                         />
-                                    </FormControl>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="ghost" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground">
-                                            <CalendarIcon className="h-4 w-4" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                </div>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    locale={tr}
-                                    mode="single"
-                                    selected={field.value ?? undefined}
-                                    onSelect={field.onChange}
-                                    disabled={(date) =>
-                                    date < new Date(new Date().setHours(0, 0, 0, 0))
-                                    }
-                                    initialFocus
-                                />
-                                </PopoverContent>
-                            </Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="ghost" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground">
+                                                <CalendarIcon className="h-4 w-4" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                    </div>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        locale={tr}
+                                        mode="single"
+                                        selected={field.value ?? undefined}
+                                        onSelect={field.onChange}
+                                        disabled={(date) =>
+                                        date < new Date(new Date().setHours(0, 0, 0, 0))
+                                        }
+                                        initialFocus
+                                    />
+                                    </PopoverContent>
+                                </Popover>
                             <FormMessage />
                             </FormItem>
                         );
@@ -280,15 +280,19 @@ export function AddEditTalimatDialog({
                         };
 
                         const handleInputBlur = () => {
+                            const startDate = form.getValues("startDate");
                             if (inputValue === "") {
                                 field.onChange(null);
                                 return;
                             }
                             try {
                                 const parsedDate = parse(inputValue, 'dd.MM.yyyy', new Date());
-                                if (!isNaN(parsedDate.getTime())) {
+                                const minDate = startDate || new Date(new Date().setHours(0, 0, 0, 0));
+
+                                if (!isNaN(parsedDate.getTime()) && parsedDate >= minDate) {
                                     field.onChange(parsedDate);
                                 } else {
+                                    form.setError("dueDate", { message: "Tarih, başlangıçtan veya bugünden önce olamaz." });
                                     setInputValue(field.value ? format(field.value, 'dd.MM.yyyy') : "");
                                 }
                             } catch {
@@ -299,39 +303,37 @@ export function AddEditTalimatDialog({
                         return (
                             <FormItem className="flex flex-col">
                             <FormLabel>Bitiş Tarihi (Opsiyonel)</FormLabel>
-                            <Popover>
-                                <div className="relative">
-                                    <FormControl>
+                                <Popover>
+                                    <div className="relative">
                                         <Input
                                             placeholder="GG.AA.YYYY"
                                             value={inputValue}
                                             onChange={handleInputChange}
                                             onBlur={handleInputBlur}
+                                            className="pr-8"
                                         />
-                                    </FormControl>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="ghost" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground">
-                                            <CalendarIcon className="h-4 w-4" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                </div>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    locale={tr}
-                                    mode="single"
-                                    selected={field.value ?? undefined}
-                                    onSelect={field.onChange}
-                                    disabled={(date) => {
-                                        const startDate = form.getValues("startDate");
-                                        if (!startDate) {
-                                            return date < new Date(new Date().setHours(0, 0, 0, 0));
-                                        }
-                                        return date < startDate;
-                                    }}
-                                    initialFocus
-                                />
-                                </PopoverContent>
-                            </Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="ghost" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground">
+                                                <CalendarIcon className="h-4 w-4" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                    </div>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        locale={tr}
+                                        mode="single"
+                                        selected={field.value ?? undefined}
+                                        onSelect={field.onChange}
+                                        disabled={(date) => {
+                                            const startDate = form.getValues("startDate");
+                                            const today = new Date(new Date().setHours(0, 0, 0, 0));
+                                            const minDate = startDate && startDate > today ? startDate : today;
+                                            return date < minDate;
+                                        }}
+                                        initialFocus
+                                    />
+                                    </PopoverContent>
+                                </Popover>
                             <FormMessage />
                             </FormItem>
                         );
@@ -346,7 +348,7 @@ export function AddEditTalimatDialog({
                             <FormLabel>Atanan Kullanıcılar (Opsiyonel)</FormLabel>
                             <Popover open={openUserSelect} onOpenChange={setOpenUserSelect}>
                                 <PopoverTrigger asChild>
-                                    <FormControl>
+                                    
                                         <Button
                                             variant="outline"
                                             role="combobox"
@@ -372,7 +374,7 @@ export function AddEditTalimatDialog({
                                             </div>
                                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
-                                    </FormControl>
+                                    
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                     <Command>
@@ -425,3 +427,5 @@ export function AddEditTalimatDialog({
     </Dialog>
   );
 }
+
+    
