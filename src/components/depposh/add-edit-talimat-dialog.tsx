@@ -30,14 +30,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { KanbanCard } from "@/lib/types";
-import { useEffect } from "react";
+import type { KanbanCard, AppUser } from "@/lib/types";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { cn } from "@/lib/utils";
+import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../ui/command";
+import { Badge } from "../ui/badge";
 
 const cardSchema = z.object({
   title: z.string().min(1, "Başlık boş olamaz."),
   description: z.string().optional(),
   status: z.enum(["todo", "inProgress", "done"]),
+  assignedUids: z.array(z.string()).optional(),
 });
 
 type CardFormData = z.infer<typeof cardSchema>;
@@ -47,6 +53,7 @@ interface AddEditTalimatDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   cardToEdit?: KanbanCard | null;
   initialStatus?: 'todo' | 'inProgress' | 'done';
+  allUsers: AppUser[];
   onSave: (cardData: Omit<KanbanCard, 'id' | 'order' | 'lastModifiedAt' | 'lastModifiedBy'> | KanbanCard) => void;
 }
 
@@ -55,12 +62,15 @@ export function AddEditTalimatDialog({
   onOpenChange,
   cardToEdit,
   initialStatus = 'todo',
+  allUsers,
   onSave,
 }: AddEditTalimatDialogProps) {
   const { toast } = useToast();
   const form = useForm<CardFormData>({
     resolver: zodResolver(cardSchema),
   });
+
+  const [openUserSelect, setOpenUserSelect] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -69,12 +79,14 @@ export function AddEditTalimatDialog({
           title: cardToEdit.title,
           description: cardToEdit.description || "",
           status: cardToEdit.status,
+          assignedUids: cardToEdit.assignedUids || [],
         });
       } else {
         form.reset({
           title: "",
           description: "",
           status: initialStatus,
+          assignedUids: [],
         });
       }
     }
@@ -91,13 +103,15 @@ export function AddEditTalimatDialog({
     onOpenChange(false);
   };
 
+  const userOptions = allUsers.map(u => ({ value: u.uid, label: `${u.firstName} ${u.lastName} (${u.registryNumber})`}));
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{cardToEdit ? "Talimatı Düzenle" : "Yeni Talimat Ekle"}</DialogTitle>
           <DialogDescription>
-            Talimat detaylarını girin ve durumunu seçin.
+            Talimat detaylarını girin, durumunu seçin ve ilgili kullanıcıları atayın.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -122,6 +136,79 @@ export function AddEditTalimatDialog({
                         <FormControl><Textarea {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="assignedUids"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Atanan Kullanıcılar (Opsiyonel)</FormLabel>
+                            <Popover open={openUserSelect} onOpenChange={setOpenUserSelect}>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className={cn(
+                                                "w-full justify-between h-auto min-h-10",
+                                                !field.value?.length && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <div className="flex gap-1 flex-wrap">
+                                                {field.value?.map(uid => {
+                                                    const user = allUsers.find(u => u.uid === uid);
+                                                    return (
+                                                        <Badge
+                                                            variant="secondary"
+                                                            key={uid}
+                                                            className="mr-1"
+                                                        >
+                                                            {user?.firstName} {user?.lastName}
+                                                        </Badge>
+                                                    );
+                                                })}
+                                                 {field.value?.length === 0 && "Kullanıcı seçin"}
+                                            </div>
+                                            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Kullanıcı ara..." />
+                                        <CommandList>
+                                            <CommandEmpty>Kullanıcı bulunamadı.</CommandEmpty>
+                                            <CommandGroup>
+                                                {userOptions.map((option) => (
+                                                    <CommandItem
+                                                        key={option.value}
+                                                        onSelect={() => {
+                                                            const currentUids = field.value || [];
+                                                            const newUids = currentUids.includes(option.value)
+                                                                ? currentUids.filter(uid => uid !== option.value)
+                                                                : [...currentUids, option.value];
+                                                            field.onChange(newUids);
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                field.value?.includes(option.value)
+                                                                    ? "opacity-100"
+                                                                    : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {option.label}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
                     )}
                 />
                 <FormField

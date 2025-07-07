@@ -1168,7 +1168,7 @@ function DashboardPageContent() {
              }
              return <UserApprovalPanel users={users} onApproveUser={approveUser} />;
         case 'depposh-talimatlar':
-            return <TalimatlarBoard cards={cards} addCard={addCard} updateCard={updateCard} deleteCard={deleteCard} />;
+            return <TalimatlarBoard cards={cards} addCard={addCard} updateCard={updateCard} deleteCard={deleteCard} allUsers={users} />;
         case 'depposh-taslak':
             return <FileListView category="taslak" files={files} addFile={addFile} deleteFile={deleteFile} updateFileOrder={updateFileOrder} />;
         case 'depposh-matbu':

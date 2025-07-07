@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense, useState, ReactNode, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Menu, Briefcase, Network, UserCheck, Bell, ChevronLeft } from "lucide-react";
+import { Users, LogOut, Menu, Briefcase, Network, UserCheck, Bell, ChevronLeft, Check, KanbanSquare } from "lucide-react";
 import Image from "next/image";
 import {
   DropdownMenu,
@@ -15,14 +15,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTrigger } from '@/components/ui/sheet';
 import { SidebarNav } from '@/components/sidebar-nav';
-import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useUserManagement } from '@/hooks/use-user-management';
+import { useNotifications } from '@/hooks/use-notifications';
+import { formatDistanceToNow } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const viewTitles: { [key: string]: string } = {
@@ -69,6 +76,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
     
     const { users } = useUserManagement();
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
     
     const view = searchParams.get('view') || 'dashboard';
 
@@ -77,9 +85,18 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         return users.some(u => !u.isApproved);
     }, [users, user?.role]);
 
+    const hasNotifications = useMemo(() => hasPendingApprovals || unreadCount > 0, [hasPendingApprovals, unreadCount]);
+
     if (!user) return null;
     
     const headerTitle = viewTitles[view] || 'Pozisyon Takip Sistemi';
+
+    const handleNotificationClick = async (notification: any) => {
+        if (!notification.isRead) {
+            await markAsRead(notification.id);
+        }
+        router.push(notification.link);
+    };
 
     return (
         <div className={cn(
@@ -120,15 +137,55 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     <div className="ml-auto flex items-center gap-2">
                         <ThemeToggle />
 
-                        <Link href="/?view=kullanici-onay" passHref>
-                          <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
-                              <Bell className="h-5 w-5" />
-                              {hasPendingApprovals && (
-                                <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background" />
-                              )}
-                              <span className="sr-only">Bildirimler</span>
-                          </Button>
-                        </Link>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
+                                    <Bell className="h-5 w-5" />
+                                    {hasNotifications && (
+                                        <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background" />
+                                    )}
+                                    <span className="sr-only">Bildirimler</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                             <DropdownMenuContent className="w-80" align="end">
+                                <DropdownMenuLabel>Bildirimler</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <ScrollArea className="h-[300px]">
+                                    {hasPendingApprovals && user.role === 'admin' && (
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/?view=kullanici-onay" className='!text-destructive focus:!text-destructive'>
+                                                <UserCheck className="mr-2 h-4 w-4" />
+                                                <span>Onay bekleyen kullanıcılar var!</span>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )}
+                                    {notifications.length > 0 ? (
+                                        notifications.map(notification => (
+                                            <DropdownMenuItem key={notification.id} onClick={() => handleNotificationClick(notification)} className={cn("flex flex-col items-start gap-1 whitespace-normal", !notification.isRead && 'bg-accent')}>
+                                               <div className='flex items-center gap-2'>
+                                                  <KanbanSquare className="h-4 w-4 text-muted-foreground" />
+                                                  <p className="text-sm font-medium">{notification.message}</p>
+                                               </div>
+                                               <p className="text-xs text-muted-foreground pl-6">
+                                                   {notification.senderInfo} &middot; {formatDistanceToNow(new Date(notification.createdAt as any), { locale: tr, addSuffix: true })}
+                                               </p>
+                                            </DropdownMenuItem>
+                                        ))
+                                    ) : !hasPendingApprovals && (
+                                        <p className="px-2 py-4 text-center text-sm text-muted-foreground">Okunmamış bildiriminiz yok.</p>
+                                    )}
+                                </ScrollArea>
+                                {unreadCount > 0 && (
+                                     <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onSelect={markAllAsRead}>
+                                            <Check className="mr-2 h-4 w-4" />
+                                            <span>Tümünü okundu olarak işaretle</span>
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>

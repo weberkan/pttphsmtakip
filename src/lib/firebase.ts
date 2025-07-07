@@ -3,6 +3,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { getDatabase, Database } from 'firebase/database';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -18,6 +19,7 @@ let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
 let rtdb: Database | null = null;
+let storage: FirebaseStorage | null = null;
 
 // This check is critical. If any of these are missing, Firebase will not initialize.
 if (
@@ -34,12 +36,14 @@ if (
     db = getFirestore(app);
     auth = getAuth(app);
     rtdb = getDatabase(app);
+    storage = getStorage(app);
   } catch (error) {
     console.error("Firebase başlatılırken bir hata oluştu. Yapılandırmanızı kontrol edin.", error);
     app = null;
     db = null;
     auth = null;
     rtdb = null;
+    storage = null;
   }
 } else {
   // Only show this detailed warning in development mode.
@@ -65,4 +69,4 @@ if (
   }
 }
 
-export { app, db, auth, rtdb };
+export { app, db, auth, rtdb, storage };

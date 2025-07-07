@@ -2,16 +2,19 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import type { KanbanCard } from '@/lib/types';
+import type { KanbanCard, AppUser } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PlusCircle, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, MoreVertical, Edit, Trash2, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AddEditTalimatDialog } from './add-edit-talimat-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface TalimatlarBoardProps {
     cards: KanbanCard[];
+    allUsers: AppUser[];
     addCard: (cardData: Omit<KanbanCard, 'id' | 'order'>) => void;
     updateCard: (card: KanbanCard) => void;
     deleteCard: (cardId: string) => void;
@@ -24,7 +27,51 @@ const statusMap = {
 };
 type Status = keyof typeof statusMap;
 
-export function TalimatlarBoard({ cards, addCard, updateCard, deleteCard }: TalimatlarBoardProps) {
+const AvatarStack = ({ uids, allUsers }: { uids: string[], allUsers: AppUser[] }) => {
+    const assignedUsers = uids.map(uid => allUsers.find(u => u.uid === uid)).filter(Boolean) as AppUser[];
+
+    if (assignedUsers.length === 0) {
+        return null;
+    }
+
+    const visibleAvatars = assignedUsers.slice(0, 3);
+    const hiddenCount = assignedUsers.length - visibleAvatars.length;
+
+    return (
+        <div className="flex -space-x-2 overflow-hidden">
+            <TooltipProvider>
+                {visibleAvatars.map(user => (
+                    <Tooltip key={user.uid}>
+                        <TooltipTrigger>
+                            <Avatar className="h-6 w-6 border-2 border-background">
+                                <AvatarImage src={user.photoUrl || ''} />
+                                <AvatarFallback>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           {user.firstName} {user.lastName}
+                        </TooltipContent>
+                    </Tooltip>
+                ))}
+                {hiddenCount > 0 && (
+                     <Tooltip>
+                        <TooltipTrigger>
+                             <Avatar className="h-6 w-6 border-2 border-background">
+                                <AvatarFallback>+{hiddenCount}</AvatarFallback>
+                            </Avatar>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           ve {hiddenCount} diğer kullanıcı
+                        </TooltipContent>
+                    </Tooltip>
+                )}
+            </TooltipProvider>
+        </div>
+    );
+};
+
+
+export function TalimatlarBoard({ cards, allUsers, addCard, updateCard, deleteCard }: TalimatlarBoardProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCard, setEditingCard] = useState<KanbanCard | null>(null);
     const [initialStatus, setInitialStatus] = useState<Status>('todo');
@@ -82,11 +129,16 @@ export function TalimatlarBoard({ cards, addCard, updateCard, deleteCard }: Tali
                            {columns[status].length > 0 ? columns[status].map(card => (
                                 <Card key={card.id} className="bg-background">
                                     <CardHeader className="p-4 flex flex-row items-start justify-between">
-                                        <CardTitle className="text-base font-medium">{card.title}</CardTitle>
+                                        <div className="space-y-1">
+                                            <CardTitle className="text-base font-medium">{card.title}</CardTitle>
+                                             {card.description && (
+                                                <CardDescription className="text-sm text-muted-foreground whitespace-pre-wrap">{card.description}</CardDescription>
+                                            )}
+                                        </div>
                                         <AlertDialog>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mt-2 -mr-2">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mt-2 -mr-2 flex-shrink-0">
                                                         <MoreVertical className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
@@ -115,9 +167,9 @@ export function TalimatlarBoard({ cards, addCard, updateCard, deleteCard }: Tali
                                             </AlertDialogContent>
                                         </AlertDialog>
                                     </CardHeader>
-                                    {card.description && (
+                                    {(card.assignedUids && card.assignedUids.length > 0) && (
                                         <CardContent className="p-4 pt-0">
-                                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{card.description}</p>
+                                            <AvatarStack uids={card.assignedUids} allUsers={allUsers} />
                                         </CardContent>
                                     )}
                                 </Card>
@@ -136,6 +188,7 @@ export function TalimatlarBoard({ cards, addCard, updateCard, deleteCard }: Tali
                 onOpenChange={setIsDialogOpen}
                 cardToEdit={editingCard}
                 initialStatus={initialStatus}
+                allUsers={allUsers}
                 onSave={handleSaveCard}
             />
         </>

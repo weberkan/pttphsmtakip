@@ -65,6 +65,7 @@ export interface KanbanCard {
   description: string;
   status: 'todo' | 'inProgress' | 'done';
   order: number;
+  assignedUids?: string[];
   lastModifiedBy?: string;
   lastModifiedAt?: Date | Timestamp | null;
 }
@@ -78,7 +79,18 @@ export interface DepposhFile {
   size: number;
   category: DepposhFileCategory;
   downloadUrl: string; 
+  storagePath: string;
   order: number;
   lastModifiedBy?: string;
   lastModifiedAt?: Date | Timestamp | null;
+}
+
+export interface AppNotification {
+  id: string;
+  recipientUid: string;
+  senderInfo: string; // "First Last (RegistryNumber)"
+  message: string;
+  link: string;
+  isRead: boolean;
+  createdAt: Date | Timestamp;
 }

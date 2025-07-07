@@ -2,9 +2,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import type { KanbanCard, DepposhFile, DepposhFileCategory } from '@/lib/types';
+import type { KanbanCard, DepposhFile, DepposhFileCategory, AppUser } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { 
   collection, 
   onSnapshot, 
@@ -17,9 +17,17 @@ import {
   query,
   orderBy,
   where,
-  getDocs
+  getDocs,
+  getDoc
 } from "firebase/firestore";
+import { 
+  ref as storageRef, 
+  uploadBytes, 
+  getDownloadURL, 
+  deleteObject 
+} from "firebase/storage";
 import { useToast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid'; // I'll add this dependency to package.json
 
 export function useDepposh() {
   const { user } = useAuth();
@@ -51,7 +59,7 @@ export function useDepposh() {
           return {
               id: doc.id,
               ...data,
-              lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+              lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate()
             } as KanbanCard;
         });
       setCards(fetchedCards);
@@ -68,7 +76,7 @@ export function useDepposh() {
         return {
             id: doc.id,
             ...data,
-            lastModifiedAt: data.lastModifiedAt?.toDate ? data.lastModifiedAt.toDate() : data.lastModifiedAt,
+            lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate()
           } as DepposhFile;
         });
       setFiles(fetchedFiles);
@@ -84,29 +92,66 @@ export function useDepposh() {
     };
   }, [user]);
 
+  const createAssignmentNotification = useCallback(async (assigneeUid: string, cardTitle: string, sender: AppUser) => {
+    if (!db) return;
+    await addDoc(collection(db, 'notifications'), {
+        recipientUid: assigneeUid,
+        senderInfo: `${sender.firstName} ${sender.lastName} (${sender.registryNumber})`,
+        message: `Tarafından size "${cardTitle}" görevi atandı.`,
+        link: '/?view=depposh-talimatlar',
+        isRead: false,
+        createdAt: Timestamp.now(),
+    });
+  }, []);
+
   // Kanban Card operations
   const addCard = useCallback(async (cardData: Omit<KanbanCard, 'id' | 'order' | 'lastModifiedBy' | 'lastModifiedAt'>) => {
     if (!user || !db) return;
     const cardsInStatus = cards.filter(c => c.status === cardData.status);
     const maxOrder = cardsInStatus.reduce((max, card) => Math.max(card.order, max), -1);
 
-    await addDoc(collection(db, 'talimatlar'), {
+    const newCardData = {
       ...cardData,
       order: maxOrder + 1,
       lastModifiedBy: user.registryNumber,
       lastModifiedAt: Timestamp.now(),
-    });
-  }, [user, cards]);
+    };
+
+    await addDoc(collection(db, 'talimatlar'), newCardData);
+
+    // Send notifications to new assignees
+    if (newCardData.assignedUids) {
+        for (const uid of newCardData.assignedUids) {
+            await createAssignmentNotification(uid, newCardData.title, user);
+        }
+    }
+
+  }, [user, cards, createAssignmentNotification]);
 
   const updateCard = useCallback(async (updatedCard: KanbanCard) => {
     if (!user || !db) return;
     const { id, ...data } = updatedCard;
-    await setDoc(doc(db, 'talimatlar', id), {
+    const cardRef = doc(db, 'talimatlar', id);
+
+    const originalCardDoc = await getDoc(cardRef);
+    const originalCardData = originalCardDoc.data() as KanbanCard;
+    const oldUids = new Set(originalCardData.assignedUids || []);
+    const newUids = new Set(data.assignedUids || []);
+
+    await setDoc(cardRef, {
       ...data,
       lastModifiedBy: user.registryNumber,
       lastModifiedAt: Timestamp.now(),
     }, { merge: true });
-  }, [user]);
+
+    // Find newly added users and send them notifications
+    for (const uid of newUids) {
+        if (!oldUids.has(uid)) {
+            await createAssignmentNotification(uid, data.title, user);
+        }
+    }
+
+  }, [user, createAssignmentNotification]);
 
   const deleteCard = useCallback(async (cardId: string) => {
     if (!user || !db) return;
@@ -114,29 +159,56 @@ export function useDepposh() {
   }, [user]);
 
   // Depposh File operations
-  const addFile = useCallback(async (fileData: Omit<DepposhFile, 'id' | 'order' | 'downloadUrl'>) => {
-    if (!user || !db) return;
-    // Here you would normally upload the file to Firebase Storage and get a downloadURL
-    // For now, we'll use a placeholder.
-    const downloadUrl = "placeholder/url"; 
+  const addFile = useCallback(async (file: File, category: DepposhFileCategory) => {
+    if (!user || !db || !storage) return;
     
-    const filesInCategory = files.filter(f => f.category === fileData.category);
-    const maxOrder = filesInCategory.reduce((max, file) => Math.max(file.order, max), -1);
+    const fileId = uuidv4();
+    const filePath = `depposh-files/${category}/${fileId}-${file.name}`;
+    const fileStorageRef = storageRef(storage, filePath);
+    
+    await uploadBytes(fileStorageRef, file);
+    const downloadUrl = await getDownloadURL(fileStorageRef);
+    
+    const filesInCategory = files.filter(f => f.category === category);
+    const maxOrder = filesInCategory.reduce((max, f) => Math.max(f.order, max), -1);
 
-    await addDoc(collection(db, 'depposh-files'), {
-      ...fileData,
-      downloadUrl,
-      order: maxOrder + 1,
-      lastModifiedBy: user.registryNumber,
-      lastModifiedAt: Timestamp.now(),
-    });
-  }, [user, files]);
+    const fileData: Omit<DepposhFile, 'id'> = {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        category: category,
+        downloadUrl,
+        storagePath: filePath, // Store path for easy deletion
+        order: maxOrder + 1,
+        lastModifiedBy: user.registryNumber,
+        lastModifiedAt: Timestamp.now(),
+    }
+
+    await addDoc(collection(db, 'depposh-files'), fileData);
+
+  }, [user, files, storage, db]);
 
   const deleteFile = useCallback(async (fileId: string) => {
-    if (!user || !db) return;
-    // In a real app, you'd also delete the file from Firebase Storage
-    await deleteDoc(doc(db, 'depposh-files', fileId));
-  }, [user]);
+    if (!user || !db || !storage) return;
+
+    const fileRef = doc(db, 'depposh-files', fileId);
+    const fileDoc = await getDoc(fileRef);
+
+    if (fileDoc.exists()) {
+        const fileData = fileDoc.data() as DepposhFile;
+        // Delete from Storage first
+        if (fileData.storagePath) {
+            const fileStorageRef = storageRef(storage, fileData.storagePath);
+            await deleteObject(fileStorageRef);
+        }
+        // Then delete from Firestore
+        await deleteDoc(fileRef);
+        toast({ title: "Dosya Silindi", description: `${fileData.name} başarıyla silindi.` });
+    } else {
+        toast({ variant: "destructive", title: "Hata", description: "Silinecek dosya bulunamadı." });
+    }
+
+  }, [user, storage, db, toast]);
 
   const updateFileOrder = useCallback(async (fileToMove: DepposhFile, direction: 'up' | 'down') => {
     if (!user || !db) return;
@@ -157,7 +229,7 @@ export function useDepposh() {
       batch.update(doc(db, 'depposh-files', otherFile.id), { order: fileToMove.order });
       await batch.commit();
     }
-  }, [user, files]);
+  }, [user, files, db]);
 
   return { 
     cards, 
