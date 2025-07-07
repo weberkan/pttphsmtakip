@@ -1,18 +1,17 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { KanbanCard, AppUser } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { AddEditTalimatDialog } from './add-edit-talimat-dialog';
 import { useAuth } from '@/contexts/auth-context';
 import { usePositions } from '@/hooks/use-positions';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { KanbanColumn } from './kanban-column';
 import { KanbanCardItem } from './kanban-card-item';
-import { useDepposh } from '@/hooks/use-depposh';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -24,20 +23,18 @@ const statusMap = {
 };
 type Status = keyof typeof statusMap;
 
-export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, updateCard, deleteCard }: {
+export function TalimatlarBoard({ cards, allUsers, addCard, updateCard, deleteCard, updateCardBatch }: {
     cards: KanbanCard[];
     allUsers: AppUser[];
     addCard: (cardData: Omit<KanbanCard, 'id' | 'order' | 'lastModifiedBy' | 'lastModifiedAt'>) => void;
     updateCard: (card: KanbanCard) => void;
     deleteCard: (cardId: string) => void;
+    updateCardBatch: (cardsToUpdate: (Partial<KanbanCard> & { id: string })[]) => Promise<void>;
 }) {
     const { user } = useAuth();
     const { positions, personnel, isInitialized: isPositionsInitialized } = usePositions();
-    const { updateCardBatch } = useDepposh();
 
-    const [cards, setCards] = useState(initialCards);
     const [activeCard, setActiveCard] = useState<KanbanCard | null>(null);
-
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCard, setEditingCard] = useState<KanbanCard | null>(null);
     const [initialStatus, setInitialStatus] = useState<Status>('todo');
@@ -47,28 +44,22 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    useEffect(() => {
-        setCards(initialCards);
-    }, [initialCards]);
-    
     const managerUser = useMemo(() => {
-        if (!isPositionsInitialized || !allUsers.length) return null;
+        if (!isPositionsInitialized || !user) return null;
     
         const managerPosition = positions.find(p =>
             p.department === 'İnsan Kaynakları Daire Başkanlığı' &&
-            p.dutyLocation === 'Personel Hareketleri Şube Müdürlüğü' &&
             p.name === 'Şube Müdürü' &&
-            p.status !== 'Boş' &&
-            p.assignedPersonnelId
+            p.dutyLocation === 'Personel Hareketleri Şube Müdürlüğü'
         );
-    
-        if (!managerPosition) return null;
+        
+        if (!managerPosition || !managerPosition.assignedPersonnelId) return null;
         
         const assignedPerson = personnel.find(per => per.id === managerPosition.assignedPersonnelId);
         if (!assignedPerson) return null;
-    
+
         return allUsers.find(u => u.registryNumber === assignedPerson.registryNumber) || null;
-    }, [positions, personnel, isPositionsInitialized, allUsers]);
+    }, [positions, personnel, isPositionsInitialized, allUsers, user]);
 
     const isManager = useMemo(() => !!managerUser && managerUser.uid === user?.uid, [managerUser, user]);
     
@@ -111,125 +102,86 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
         }
     }
 
-    function handleDragOver(event: DragOverEvent) {
-        const { active, over } = event;
-        if (!over) return;
-    
-        const activeId = active.id;
-        const overId = over.id;
-    
-        if (activeId === overId) return;
-    
-        const isActiveACard = active.data.current?.type === 'Card';
-        const isOverACard = over.data.current?.type === 'Card';
-    
-        if (!isActiveACard) return;
-    
-        // Dropping a Card over another Card
-        if (isActiveACard && isOverACard) {
-            setCards(prev => {
-                const activeIndex = prev.findIndex(c => c.id === activeId);
-                const overIndex = prev.findIndex(c => c.id === overId);
-    
-                if (prev[activeIndex].status !== prev[overIndex].status) {
-                    const newCards = [...prev];
-                    newCards[activeIndex].status = prev[overIndex].status;
-                    return arrayMove(newCards, activeIndex, overIndex - 1);
-                }
-    
-                return arrayMove(prev, activeIndex, overIndex);
-            });
-        }
-    
-        // Dropping a Card over a column
-        const isOverAColumn = over.data.current?.type === 'Column';
-        if (isActiveACard && isOverAColumn) {
-            setCards(prev => {
-                const activeIndex = prev.findIndex(c => c.id === activeId);
-                prev[activeIndex].status = overId as Status;
-                return arrayMove(prev, activeIndex, activeIndex);
-            });
-        }
-    }
-
     async function handleDragEnd(event: DragEndEvent) {
+        setActiveCard(null);
         const { active, over } = event;
-        if (!over) {
-            setActiveCard(null);
+    
+        if (!over || active.id === over.id) {
             return;
         }
-
-        const activeId = String(active.id);
-        let overId = over.id;
-
-        if (over.data.current?.type === 'Card') {
-            overId = over.data.current.card.status;
-        }
+    
+        const activeCard = cards.find(c => c.id === active.id);
+        if (!activeCard) return;
+    
+        const overIsColumn = over.data.current?.type === 'Column';
+        const overIsCard = over.data.current?.type === 'Card';
+    
+        if (!overIsColumn && !overIsCard) return;
+    
+        const newStatus: Status = overIsColumn ? over.id as Status : over.data.current!.card.status;
+    
+        const sourceColumn = cards.filter(c => c.status === activeCard.status).sort((a, b) => a.order - b.order);
+        let destColumn = cards.filter(c => c.status === newStatus).sort((a, b) => a.order - b.order);
+    
+        const oldIndexInSourceCol = sourceColumn.findIndex(c => c.id === active.id);
         
-        if (activeId === overId && active.data.current?.card.status === over.data.current?.card.status) {
-             // Just reordering within the same column
-        }
-
-        const oldCard = initialCards.find(c => c.id === activeId);
-        if (!oldCard) {
-            setActiveCard(null);
-            return;
-        }
-
-        const newStatus = over.data.current?.type === 'Column' ? over.id as Status : over.data.current?.card.status as Status;
-        
-        // Check for status change to 'done' and create notification
-        if (newStatus === 'done' && oldCard.status !== 'done' && managerUser) {
-            if (!db) return;
-             await addDoc(collection(db, 'notifications'), {
-                recipientUid: managerUser.uid,
-                senderInfo: "Depposh Sistemi",
-                message: `Atadığınız '${oldCard.title}' görevi tamamlandı.`,
-                link: '/?view=depposh-talimatlar',
-                isRead: false,
-                createdAt: Timestamp.now(),
-            });
-        }
-        
-        let newCards = [...cards];
-        const oldIndex = newCards.findIndex(c => c.id === activeId);
-        
-        const overIndex = over.data.current?.type === 'Card'
-          ? newCards.findIndex(c => c.id === over.id)
-          : -1;
-
-        if (overIndex !== -1) {
-            newCards[oldIndex].status = newCards[overIndex].status;
-            newCards = arrayMove(newCards, oldIndex, overIndex);
+        let newIndexInDestCol;
+        if (overIsCard) {
+            newIndexInDestCol = destColumn.findIndex(c => c.id === over.id);
+             if (activeCard.status === newStatus && newIndexInDestCol > oldIndexInSourceCol) {
+                // Adjust index if moving down in the same column to account for the removed item
+                // No, arrayMove handles this. Let's rethink.
+            }
         } else {
-             newCards[oldIndex].status = newStatus;
+            newIndexInDestCol = destColumn.length;
         }
 
-        const cardsToUpdate: (Partial<KanbanCard> & { id: string })[] = [];
+        const updates: (Partial<KanbanCard> & { id: string })[] = [];
         
-        const columnStates: Record<Status, KanbanCard[]> = { todo: [], inProgress: [], done: [] };
-        newCards.forEach(c => columnStates[c.status].push(c));
-        
-        Object.values(columnStates).forEach(column => {
-            const originalColumnState = initialCards.filter(c => c.status === column[0]?.status);
-            column.forEach((card, index) => {
-                const originalCard = originalColumnState.find(c => c.id === card.id);
-                if (!originalCard || originalCard.order !== index || originalCard.status !== card.status) {
-                    cardsToUpdate.push({
-                        id: card.id,
-                        status: card.status,
-                        order: index
-                    });
+        if (activeCard.status === newStatus) {
+            // Reordering within the same column
+            const reorderedColumn = arrayMove(sourceColumn, oldIndexInSourceCol, newIndexInDestCol);
+            reorderedColumn.forEach((card, index) => {
+                if (card.order !== index) {
+                    updates.push({ id: card.id, order: index });
                 }
             });
-        });
+        } else {
+            // Moving to a new column
+            const [movedItem] = sourceColumn.splice(oldIndexInSourceCol, 1);
+            destColumn.splice(newIndexInDestCol, 0, movedItem);
 
-        if (cardsToUpdate.length > 0) {
-            updateCardBatch(cardsToUpdate);
+            // Update orders for the source column (items left behind)
+            sourceColumn.forEach((card, index) => {
+                if (card.order !== index) {
+                    updates.push({ id: card.id, order: index });
+                }
+            });
+
+            // Update orders for the destination column (all items)
+            destColumn.forEach((card, index) => {
+                 updates.push({ id: card.id, status: newStatus, order: index });
+            });
         }
-
-        setActiveCard(null);
+    
+        if (updates.length > 0) {
+            await updateCardBatch(updates);
+        }
+    
+        if (newStatus === 'done' && activeCard.status !== 'done' && managerUser) {
+            if (db) {
+                await addDoc(collection(db, 'notifications'), {
+                    recipientUid: managerUser.uid,
+                    senderInfo: "Depposh Sistemi",
+                    message: `Atadığınız '${activeCard.title}' görevi tamamlandı.`,
+                    link: '/?view=depposh-talimatlar',
+                    isRead: false,
+                    createdAt: Timestamp.now(),
+                });
+            }
+        }
     }
+
 
     return (
         <>
@@ -238,7 +190,6 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
                     sensors={sensors}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
-                    onDragOver={handleDragOver}
                     collisionDetection={closestCenter}
                 >
                     {(Object.keys(statusMap) as Status[]).map(status => (

@@ -140,7 +140,7 @@ function DashboardPageContent() {
   } = useUserManagement();
 
   const {
-    cards, addCard, updateCard, deleteCard,
+    cards, addCard, updateCard, deleteCard, updateCardBatch,
     files, addFile, deleteFile, updateFileOrder,
     isDepposhInitialized
   } = useDepposh();
@@ -1168,7 +1168,7 @@ function DashboardPageContent() {
              }
              return <UserApprovalPanel users={users} onApproveUser={approveUser} />;
         case 'depposh-talimatlar':
-            return <TalimatlarBoard cards={cards} addCard={addCard} updateCard={updateCard} deleteCard={deleteCard} allUsers={users} />;
+            return <TalimatlarBoard cards={cards} allUsers={users} addCard={addCard} updateCard={updateCard} deleteCard={deleteCard} updateCardBatch={updateCardBatch} />;
         case 'depposh-taslak':
             return <FileListView category="taslak" files={files} addFile={addFile} deleteFile={deleteFile} updateFileOrder={updateFileOrder} />;
         case 'depposh-matbu':
