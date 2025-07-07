@@ -52,20 +52,20 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
     const canAddTalimat = useMemo(() => {
         if (!user || !isPositionsInitialized) return false;
 
-        // Find all positions matching the description that are currently filled
+        // Find positions that match the specific criteria for the "Personel Hareketleri Şube Müdürü" role
         const targetPositions = positions.filter(p =>
             p.department === 'İnsan Kaynakları Daire Başkanlığı' &&
-            p.name === 'Personel Hareketleri Şube Müdürü' &&
+            p.name === 'Şube Müdürü' &&
+            p.dutyLocation === 'Personel Hareketleri Şube Müdürlüğü' &&
             p.assignedPersonnelId
         );
         
         // If no such filled positions exist, no permission
         if (targetPositions.length === 0) return false;
 
-        // Check if any of these positions are assigned to a person whose registry number matches the current user's
+        // Check if the current user is assigned to any of these positions
         const isUserAssigned = targetPositions.some(p => {
             const assignedPerson = personnel.find(per => per.id === p.assignedPersonnelId);
-            // The check is true if we found a person and their registry number matches the logged-in user's
             return assignedPerson && assignedPerson.registryNumber === user.registryNumber;
         });
 
