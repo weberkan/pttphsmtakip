@@ -41,11 +41,11 @@ const viewTitles: { [key: string]: string } = {
     'tasra-personel': 'Taşra Personel Yönetimi',
     'raporlama': 'Raporlama ve Analiz',
     'kullanici-onay': 'Kullanıcı Onayları',
-    'depposh-talimatlar': 'Depposh - Talimatlar',
-    'depposh-taslak': 'Depposh - Taslak Dosyalar',
-    'depposh-matbu': 'Depposh - Matbu Dosyalar',
-    'depposh-guncel': 'Depposh - Güncel Dosyalar',
-    'depposh-mevzuat': 'Depposh - Mevzuat Dosyaları',
+    'depposh-talimatlar': 'Talimatlar',
+    'depposh-taslak': 'Depo - Taslak Dosyalar',
+    'depposh-matbu': 'Depo - Matbu Dosyalar',
+    'depposh-guncel': 'Depo - Güncel Dosyalar',
+    'depposh-mevzuat': 'Depo - Mevzuat Dosyaları',
 };
 
 const SidebarContent = ({ isCollapsed }: { isCollapsed: boolean }) => (

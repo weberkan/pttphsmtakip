@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -9,6 +10,7 @@ import * as React from 'react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const menuItems = [
+  { href: 'depposh-talimatlar', title: 'Talimatlar', icon: Kanban },
   {
     id: 'merkez',
     title: 'Merkez Teşkilatı',
@@ -30,11 +32,10 @@ const menuItems = [
   },
   { href: 'raporlama', title: 'Raporlama ve Analiz', icon: BarChart2 },
   {
-    id: 'depposh',
-    title: 'Depposh',
+    id: 'depo',
+    title: 'Depo',
     icon: Archive,
     subItems: [
-      { href: 'depposh-talimatlar', title: 'Talimatlar', icon: Kanban },
       { href: 'depposh-taslak', title: 'Taslak', icon: FileText },
       { href: 'depposh-matbu', title: 'Matbu', icon: Printer },
       { href: 'depposh-guncel', title: 'Güncel', icon: FileUp },
