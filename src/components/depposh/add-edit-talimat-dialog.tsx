@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -106,9 +105,7 @@ export function AddEditTalimatDialog({
     const dataToSave = {
       ...data,
       priority: data.priority || 'medium',
-      startDate: data.startDate || null,
-      dueDate: data.dueDate || null,
-      status: cardToEdit?.status || initialStatus, // Use initialStatus for new cards, or existing for edited cards
+      status: cardToEdit?.status || initialStatus,
     };
     if (cardToEdit) {
       onSave({ ...cardToEdit, ...dataToSave });
@@ -152,9 +149,17 @@ export function AddEditTalimatDialog({
                   return;
                 }
                 const parsedDate = parse(inputValue, "dd.MM.yyyy", new Date());
-                if (isValid(parsedDate)) {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                if (isValid(parsedDate) && parsedDate >= today) {
                   field.onChange(parsedDate);
                 } else {
+                   toast({
+                      variant: "destructive",
+                      title: "Geçersiz Tarih",
+                      description: "Lütfen bugün veya ileri bir tarih girin."
+                  })
                   setInputValue(field.value ? format(new Date(field.value), "dd.MM.yyyy") : "");
                 }
               };
@@ -191,13 +196,17 @@ export function AddEditTalimatDialog({
                   </div>
                   <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
-                      mode="single"
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => {
-                          field.onChange(date || null);
-                          setOpen(false);
-                      }}
-                      initialFocus
+                        locale={tr}
+                        mode="single"
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={(date) => {
+                            field.onChange(date || null);
+                            setOpen(false);
+                        }}
+                        disabled={(date) =>
+                           date < new Date(new Date().setHours(0, 0, 0, 0))
+                        }
+                        initialFocus
                       />
                   </PopoverContent>
               </Popover>
