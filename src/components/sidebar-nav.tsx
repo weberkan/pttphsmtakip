@@ -10,7 +10,7 @@ import * as React from 'react';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const menuItems = [
-  { href: 'depposh-talimatlar', title: 'Talimatlar', icon: Kanban },
+  { href: 'talimatlar', title: 'Talimatlar', icon: Kanban },
   {
     id: 'merkez',
     title: 'Merkez Teşkilatı',

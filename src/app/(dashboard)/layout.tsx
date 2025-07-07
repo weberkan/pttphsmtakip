@@ -34,6 +34,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 const viewTitles: { [key: string]: string } = {
     'dashboard': 'Anasayfa',
+    'talimatlar': 'Talimatlar Panosu',
     'merkez-pozisyon': 'Merkez Pozisyon Yönetimi',
     'merkez-personel': 'Merkez Personel Yönetimi',
     'merkez-sema': 'Merkez Organizasyon Şeması',
@@ -41,7 +42,6 @@ const viewTitles: { [key: string]: string } = {
     'tasra-personel': 'Taşra Personel Yönetimi',
     'raporlama': 'Raporlama ve Analiz',
     'kullanici-onay': 'Kullanıcı Onayları',
-    'depposh-talimatlar': 'Talimatlar',
     'depposh-taslak': 'Depo - Taslak Dosyalar',
     'depposh-matbu': 'Depo - Matbu Dosyalar',
     'depposh-guncel': 'Depo - Güncel Dosyalar',
