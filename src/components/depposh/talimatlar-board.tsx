@@ -51,16 +51,25 @@ export function TalimatlarBoard({ cards: initialCards, allUsers, addCard, update
 
     const canAddTalimat = useMemo(() => {
         if (!user || !isPositionsInitialized) return false;
-        const targetPosition = positions.find(p =>
-            p.department === 'İnsan Kaynakları Daire Başkanlığı' &&
-            p.name === 'Personel Hareketleri Şube Müdürü'
-        );
-        if (!targetPosition || !targetPosition.assignedPersonnelId) return false;
-        
-        const assignedPerson = personnel.find(p => p.id === targetPosition.assignedPersonnelId);
-        if (!assignedPerson) return false;
 
-        return assignedPerson.registryNumber === user.registryNumber;
+        // Find all positions matching the description that are currently filled
+        const targetPositions = positions.filter(p =>
+            p.department === 'İnsan Kaynakları Daire Başkanlığı' &&
+            p.name === 'Personel Hareketleri Şube Müdürü' &&
+            p.assignedPersonnelId
+        );
+        
+        // If no such filled positions exist, no permission
+        if (targetPositions.length === 0) return false;
+
+        // Check if any of these positions are assigned to a person whose registry number matches the current user's
+        const isUserAssigned = targetPositions.some(p => {
+            const assignedPerson = personnel.find(per => per.id === p.assignedPersonnelId);
+            // The check is true if we found a person and their registry number matches the logged-in user's
+            return assignedPerson && assignedPerson.registryNumber === user.registryNumber;
+        });
+
+        return isUserAssigned;
     }, [user, positions, personnel, isPositionsInitialized]);
     
     const handleAddClick = (status: Status) => {
