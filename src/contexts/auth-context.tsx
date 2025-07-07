@@ -173,8 +173,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       await setDoc(doc(db, "users", firebaseUser.uid), newUserProfile);
       
-      // Sign out the user immediately after signup, forcing them to wait for approval
-      await signOut(auth);
+      // The onAuthStateChanged listener will handle signing out the user if they are not approved.
+      // Signing out here creates a race condition.
+      // await signOut(auth);
 
       return { success: true };
 
