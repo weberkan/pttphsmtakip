@@ -1,7 +1,8 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, type Control } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +63,102 @@ interface AddEditTalimatDialogProps {
   onSave: (cardData: Omit<KanbanCard, 'id' | 'order' | 'lastModifiedAt' | 'lastModifiedBy'> | KanbanCard) => void;
 }
 
+const DatePickerField = ({ name, label, control }: { name: "startDate" | "dueDate", label: string, control: Control<CardFormData> }) => {
+    const { toast } = useToast();
+    return (
+       <FormField
+          control={control}
+          name={name}
+          render={({ field }) => {
+              const [open, setOpen] = useState(false);
+              const [inputValue, setInputValue] = useState(
+                field.value ? format(new Date(field.value), "dd.MM.yyyy") : ""
+              );
+
+              useEffect(() => {
+                if (field.value) {
+                  setInputValue(format(new Date(field.value), "dd.MM.yyyy"));
+                } else {
+                  setInputValue("");
+                }
+              }, [field.value]);
+
+              const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                setInputValue(e.target.value);
+              };
+
+              const handleInputBlur = () => {
+                if (inputValue.trim() === "") {
+                  field.onChange(null);
+                  return;
+                }
+                const parsedDate = parse(inputValue, "dd.MM.yyyy", new Date());
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                if (isValid(parsedDate) && parsedDate >= today) {
+                  field.onChange(parsedDate);
+                } else {
+                   toast({
+                      variant: "destructive",
+                      title: "Geçersiz Tarih",
+                      description: "Lütfen bugün veya ileri bir tarih girin."
+                  })
+                  setInputValue(field.value ? format(new Date(field.value), "dd.MM.yyyy") : "");
+                }
+              };
+          
+          return (
+            <FormItem className="flex flex-col">
+              <FormLabel>{label}</FormLabel>
+              <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <div className="relative">
+                        <FormControl>
+                            <Input
+                              placeholder="gg.aa.yyyy"
+                              value={inputValue}
+                              onChange={handleInputChange}
+                              onBlur={handleInputBlur}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleInputBlur();
+                                }
+                              }}
+                              className="pr-10"
+                            />
+                        </FormControl>
+                        <div className="absolute right-0 top-0 h-full flex items-center pr-2">
+                           <CalendarIcon className="h-4 w-4 opacity-50 cursor-pointer" />
+                        </div>
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        locale={tr}
+                        mode="single"
+                        selected={field.value ? new Date(field.value) : undefined}
+                        onSelect={(date) => {
+                            field.onChange(date || null);
+                            setOpen(false);
+                        }}
+                        disabled={(date) =>
+                           date < new Date(new Date().setHours(0, 0, 0, 0))
+                        }
+                        initialFocus
+                      />
+                  </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          );
+        }}
+      />
+    )
+  }
+
+
 export function AddEditTalimatDialog({
   isOpen,
   onOpenChange,
@@ -118,105 +215,6 @@ export function AddEditTalimatDialog({
   };
 
   const userOptions = allUsers.map(u => ({ value: u.uid, label: `${u.firstName} ${u.lastName} (${u.registryNumber})`}));
-
-  const DatePickerField = ({ name, label }: { name: "startDate" | "dueDate", label: string }) => {
-    const { control } = form;
-    return (
-       <FormField
-          control={control}
-          name={name}
-          render={({ field }) => {
-              const [open, setOpen] = useState(false);
-              const [inputValue, setInputValue] = useState(
-                field.value ? format(new Date(field.value), "dd.MM.yyyy") : ""
-              );
-
-              useEffect(() => {
-                if (field.value) {
-                  setInputValue(format(new Date(field.value), "dd.MM.yyyy"));
-                } else {
-                  setInputValue("");
-                }
-              }, [field.value]);
-
-              const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                setInputValue(e.target.value);
-              };
-
-              const handleInputBlur = () => {
-                if (inputValue.trim() === "") {
-                  field.onChange(null);
-                  return;
-                }
-                const parsedDate = parse(inputValue, "dd.MM.yyyy", new Date());
-                const today = new Date();
-                today.setHours(0,0,0,0);
-
-                if (isValid(parsedDate) && parsedDate >= today) {
-                  field.onChange(parsedDate);
-                } else {
-                   toast({
-                      variant: "destructive",
-                      title: "Geçersiz Tarih",
-                      description: "Lütfen bugün veya ileri bir tarih girin."
-                  })
-                  setInputValue(field.value ? format(new Date(field.value), "dd.MM.yyyy") : "");
-                }
-              };
-          
-          return (
-            <FormItem className="flex flex-col">
-              <FormLabel>{label}</FormLabel>
-              <Popover open={open} onOpenChange={setOpen}>
-                  <div className="relative">
-                      <FormControl>
-                          <Input
-                            placeholder="gg.aa.yyyy"
-                            value={inputValue}
-                            onChange={handleInputChange}
-                            onBlur={handleInputBlur}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleInputBlur();
-                              }
-                            }}
-                            className="pr-10"
-                          />
-                      </FormControl>
-                      <PopoverTrigger asChild>
-                          <Button
-                              type="button"
-                              variant={"ghost"}
-                              className="absolute right-0 top-0 h-full px-3"
-                          >
-                              <CalendarIcon className="h-4 w-4 opacity-50" />
-                          </Button>
-                      </PopoverTrigger>
-                  </div>
-                  <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        locale={tr}
-                        mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={(date) => {
-                            field.onChange(date || null);
-                            setOpen(false);
-                        }}
-                        disabled={(date) =>
-                           date < new Date(new Date().setHours(0, 0, 0, 0))
-                        }
-                        initialFocus
-                      />
-                  </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          );
-        }}
-      />
-    )
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -275,8 +273,8 @@ export function AddEditTalimatDialog({
                         )}
                     />
                     <div></div>
-                    <DatePickerField name="startDate" label="Başlangıç Tarihi (Opsiyonel)" />
-                    <DatePickerField name="dueDate" label="Bitiş Tarihi (Opsiyonel)" />
+                    <DatePickerField name="startDate" label="Başlangıç Tarihi (Opsiyonel)" control={form.control} />
+                    <DatePickerField name="dueDate" label="Bitiş Tarihi (Opsiyonel)" control={form.control} />
                 </div>
                  <FormField
                     control={form.control}
