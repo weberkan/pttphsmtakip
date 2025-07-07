@@ -67,6 +67,7 @@ export interface KanbanCard {
   order: number;
   assignedUids?: string[];
   priority?: 'low' | 'medium' | 'high';
+  startDate?: Date | Timestamp | null;
   dueDate?: Date | Timestamp | null;
   lastModifiedBy?: string;
   lastModifiedAt?: Date | Timestamp | null;

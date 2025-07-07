@@ -1,21 +1,28 @@
 
 "use client";
 
-import type { Position, Personnel, TasraPosition } from '@/lib/types';
+import type { Position, Personnel, TasraPosition, KanbanCard, AppUser } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { Users, Briefcase, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { TaskListView } from './task-list-view';
+import { usePositions } from '@/hooks/use-positions';
 
 interface DashboardHomeProps {
   positions: Position[];
   personnel: Personnel[];
   tasraPositions: TasraPosition[];
   tasraPersonnel: Personnel[];
+  cards: KanbanCard[];
+  allUsers: AppUser[];
+  onUpdateCard: (card: KanbanCard) => void;
+  onEditCard: (card: KanbanCard) => void;
+  onDeleteCard: (cardId: string) => void;
 }
 
 const motivationalQuotes = [
@@ -30,8 +37,20 @@ const motivationalQuotes = [
   "Her başarı hikayesinin arkasında, kararlılıkla atılmış adımlar vardır."
 ];
 
-export function DashboardHome({ positions, personnel, tasraPositions, tasraPersonnel }: DashboardHomeProps) {
+export function DashboardHome({ 
+  positions, 
+  personnel, 
+  tasraPositions, 
+  tasraPersonnel, 
+  cards,
+  allUsers,
+  onUpdateCard,
+  onEditCard,
+  onDeleteCard,
+}: DashboardHomeProps) {
   const { user } = useAuth();
+  const { isInitialized: isPositionsInitialized } = usePositions();
+
   const [greeting, setGreeting] = useState("");
   const [quote, setQuote] = useState("");
   const [currentDate, setCurrentDate] = useState("");
@@ -56,6 +75,21 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
     const formattedDate = format(today, 'd MMMM yyyy', { locale: tr });
     setCurrentDate(formattedDate);
   }, [user]);
+
+  const managerPosition = useMemo(() => {
+    if (!isPositionsInitialized) return null;
+    return positions.find(p =>
+        p.department === 'İnsan Kaynakları Daire Başkanlığı' &&
+        p.name === 'Şube Müdürü' &&
+        p.dutyLocation === 'Personel Hareketleri Şube Müdürlüğü'
+    );
+  }, [positions, isPositionsInitialized]);
+  
+  const isManager = useMemo(() => {
+      if (!user || !managerPosition || !managerPosition.assignedPersonnelId) return false;
+      const assignedPerson = personnel.find(p => p.id === managerPosition.assignedPersonnelId);
+      return !!assignedPerson && assignedPerson.registryNumber === user.registryNumber;
+  }, [user, managerPosition, personnel]);
 
   const merkezStats = {
     total: positions.length,
@@ -162,6 +196,15 @@ export function DashboardHome({ positions, personnel, tasraPositions, tasraPerso
           </CardContent>
         </Card>
       </div>
+
+      <TaskListView 
+        cards={cards}
+        allUsers={allUsers}
+        isManager={isManager}
+        onUpdateCard={onUpdateCard}
+        onEditCard={onEditCard}
+        onDeleteCard={onDeleteCard}
+      />
       
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <Card>

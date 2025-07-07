@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePositions } from "@/hooks/use-positions";
 import { useTasraPositions } from "@/hooks/use-tasra-positions";
-import type { Position, Personnel, TasraPosition } from "@/lib/types";
+import type { Position, Personnel, TasraPosition, KanbanCard } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, Search } from "lucide-react";
@@ -30,6 +30,7 @@ import { useUserManagement } from "@/hooks/use-user-management";
 import { useDepposh } from "@/hooks/use-depposh";
 import { TalimatlarBoard } from "@/components/depposh/talimatlar-board";
 import { FileListView } from "@/components/depposh/file-list-view";
+import { AddEditTalimatDialog } from "@/components/depposh/add-edit-talimat-dialog";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -167,6 +168,10 @@ function DashboardPageContent() {
   const [editingTasraPersonnel, setEditingTasraPersonnel] = useState<Personnel | null>(null);
   const [tasraPositionSearchTerm, setTasraPositionSearchTerm] = useState("");
   const [tasraPersonnelSearchTerm, setTasraPersonnelSearchTerm] = useState("");
+  
+  // Talimatlar (Depposh) State
+  const [isTalimatDialogOpen, setIsTalimatDialogOpen] = useState(false);
+  const [editingTalimat, setEditingTalimat] = useState<KanbanCard | null>(null);
 
   // ---- Merkez Handlers ----
   const handleAddPositionClick = () => {
@@ -265,6 +270,12 @@ function DashboardPageContent() {
     setIsTasraPersonnelDialogOpen(false);
     setEditingTasraPersonnel(null);
   }
+
+  // --- Talimatlar Handlers ---
+  const handleEditTalimat = (card: KanbanCard) => {
+      setEditingTalimat(card);
+      setIsTalimatDialogOpen(true);
+  };
 
   const filteredPositions = useMemo(() => {
     let _filtered = positions;
@@ -979,6 +990,11 @@ function DashboardPageContent() {
                     personnel={personnel}
                     tasraPositions={tasraPositions}
                     tasraPersonnel={tasraPersonnel}
+                    cards={cards}
+                    allUsers={users}
+                    onUpdateCard={updateCard}
+                    onEditCard={handleEditTalimat}
+                    onDeleteCard={deleteCard}
                 />
             );
         case 'merkez-pozisyon':
@@ -1167,7 +1183,7 @@ function DashboardPageContent() {
                 );
              }
              return <UserApprovalPanel users={users} onApproveUser={approveUser} />;
-        case 'depposh-talimatlar':
+        case 'talimatlar':
             return <TalimatlarBoard cards={cards} allUsers={users} addCard={addCard} updateCard={updateCard} deleteCard={deleteCard} updateCardBatch={updateCardBatch} />;
         case 'depposh-taslak':
             return <FileListView category="taslak" files={files} addFile={addFile} deleteFile={deleteFile} updateFileOrder={updateFileOrder} />;
@@ -1184,6 +1200,11 @@ function DashboardPageContent() {
                     personnel={personnel}
                     tasraPositions={tasraPositions}
                     tasraPersonnel={tasraPersonnel}
+                    cards={cards}
+                    allUsers={users}
+                    onUpdateCard={updateCard}
+                    onEditCard={handleEditTalimat}
+                    onDeleteCard={deleteCard}
                 />
             );
     }
@@ -1245,6 +1266,21 @@ function DashboardPageContent() {
         onOpenChange={setIsTasraPersonnelDialogOpen}
         personnelToEdit={editingTasraPersonnel}
         onSave={handleSaveTasraPersonnel}
+      />
+
+       {/* Talimatlar Dialog */}
+       <AddEditTalimatDialog
+        isOpen={isTalimatDialogOpen}
+        onOpenChange={setIsTalimatDialogOpen}
+        cardToEdit={editingTalimat}
+        allUsers={users}
+        onSave={(data) => {
+            if('id' in data) {
+                updateCard(data);
+            } else {
+                addCard(data);
+            }
+        }}
       />
     </>
   );
