@@ -130,7 +130,7 @@ const DatePickerField = ({ name, label, control }: { name: "startDate" | "dueDat
                             />
                         </FormControl>
                         <div className="absolute right-0 top-0 h-full flex items-center pr-2">
-                           <CalendarIcon className="h-4 w-4 opacity-50 cursor-pointer" />
+                           <CalendarIcon className="h-4 w-4 opacity-50 cursor-pointer" onClick={() => setOpen(!open)} />
                         </div>
                     </div>
                   </PopoverTrigger>
@@ -201,8 +201,12 @@ export function AddEditTalimatDialog({
   const onSubmit = (data: CardFormData) => {
     const dataToSave = {
       ...data,
+      description: data.description || '',
+      assignedUids: data.assignedUids || [],
       priority: data.priority || 'medium',
       status: cardToEdit?.status || initialStatus,
+      startDate: data.startDate || null,
+      dueDate: data.dueDate || null,
     };
     if (cardToEdit) {
       onSave({ ...cardToEdit, ...dataToSave });
