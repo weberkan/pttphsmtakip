@@ -60,9 +60,9 @@ export function useDepposh() {
           return {
               id: doc.id,
               ...data,
-              startDate: (data.startDate as Timestamp)?.toDate() || null,
-              dueDate: (data.dueDate as Timestamp)?.toDate() || null,
-              lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate() || null
+              startDate: data.startDate ? (data.startDate as Timestamp).toDate() : null,
+              dueDate: data.dueDate ? (data.dueDate as Timestamp).toDate() : null,
+              lastModifiedAt: data.lastModifiedAt ? (data.lastModifiedAt as Timestamp).toDate() : null,
             } as KanbanCard;
         });
       setCards(fetchedCards);
@@ -116,7 +116,7 @@ export function useDepposh() {
     const newCardData = {
       ...cardData,
       order: maxOrder + 1,
-      lastModifiedBy: user.registryNumber,
+      lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     };
 
@@ -143,7 +143,7 @@ export function useDepposh() {
 
     await setDoc(cardRef, {
       ...data,
-      lastModifiedBy: user.registryNumber,
+      lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     }, { merge: true });
 
@@ -170,7 +170,7 @@ export function useDepposh() {
       const cardRef = doc(db, 'talimatlar', id);
       batch.update(cardRef, {
         ...data,
-        lastModifiedBy: user.registryNumber,
+        lastModifiedBy: user.uid,
         lastModifiedAt: Timestamp.now(),
       });
     });
@@ -207,7 +207,7 @@ export function useDepposh() {
         downloadUrl,
         storagePath: filePath, // Store path for easy deletion
         order: maxOrder + 1,
-        lastModifiedBy: user.registryNumber,
+        lastModifiedBy: user.uid,
         lastModifiedAt: Timestamp.now(),
     }
 
@@ -271,3 +271,5 @@ export function useDepposh() {
     isDepposhInitialized,
   };
 }
+
+    

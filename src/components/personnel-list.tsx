@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { User, Mail, Phone, BadgeInfo, PencilRuler, Briefcase } from "lucide-react";
-import type { Personnel } from "@/lib/types";
+import type { Personnel, AppUser } from "@/lib/types";
 import { PersonnelListItemActions } from "./personnel-list-item-actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -26,11 +26,12 @@ import {
 
 interface PersonnelListProps {
   personnel: Personnel[];
+  allUsers: AppUser[];
   onEdit: (person: Personnel) => void;
   onDelete: (personnelId: string) => void;
 }
 
-export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProps) {
+export function PersonnelList({ personnel, allUsers, onEdit, onDelete }: PersonnelListProps) {
   const uniquePersonnel = useMemo(() => {
     return Array.from(new Map(personnel.map(p => [p.id, p])).values());
   }, [personnel]);
@@ -122,8 +123,8 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
                         <TooltipContent>
                           <p>
                             {(() => {
-                              const modifier = personnel.find(p => p.registryNumber === person.lastModifiedBy);
-                              const modifierName = modifier ? `${modifier.firstName} ${modifier.lastName}` : person.lastModifiedBy;
+                              const modifier = allUsers.find(u => u.uid === person.lastModifiedBy);
+                              const modifierName = modifier ? `${modifier.firstName} ${modifier.lastName}` : `Bilinmeyen Kullanıcı (${person.lastModifiedBy.substring(0,5)}...)`;
                               const timeAgo = formatDistanceToNow(new Date(person.lastModifiedAt), { locale: tr });
                               return `${modifierName} ${timeAgo} önce güncelledi.`;
                             })()}
@@ -146,3 +147,5 @@ export function PersonnelList({ personnel, onEdit, onDelete }: PersonnelListProp
     </div>
   );
 }
+
+    

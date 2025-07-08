@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Building2, MapPin, PencilRuler } from "lucide-react";
-import type { Position, Personnel } from "@/lib/types";
+import type { Position, Personnel, AppUser } from "@/lib/types";
 import { PositionListItemActions } from "./position-list-item-actions";
 import { format, formatDistanceToNow } from "date-fns";
 import { tr } from 'date-fns/locale';
@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface PositionListProps {
   positions: Position[];
   allPersonnel: Personnel[];
+  allUsers: AppUser[];
   onEdit: (position: Position) => void;
   onDelete: (positionId: string) => void;
 }
@@ -44,7 +45,7 @@ const styledTitles = [
   "Rehberlik ve Teftiş Başkanı",
 ];
 
-export function PositionList({ positions, allPersonnel, onEdit, onDelete }: PositionListProps) {
+export function PositionList({ positions, allPersonnel, allUsers, onEdit, onDelete }: PositionListProps) {
   const sortedPositions = useMemo(() => {
     const getOverallOrderGroup = (p: Position): number => {
       if (p.name === "Genel Müdür") return 1;
@@ -207,8 +208,8 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
                         <TooltipContent>
                            <p>
                             {(() => {
-                              const modifier = allPersonnel.find(p => p.registryNumber === position.lastModifiedBy);
-                              const modifierName = modifier ? `${modifier.firstName} ${modifier.lastName}` : position.lastModifiedBy;
+                              const modifier = allUsers.find(u => u.uid === position.lastModifiedBy);
+                              const modifierName = modifier ? `${modifier.firstName} ${modifier.lastName}` : `Bilinmeyen Kullanıcı (${position.lastModifiedBy.substring(0,5)}...)`;
                               const timeAgo = formatDistanceToNow(new Date(position.lastModifiedAt), { locale: tr });
                               return `${modifierName} ${timeAgo} önce güncelledi.`;
                             })()}
@@ -231,3 +232,5 @@ export function PositionList({ positions, allPersonnel, onEdit, onDelete }: Posi
     </div>
   );
 }
+
+    

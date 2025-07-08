@@ -11,7 +11,7 @@ export interface Position {
   assignedPersonnelId: string | null; // ID of the assigned personnel
   startDate: Date | null; // Göreve başlama tarihi
   originalTitle?: string | null; // Asıl Ünvan (Vekalet/Yürütme durumları için)
-  lastModifiedBy?: string; // Sicil Numarası
+  lastModifiedBy?: string; // UID of the user
   lastModifiedAt?: Date | Timestamp | null;
 }
 
@@ -27,7 +27,7 @@ export interface TasraPosition {
   startDate: Date | null;
   receivesProxyPay: boolean;
   hasDelegatedAuthority: boolean;
-  lastModifiedBy?: string;
+  lastModifiedBy?: string; // UID of the user
   lastModifiedAt?: Date | Timestamp | null;
 }
 
@@ -42,7 +42,7 @@ export interface Personnel {
   email?: string | null; // E-posta Adresi (Opsiyonel)
   phone?: string | null; // Telefon Numarası (Opsiyonel)
   dateOfBirth?: Date | null; // Doğum Tarihi
-  lastModifiedBy?: string; // Sicil Numarası
+  lastModifiedBy?: string; // UID of the user
   lastModifiedAt?: Date | Timestamp | null;
 }
 
@@ -69,7 +69,7 @@ export interface KanbanCard {
   priority?: 'low' | 'medium' | 'high';
   startDate?: Date | Timestamp | null;
   dueDate?: Date | Timestamp | null;
-  lastModifiedBy?: string;
+  lastModifiedBy?: string; // UID of the user
   lastModifiedAt?: Date | Timestamp | null;
 }
 
@@ -84,7 +84,7 @@ export interface DepposhFile {
   downloadUrl: string; 
   storagePath: string;
   order: number;
-  lastModifiedBy?: string;
+  lastModifiedBy?: string; // UID of the user
   lastModifiedAt?: Date | Timestamp | null;
 }
 
@@ -97,3 +97,5 @@ export interface AppNotification {
   isRead: boolean;
   createdAt: Date | Timestamp;
 }
+
+    

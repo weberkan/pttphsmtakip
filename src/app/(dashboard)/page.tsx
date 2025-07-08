@@ -1030,6 +1030,7 @@ function DashboardPageContent() {
                     <PositionList 
                       positions={filteredPositions} 
                       allPersonnel={personnel}
+                      allUsers={users}
                       onEdit={handleEditPosition}
                       onDelete={handleDeletePosition}
                     />
@@ -1067,6 +1068,7 @@ function DashboardPageContent() {
                   <CardContent>
                     <PersonnelList
                       personnel={sortedAndFilteredPersonnel}
+                      allUsers={users}
                       onEdit={handleEditPersonnel}
                       onDelete={handleDeletePersonnel}
                     />
@@ -1117,6 +1119,7 @@ function DashboardPageContent() {
                     <TasraPositionList
                       positions={filteredTasraPositions}
                       allPersonnel={tasraPersonnel}
+                      allUsers={users}
                       onEdit={handleEditTasraPosition}
                       onDelete={handleDeleteTasraPosition}
                     />
@@ -1154,6 +1157,7 @@ function DashboardPageContent() {
                   <CardContent>
                     <PersonnelList
                       personnel={filteredTasraPersonnel}
+                      allUsers={users}
                       onEdit={handleEditTasraPersonnel}
                       onDelete={handleDeleteTasraPersonnel}
                     />
@@ -1294,3 +1298,5 @@ export default function Page() {
         </Suspense>
     )
 }
+
+    

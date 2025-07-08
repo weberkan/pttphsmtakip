@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Mail, Phone, XCircle, PencilRuler, Calendar, Building, MapPin, User, Hash, Briefcase } from "lucide-react";
-import type { TasraPosition, Personnel } from "@/lib/types";
+import type { TasraPosition, Personnel, AppUser } from "@/lib/types";
 import { TasraPositionListItemActions } from "./tasra-position-list-item-actions";
 import { format, formatDistanceToNow } from "date-fns";
 import { tr } from 'date-fns/locale';
@@ -22,11 +22,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface TasraPositionListProps {
   positions: TasraPosition[];
   allPersonnel: Personnel[];
+  allUsers: AppUser[];
   onEdit: (position: TasraPosition) => void;
   onDelete: (positionId: string) => void;
 }
 
-export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }: TasraPositionListProps) {
+export function TasraPositionList({ positions, allPersonnel, allUsers, onEdit, onDelete }: TasraPositionListProps) {
     const sortedPositions = useMemo(() => {
         const uniquePositions = Array.from(new Map(positions.map(p => [p.id, p])).values());
         
@@ -173,8 +174,8 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
                         <TooltipContent>
                           <p>
                             {(() => {
-                              const modifier = allPersonnel.find(p => p.registryNumber === position.lastModifiedBy);
-                              const modifierName = modifier ? `${modifier.firstName} ${modifier.lastName}` : position.lastModifiedBy;
+                              const modifier = allUsers.find(u => u.uid === position.lastModifiedBy);
+                              const modifierName = modifier ? `${modifier.firstName} ${modifier.lastName}` : `Bilinmeyen Kullanıcı (${position.lastModifiedBy.substring(0,5)}...)`;
                               const timeAgo = formatDistanceToNow(new Date(position.lastModifiedAt), { locale: tr });
                               return `${modifierName} ${timeAgo} önce güncelledi.`;
                             })()}
@@ -197,3 +198,5 @@ export function TasraPositionList({ positions, allPersonnel, onEdit, onDelete }:
     </div>
   );
 }
+
+    

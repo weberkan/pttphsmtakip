@@ -39,8 +39,8 @@ export function usePositions() {
         return {
           id: doc.id,
           ...data,
-          startDate: (data.startDate as Timestamp)?.toDate() || null,
-          lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate() || null,
+          startDate: data.startDate ? (data.startDate as Timestamp).toDate() : null,
+          lastModifiedAt: data.lastModifiedAt ? (data.lastModifiedAt as Timestamp).toDate() : null,
         } as Position;
       });
       const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
@@ -57,8 +57,8 @@ export function usePositions() {
         return {
           id: doc.id,
           ...data,
-          dateOfBirth: (data.dateOfBirth as Timestamp)?.toDate() || null,
-          lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate() || null,
+          dateOfBirth: data.dateOfBirth ? (data.dateOfBirth as Timestamp).toDate() : null,
+          lastModifiedAt: data.lastModifiedAt ? (data.lastModifiedAt as Timestamp).toDate() : null,
         } as Personnel;
       });
       const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
@@ -79,7 +79,7 @@ export function usePositions() {
     if (!user || !db) return;
     await addDoc(collection(db, 'merkez-positions'), {
       ...positionData,
-      lastModifiedBy: user.registryNumber,
+      lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     });
   }, [user]);
@@ -91,7 +91,7 @@ export function usePositions() {
       const docRef = doc(collection(db, 'merkez-positions'));
       batch.set(docRef, {
         ...positionData,
-        lastModifiedBy: user.registryNumber,
+        lastModifiedBy: user.uid,
         lastModifiedAt: Timestamp.now(),
       });
     });
@@ -103,7 +103,7 @@ export function usePositions() {
     const { id, ...data } = updatedPosition;
     await setDoc(doc(db, 'merkez-positions', id), {
       ...data,
-      lastModifiedBy: user.registryNumber,
+      lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     }, { merge: true });
   }, [user]);
@@ -116,7 +116,7 @@ export function usePositions() {
       const docRef = doc(db, 'merkez-positions', id);
       batch.set(docRef, {
         ...data,
-        lastModifiedBy: user.registryNumber,
+        lastModifiedBy: user.uid,
         lastModifiedAt: Timestamp.now(),
       }, { merge: true });
     });
@@ -136,7 +136,7 @@ export function usePositions() {
           const childRef = doc(db, 'merkez-positions', child.id);
           batch.set(childRef, { 
               reportsTo: null,
-              lastModifiedBy: user.registryNumber,
+              lastModifiedBy: user.uid,
               lastModifiedAt: Timestamp.now(),
           }, { merge: true });
       });
@@ -161,7 +161,7 @@ export function usePositions() {
     if (!user || !db) return;
     await addDoc(collection(db, 'merkez-personnel'), {
       ...personnelData,
-      lastModifiedBy: user.registryNumber,
+      lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     });
   }, [user]);
@@ -173,7 +173,7 @@ export function usePositions() {
       const docRef = doc(collection(db, 'merkez-personnel'));
       batch.set(docRef, {
         ...personnelData,
-        lastModifiedBy: user.registryNumber,
+        lastModifiedBy: user.uid,
         lastModifiedAt: Timestamp.now(),
       });
     });
@@ -185,7 +185,7 @@ export function usePositions() {
     const { id, ...data } = updatedPersonnel;
     await setDoc(doc(db, 'merkez-personnel', id), {
       ...data,
-      lastModifiedBy: user.registryNumber,
+      lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     }, { merge: true });
   }, [user]);
@@ -205,7 +205,7 @@ export function usePositions() {
         batch.set(posRef, {
           assignedPersonnelId: null,
           status: 'Boş',
-          lastModifiedBy: user.registryNumber,
+          lastModifiedBy: user.uid,
           lastModifiedAt: Timestamp.now(),
         }, { merge: true });
       });
@@ -240,3 +240,5 @@ export function usePositions() {
     isInitialized 
   };
 }
+
+    

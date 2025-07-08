@@ -39,8 +39,8 @@ export function useTasraPositions() {
         return {
           id: doc.id,
           ...data,
-          startDate: (data.startDate as Timestamp)?.toDate() || null,
-          lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate() || null,
+          startDate: data.startDate ? (data.startDate as Timestamp).toDate() : null,
+          lastModifiedAt: data.lastModifiedAt ? (data.lastModifiedAt as Timestamp).toDate() : null,
         } as TasraPosition;
       });
       const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
@@ -57,8 +57,8 @@ export function useTasraPositions() {
         return {
           id: doc.id,
           ...data,
-          dateOfBirth: (data.dateOfBirth as Timestamp)?.toDate() || null,
-          lastModifiedAt: (data.lastModifiedAt as Timestamp)?.toDate() || null,
+          dateOfBirth: data.dateOfBirth ? (data.dateOfBirth as Timestamp).toDate() : null,
+          lastModifiedAt: data.lastModifiedAt ? (data.lastModifiedAt as Timestamp).toDate() : null,
         } as Personnel;
       });
       const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
@@ -79,7 +79,7 @@ export function useTasraPositions() {
     if (!user || !db) return;
     await addDoc(collection(db, 'tasra-positions'), {
       ...positionData,
-      lastModifiedBy: user.registryNumber,
+      lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     });
   }, [user]);
@@ -91,7 +91,7 @@ export function useTasraPositions() {
       const docRef = doc(collection(db, 'tasra-positions'));
       batch.set(docRef, {
         ...positionData,
-        lastModifiedBy: user.registryNumber,
+        lastModifiedBy: user.uid,
         lastModifiedAt: Timestamp.now(),
       });
     });
@@ -103,7 +103,7 @@ export function useTasraPositions() {
     const { id, ...data } = updatedPosition;
     await setDoc(doc(db, 'tasra-positions', id), {
       ...data,
-      lastModifiedBy: user.registryNumber,
+      lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     }, { merge: true });
   }, [user]);
@@ -116,7 +116,7 @@ export function useTasraPositions() {
       const docRef = doc(db, 'tasra-positions', id);
       batch.set(docRef, {
         ...data,
-        lastModifiedBy: user.registryNumber,
+        lastModifiedBy: user.uid,
         lastModifiedAt: Timestamp.now(),
       }, { merge: true });
     });
@@ -147,7 +147,7 @@ export function useTasraPositions() {
     if (!user || !db) return;
     await addDoc(collection(db, 'tasra-personnel'), {
       ...personnelData,
-      lastModifiedBy: user.registryNumber,
+      lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     });
   }, [user]);
@@ -159,7 +159,7 @@ export function useTasraPositions() {
       const docRef = doc(collection(db, 'tasra-personnel'));
       batch.set(docRef, {
         ...personnelData,
-        lastModifiedBy: user.registryNumber,
+        lastModifiedBy: user.uid,
         lastModifiedAt: Timestamp.now(),
       });
     });
@@ -171,7 +171,7 @@ export function useTasraPositions() {
     const { id, ...data } = updatedPersonnel;
     await setDoc(doc(db, 'tasra-personnel', id), {
       ...data,
-      lastModifiedBy: user.registryNumber,
+      lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     }, { merge: true });
   }, [user]);
@@ -191,7 +191,7 @@ export function useTasraPositions() {
         batch.set(posRef, {
           assignedPersonnelId: null,
           status: 'Boş' as const,
-          lastModifiedBy: user.registryNumber,
+          lastModifiedBy: user.uid,
           lastModifiedAt: Timestamp.now(),
         }, { merge: true });
       });
@@ -227,3 +227,5 @@ export function useTasraPositions() {
     isInitialized 
   };
 }
+
+    
