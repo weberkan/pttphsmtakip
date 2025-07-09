@@ -31,6 +31,7 @@ import { useDepposh } from "@/hooks/use-depposh";
 import { TalimatlarBoard } from "@/components/depposh/talimatlar-board";
 import { FileListView } from "@/components/depposh/file-list-view";
 import { AddEditTalimatDialog } from "@/components/depposh/add-edit-talimat-dialog";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -177,6 +178,12 @@ function DashboardPageContent() {
   const [isTalimatDialogOpen, setIsTalimatDialogOpen] = useState(false);
   const [editingTalimat, setEditingTalimat] = useState<KanbanCard | null>(null);
   
+  // Debounced search terms
+  const debouncedPositionSearchTerm = useDebounce(positionSearchTerm, 300);
+  const debouncedPersonnelSearchTerm = useDebounce(personnelSearchTerm, 300);
+  const debouncedTasraPositionSearchTerm = useDebounce(tasraPositionSearchTerm, 300);
+  const debouncedTasraPersonnelSearchTerm = useDebounce(tasraPersonnelSearchTerm, 300);
+
   const isGlobalMerkezPositionSearchActive = positionSearchTerm.trim() !== "" || filter !== "all";
   const isGlobalMerkezPersonnelSearchActive = personnelSearchTerm.trim() !== "";
   const isGlobalTasraPositionSearchActive = tasraPositionSearchTerm.trim() !== "";
@@ -287,37 +294,41 @@ function DashboardPageContent() {
   };
 
   const filteredPositions = useMemo(() => {
-    if (isGlobalMerkezPositionSearchActive) {
-      let _filtered = allMerkezPositions;
-      if (filter !== "all") {
-        _filtered = _filtered.filter(p => p.status === filter);
-      }
-      if (positionSearchTerm.trim() !== "") {
-        const searchTermLower = positionSearchTerm.toLowerCase();
-        _filtered = _filtered.filter(p => {
-          const assignedPerson = p.assignedPersonnelId ? allMerkezPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
-          return (
-            (p.name || '').toLowerCase().includes(searchTermLower) ||
-            (p.department || '').toLowerCase().includes(searchTermLower) ||
-            (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
-            (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
-            (assignedPerson && (
-              (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
-              (assignedPerson.lastName || '').toLowerCase().includes(searchTermLower) ||
-              (assignedPerson.registryNumber || '').toLowerCase().includes(searchTermLower)
-            ))
-          );
-        });
-      }
-      return _filtered;
+    if (!isGlobalMerkezPositionSearchActive) {
+      return positions;
     }
-    return positions;
-  }, [positions, allMerkezPositions, allMerkezPersonnel, filter, positionSearchTerm, isGlobalMerkezPositionSearchActive]);
+    let _filtered = allMerkezPositions;
+    if (filter !== "all") {
+      _filtered = _filtered.filter(p => p.status === filter);
+    }
+    const searchTermLower = debouncedPositionSearchTerm.toLowerCase().trim();
+    if (searchTermLower) {
+      _filtered = _filtered.filter(p => {
+        const assignedPerson = p.assignedPersonnelId ? allMerkezPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
+        return (
+          (p.name || '').toLowerCase().includes(searchTermLower) ||
+          (p.department || '').toLowerCase().includes(searchTermLower) ||
+          (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
+          (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
+          (assignedPerson && (
+            (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
+            (assignedPerson.lastName || '').toLowerCase().includes(searchTermLower) ||
+            (assignedPerson.registryNumber || '').toLowerCase().includes(searchTermLower)
+          ))
+        );
+      });
+    }
+    return _filtered;
+  }, [positions, allMerkezPositions, allMerkezPersonnel, filter, debouncedPositionSearchTerm, isGlobalMerkezPositionSearchActive]);
   
   const filteredPersonnel = useMemo(() => {
-    if (isGlobalMerkezPersonnelSearchActive) {
-      const searchTermLower = personnelSearchTerm.toLowerCase();
-      return allMerkezPersonnel.filter(p =>
+    if (!isGlobalMerkezPersonnelSearchActive) {
+      return personnel;
+    }
+    let _filtered = allMerkezPersonnel;
+    const searchTermLower = debouncedPersonnelSearchTerm.toLowerCase().trim();
+    if (searchTermLower) {
+      _filtered = _filtered.filter(p =>
         (p.firstName || '').toLowerCase().includes(searchTermLower) ||
         (p.lastName || '').toLowerCase().includes(searchTermLower) ||
         (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
@@ -325,13 +336,16 @@ function DashboardPageContent() {
         (p.phone || '').toLowerCase().includes(searchTermLower)
       );
     }
-    return personnel;
-  }, [personnel, allMerkezPersonnel, personnelSearchTerm, isGlobalMerkezPersonnelSearchActive]);
+    return _filtered;
+  }, [personnel, allMerkezPersonnel, debouncedPersonnelSearchTerm, isGlobalMerkezPersonnelSearchActive]);
   
   const filteredTasraPositions = useMemo(() => {
-    if (isGlobalTasraPositionSearchActive) {
-        let _filtered = allTasraPositions;
-        const searchTermLower = tasraPositionSearchTerm.toLowerCase();
+    if (!isGlobalTasraPositionSearchActive) {
+        return tasraPositions;
+    }
+    let _filtered = allTasraPositions;
+    const searchTermLower = debouncedTasraPositionSearchTerm.toLowerCase().trim();
+    if (searchTermLower) {
         _filtered = _filtered.filter(p => {
             const assignedPerson = p.assignedPersonnelId ? allTasraPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
             return (
@@ -346,15 +360,18 @@ function DashboardPageContent() {
                 ))
             );
         });
-        return _filtered;
     }
-    return tasraPositions;
-  }, [tasraPositions, allTasraPositions, allTasraPersonnel, tasraPositionSearchTerm, isGlobalTasraPositionSearchActive]);
+    return _filtered;
+  }, [tasraPositions, allTasraPositions, allTasraPersonnel, debouncedTasraPositionSearchTerm, isGlobalTasraPositionSearchActive]);
   
   const filteredTasraPersonnel = useMemo(() => {
-    if (isGlobalTasraPersonnelSearchActive) {
-        const searchTermLower = tasraPersonnelSearchTerm.toLowerCase();
-        return allTasraPersonnel.filter(p => 
+    if (!isGlobalTasraPersonnelSearchActive) {
+        return tasraPersonnel;
+    }
+    let _filtered = allTasraPersonnel;
+    const searchTermLower = debouncedTasraPersonnelSearchTerm.toLowerCase().trim();
+    if (searchTermLower) {
+        _filtered = _filtered.filter(p => 
             (p.firstName || '').toLowerCase().includes(searchTermLower) ||
             (p.lastName || '').toLowerCase().includes(searchTermLower) ||
             (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
@@ -362,8 +379,8 @@ function DashboardPageContent() {
             (p.phone || '').toLowerCase().includes(searchTermLower)
         );
     }
-    return tasraPersonnel;
-  }, [tasraPersonnel, allTasraPersonnel, tasraPersonnelSearchTerm, isGlobalTasraPersonnelSearchActive]);
+    return _filtered;
+  }, [tasraPersonnel, allTasraPersonnel, debouncedTasraPersonnelSearchTerm, isGlobalTasraPersonnelSearchActive]);
 
 
   const handleImportPersonnelClick = () => {
