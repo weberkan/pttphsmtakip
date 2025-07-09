@@ -18,7 +18,7 @@ import { useTasraPositions } from "@/hooks/use-tasra-positions";
 import type { Position, Personnel, TasraPosition, KanbanCard } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, Search } from "lucide-react";
+import { UploadCloud, Search, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { TasraPositionList } from "@/components/tasra-position-list";
 import { AddEditTasraPositionDialog } from "@/components/add-edit-tasra-position-dialog";
 import { ReportingPanel } from "@/components/reporting-panel";
@@ -94,6 +94,7 @@ function DashboardPageContent() {
   const { 
     positions, 
     personnel,
+    allPersonnel: allMerkezPersonnel,
     addPosition, 
     batchAddPositions,
     updatePosition,
@@ -103,13 +104,18 @@ function DashboardPageContent() {
     batchAddPersonnel,
     updatePersonnel,
     deletePersonnel,
-    isInitialized: isMerkezInitialized 
+    loading: merkezLoading,
+    page: merkezPage,
+    totalCount: merkezTotalCount,
+    fetchNextPage: fetchNextMerkezPage,
+    fetchPrevPage: fetchPrevMerkezPage,
   } = usePositions();
 
   // Taşra Teşkilatı Data
   const {
     tasraPositions,
     tasraPersonnel,
+    allPersonnel: allTasraPersonnel,
     addTasraPosition,
     batchAddTasraPosition,
     updateTasraPosition,
@@ -119,7 +125,11 @@ function DashboardPageContent() {
     batchAddTasraPersonnel,
     updateTasraPersonnel,
     deleteTasraPersonnel,
-    isInitialized: isTasraInitialized
+    loading: tasraLoading,
+    page: tasraPage,
+    totalCount: tasraTotalCount,
+    fetchNextPage: fetchNextTasraPage,
+    fetchPrevPage: fetchPrevTasraPage,
   } = useTasraPositions();
   
   const { 
@@ -273,7 +283,7 @@ function DashboardPageContent() {
     if (positionSearchTerm.trim() !== "") {
       const searchTermLower = positionSearchTerm.toLowerCase();
       _filtered = _filtered.filter(p => {
-        const assignedPerson = p.assignedPersonnelId ? personnel.find(person => person.id === p.assignedPersonnelId) : null;
+        const assignedPerson = p.assignedPersonnelId ? allMerkezPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
         return (
           (p.name || '').toLowerCase().includes(searchTermLower) ||
           (p.department || '').toLowerCase().includes(searchTermLower) ||
@@ -288,7 +298,7 @@ function DashboardPageContent() {
       });
     }
     return _filtered;
-  }, [positions, personnel, filter, positionSearchTerm]);
+  }, [positions, allMerkezPersonnel, filter, positionSearchTerm]);
   
   const filteredPersonnel = useMemo(() => {
     if (personnelSearchTerm.trim() === "") {
@@ -309,7 +319,7 @@ function DashboardPageContent() {
     if (tasraPositionSearchTerm.trim() !== "") {
         const searchTermLower = tasraPositionSearchTerm.toLowerCase();
         _filtered = _filtered.filter(p => {
-            const assignedPerson = p.assignedPersonnelId ? tasraPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
+            const assignedPerson = p.assignedPersonnelId ? allTasraPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
             return (
                 (p.unit || '').toLowerCase().includes(searchTermLower) ||
                 (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
@@ -323,8 +333,8 @@ function DashboardPageContent() {
             );
         });
     }
-    return _filtered.sort((a,b) => (a.unit || '').localeCompare(b.unit || ''));
-  }, [tasraPositions, tasraPersonnel, tasraPositionSearchTerm]);
+    return _filtered;
+  }, [tasraPositions, allTasraPersonnel, tasraPositionSearchTerm]);
   
   const filteredTasraPersonnel = useMemo(() => {
     let filtered = tasraPersonnel;
@@ -338,9 +348,7 @@ function DashboardPageContent() {
             (p.phone || '').toLowerCase().includes(searchTermLower)
         );
     }
-    return [...filtered].sort((a, b) => 
-        (`${a.firstName || ''} ${a.lastName || ''}`).trim().localeCompare((`${b.firstName || ''} ${b.lastName || ''}`).trim())
-    );
+    return filtered;
   }, [tasraPersonnel, tasraPersonnelSearchTerm]);
 
 
@@ -409,7 +417,7 @@ function DashboardPageContent() {
         const errors: { rowIndex: number; message: string; }[] = [];
         let skippedCount = 0;
 
-        const currentPersonnelList = activeView.startsWith('merkez') ? personnel : tasraPersonnel;
+        const currentPersonnelList = activeView.startsWith('merkez') ? allMerkezPersonnel : allTasraPersonnel;
         const existingRegistryNumbers = new Set(currentPersonnelList.map(p => p.registryNumber));
 
         rows.forEach((rowArray, rowIndex) => {
@@ -557,7 +565,7 @@ function DashboardPageContent() {
             return [key, p];
           })
         );
-        const personnelByRegistry = new Map<string, Personnel>(personnel.map(p => [p.registryNumber, p]));
+        const personnelByRegistry = new Map<string, Personnel>(allMerkezPersonnel.map(p => [p.registryNumber, p]));
 
         rows.forEach((rowArray, rowIndex) => {
           try {
@@ -743,7 +751,7 @@ function DashboardPageContent() {
             return [key, p];
           })
         );
-        const personnelByRegistry = new Map<string, Personnel>(tasraPersonnel.map(p => [p.registryNumber, p]));
+        const personnelByRegistry = new Map<string, Personnel>(allTasraPersonnel.map(p => [p.registryNumber, p]));
 
         rows.forEach((rowArray, rowIndex) => {
           try {
@@ -870,7 +878,7 @@ function DashboardPageContent() {
     reader.readAsArrayBuffer(file);
   };
 
-  if (!isMerkezInitialized || !isTasraInitialized || !isUsersInitialized || !isDepposhInitialized) {
+  if (!isUsersInitialized || !isDepposhInitialized) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
             <div className="lg:col-span-2 space-y-6">
@@ -921,7 +929,7 @@ function DashboardPageContent() {
                 <Card className="shadow-lg">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle id="positions-heading" className="text-sm font-semibold">Merkez Pozisyonları (Toplam: {filteredPositions.length})</CardTitle>
+                      <CardTitle id="positions-heading" className="text-sm font-semibold">Merkez Pozisyonları</CardTitle>
                       <CardDescription>Şirket içindeki tüm merkez pozisyonları yönetin ve görüntüleyin.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -932,7 +940,7 @@ function DashboardPageContent() {
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           type="search"
-                          placeholder="Pozisyonlarda ara..."
+                          placeholder="Mevcut sayfada ara..."
                           className="pl-8 h-9"
                           value={positionSearchTerm}
                           onChange={(e) => setPositionSearchTerm(e.target.value)}
@@ -946,14 +954,29 @@ function DashboardPageContent() {
                   </CardHeader>
                   <CardContent>
                     <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
-                    <PositionList 
-                      positions={filteredPositions} 
-                      allPersonnel={personnel}
-                      allUsers={users}
-                      onEdit={handleEditPosition}
-                      onDelete={handleDeletePosition}
-                    />
+                    {merkezLoading && !isUsersInitialized ? (
+                        <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                    ) : (
+                        <PositionList 
+                        positions={filteredPositions} 
+                        allPersonnel={allMerkezPersonnel}
+                        allUsers={users}
+                        onEdit={handleEditPosition}
+                        onDelete={handleDeletePosition}
+                        />
+                    )}
                   </CardContent>
+                  <div className="flex items-center justify-end space-x-2 border-t p-4">
+                        <span className="text-sm text-muted-foreground">
+                            {page.start} - {page.end} / {totalCount.positions} gösteriliyor
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => fetchPrevMerkezPage('positions')} disabled={page.isFirst}>
+                            <ChevronLeft className="h-4 w-4"/> Önceki
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => fetchNextMerkezPage('positions')} disabled={page.isLast}>
+                            Sonraki <ChevronRight className="h-4 w-4"/>
+                        </Button>
+                    </div>
                 </Card>
             );
         case 'merkez-personel':
@@ -961,7 +984,7 @@ function DashboardPageContent() {
                 <Card className="shadow-lg">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-sm font-semibold" id="personnel-heading">Merkez Personel Listesi (Toplam: {filteredPersonnel.length})</CardTitle>
+                      <CardTitle className="text-sm font-semibold" id="personnel-heading">Merkez Personel Listesi</CardTitle>
                       <CardDescription>Merkez personelini yönetin.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -972,7 +995,7 @@ function DashboardPageContent() {
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           type="search"
-                          placeholder="Personellerde ara..."
+                          placeholder="Mevcut sayfada ara..."
                           className="pl-8 h-9"
                           value={personnelSearchTerm}
                           onChange={(e) => setPersonnelSearchTerm(e.target.value)}
@@ -985,13 +1008,28 @@ function DashboardPageContent() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <PersonnelList
-                      personnel={filteredPersonnel}
-                      allUsers={users}
-                      onEdit={handleEditPersonnel}
-                      onDelete={handleDeletePersonnel}
-                    />
+                    {merkezLoading ? (
+                         <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                    ) : (
+                        <PersonnelList
+                        personnel={filteredPersonnel}
+                        allUsers={users}
+                        onEdit={handleEditPersonnel}
+                        onDelete={handleDeletePersonnel}
+                        />
+                    )}
                   </CardContent>
+                   <div className="flex items-center justify-end space-x-2 border-t p-4">
+                        <span className="text-sm text-muted-foreground">
+                            {page.start} - {page.end} / {totalCount.personnel} gösteriliyor
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => fetchPrevMerkezPage('personnel')} disabled={page.isFirst}>
+                             <ChevronLeft className="h-4 w-4"/> Önceki
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => fetchNextMerkezPage('personnel')} disabled={page.isLast}>
+                            Sonraki <ChevronRight className="h-4 w-4"/>
+                        </Button>
+                    </div>
                 </Card>
             );
         case 'merkez-sema':
@@ -1002,7 +1040,7 @@ function DashboardPageContent() {
                     <CardDescription>Şirketin raporlama yapısının görsel özeti.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <OrgChart positions={positions} allPersonnel={personnel} />
+                    <OrgChart positions={positions} allPersonnel={allMerkezPersonnel} />
                   </CardContent>
                 </Card>
             );
@@ -1011,7 +1049,7 @@ function DashboardPageContent() {
                  <Card className="shadow-lg">
                    <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle id="tasra-positions-heading" className="text-sm font-semibold">Taşra Pozisyonları (Toplam: {filteredTasraPositions.length})</CardTitle>
+                      <CardTitle id="tasra-positions-heading" className="text-sm font-semibold">Taşra Pozisyonları</CardTitle>
                       <CardDescription>Şirket içindeki tüm taşra pozisyonları yönetin ve görüntüleyin.</CardDescription>
                     </div>
                      <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1022,7 +1060,7 @@ function DashboardPageContent() {
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           type="search"
-                          placeholder="Pozisyonlarda ara..."
+                          placeholder="Mevcut sayfada ara..."
                           className="pl-8 h-9"
                           value={tasraPositionSearchTerm}
                           onChange={(e) => setTasraPositionSearchTerm(e.target.value)}
@@ -1035,14 +1073,29 @@ function DashboardPageContent() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <TasraPositionList
-                      positions={filteredTasraPositions}
-                      allPersonnel={tasraPersonnel}
-                      allUsers={users}
-                      onEdit={handleEditTasraPosition}
-                      onDelete={handleDeleteTasraPosition}
-                    />
+                     {tasraLoading ? (
+                         <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                     ) : (
+                        <TasraPositionList
+                        positions={filteredTasraPositions}
+                        allPersonnel={allTasraPersonnel}
+                        allUsers={users}
+                        onEdit={handleEditTasraPosition}
+                        onDelete={handleDeleteTasraPosition}
+                        />
+                     )}
                   </CardContent>
+                   <div className="flex items-center justify-end space-x-2 border-t p-4">
+                        <span className="text-sm text-muted-foreground">
+                            {tasraPage.start} - {tasraPage.end} / {tasraTotalCount.positions} gösteriliyor
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => fetchPrevTasraPage('positions')} disabled={tasraPage.isFirst}>
+                             <ChevronLeft className="h-4 w-4"/> Önceki
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => fetchNextTasraPage('positions')} disabled={tasraPage.isLast}>
+                            Sonraki <ChevronRight className="h-4 w-4"/>
+                        </Button>
+                    </div>
                 </Card>
             );
         case 'tasra-personel':
@@ -1050,7 +1103,7 @@ function DashboardPageContent() {
                 <Card className="shadow-lg">
                    <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-sm font-semibold" id="tasra-personnel-heading">Taşra Personel Listesi (Toplam: {filteredTasraPersonnel.length})</CardTitle>
+                      <CardTitle className="text-sm font-semibold" id="tasra-personnel-heading">Taşra Personel Listesi</CardTitle>
                       <CardDescription>Taşra personelini yönetin.</CardDescription>
                     </div>
                      <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1061,7 +1114,7 @@ function DashboardPageContent() {
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           type="search"
-                          placeholder="Personellerde ara..."
+                          placeholder="Mevcut sayfada ara..."
                           className="pl-8 h-9"
                           value={tasraPersonnelSearchTerm}
                           onChange={(e) => setTasraPersonnelSearchTerm(e.target.value)}
@@ -1074,22 +1127,37 @@ function DashboardPageContent() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <PersonnelList
-                      personnel={filteredTasraPersonnel}
-                      allUsers={users}
-                      onEdit={handleEditTasraPersonnel}
-                      onDelete={handleDeleteTasraPersonnel}
-                    />
+                    {tasraLoading ? (
+                        <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                    ) : (
+                        <PersonnelList
+                        personnel={filteredTasraPersonnel}
+                        allUsers={users}
+                        onEdit={handleEditTasraPersonnel}
+                        onDelete={handleDeleteTasraPersonnel}
+                        />
+                    )}
                   </CardContent>
+                  <div className="flex items-center justify-end space-x-2 border-t p-4">
+                        <span className="text-sm text-muted-foreground">
+                            {tasraPage.start} - {tasraPage.end} / {tasraTotalCount.personnel} gösteriliyor
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => fetchPrevTasraPage('personnel')} disabled={tasraPage.isFirst}>
+                             <ChevronLeft className="h-4 w-4"/> Önceki
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => fetchNextTasraPage('personnel')} disabled={tasraPage.isLast}>
+                            Sonraki <ChevronRight className="h-4 w-4"/>
+                        </Button>
+                    </div>
                 </Card>
             );
         case 'raporlama':
             return (
                 <ReportingPanel
                     positions={positions}
-                    personnel={personnel}
+                    personnel={allMerkezPersonnel}
                     tasraPositions={tasraPositions}
-                    tasraPersonnel={tasraPersonnel}
+                    tasraPersonnel={allTasraPersonnel}
                 />
             );
         case 'kullanici-onay':
@@ -1165,7 +1233,7 @@ function DashboardPageContent() {
         onOpenChange={setIsPositionDialogOpen}
         positionToEdit={editingPosition}
         allPositions={positions}
-        allPersonnel={personnel}
+        allPersonnel={allMerkezPersonnel}
         onSave={handleSavePosition}
         updatePersonnel={updatePersonnel} 
       />
@@ -1181,7 +1249,7 @@ function DashboardPageContent() {
         isOpen={isTasraPositionDialogOpen}
         onOpenChange={setIsTasraPositionDialogOpen}
         positionToEdit={editingTasraPosition}
-        allPersonnel={tasraPersonnel}
+        allPersonnel={allTasraPersonnel}
         onSave={handleSaveTasraPosition}
       />
       <AddEditPersonnelDialog
@@ -1223,3 +1291,4 @@ export default function Page() {
     
 
     
+

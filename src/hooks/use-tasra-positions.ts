@@ -14,65 +14,134 @@ import {
   writeBatch,
   getDocs,
   Timestamp,
-  setDoc
+  setDoc,
+  query,
+  orderBy,
+  limit,
+  startAfter,
+  endBefore,
+  QueryDocumentSnapshot,
+  DocumentData
 } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
+
+const PAGE_SIZE = 25;
 
 export function useTasraPositions() {
   const { user } = useAuth();
   const { toast } = useToast();
+
   const [tasraPositions, setTasraPositions] = useState<TasraPosition[]>([]);
   const [tasraPersonnel, setTasraPersonnel] = useState<Personnel[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  
+  const [allPersonnel, setAllPersonnel] = useState<Personnel[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [firstVisible, setFirstVisible] = useState<Record<string, QueryDocumentSnapshot<DocumentData> | null>>({});
+  const [lastVisible, setLastVisible] = useState<Record<string, QueryDocumentSnapshot<DocumentData> | null>>({});
+  const [pageNumber, setPageNumber] = useState(1);
+  const [isLastPage, setIsLastPage] = useState<Record<string, boolean>>({});
+  const [totalCount, setTotalCount] = useState({ positions: 0, personnel: 0 });
+
+  const pageInfo = {
+    start: (pageNumber - 1) * PAGE_SIZE + 1,
+    end: Math.min(pageNumber * PAGE_SIZE, totalCount.positions),
+    isFirst: pageNumber === 1,
+    isLast: isLastPage.positions,
+  };
+
+  const fetchTotalCounts = useCallback(async () => {
+    if (!db) return;
+    try {
+        const [positionsSnapshot, personnelSnapshot] = await Promise.all([
+            getDocs(collection(db, 'tasra-positions')),
+            getDocs(collection(db, 'tasra-personnel'))
+        ]);
+        setTotalCount({
+            positions: positionsSnapshot.size,
+            personnel: personnelSnapshot.size
+        });
+    } catch (error) {
+        console.error("Error fetching total counts: ", error);
+    }
+  }, [db]);
+  
+  useEffect(() => {
+    fetchTotalCounts();
+  }, [fetchTotalCounts]);
+  
+
+  const fetchPage = useCallback(async (collectionName: 'positions' | 'personnel', constraint?: any) => {
+    if (!user || !db) return;
+    setLoading(true);
+
+    const isPositions = collectionName === 'positions';
+    const collRef = collection(db, isPositions ? 'tasra-positions' : 'tasra-personnel');
+    const q = query(
+        collRef,
+        isPositions ? orderBy("unit") : orderBy("registryNumber"),
+        ...(isPositions ? [orderBy("dutyLocation")] : [orderBy("firstName")]),
+        ... (constraint ? [constraint] : []),
+        limit(PAGE_SIZE + 1)
+    );
+
+    try {
+        const documentSnapshots = await getDocs(q);
+        const fetchedData = documentSnapshots.docs.slice(0, PAGE_SIZE).map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                startDate: data.startDate ? (data.startDate as Timestamp).toDate() : null,
+                dateOfBirth: data.dateOfBirth ? (data.dateOfBirth as Timestamp).toDate() : null,
+                lastModifiedAt: data.lastModifiedAt ? (data.lastModifiedAt as Timestamp).toDate() : null,
+            } as any;
+        });
+
+        if (isPositions) setTasraPositions(fetchedData);
+        else setTasraPersonnel(fetchedData);
+        
+        setIsLastPage(prev => ({...prev, [collectionName]: documentSnapshots.docs.length <= PAGE_SIZE}));
+        setFirstVisible(prev => ({ ...prev, [collectionName]: documentSnapshots.docs[0] ?? null }));
+        setLastVisible(prev => ({ ...prev, [collectionName]: documentSnapshots.docs[documentSnapshots.docs.length > PAGE_SIZE ? PAGE_SIZE - 1 : documentSnapshots.docs.length -1] ?? null }));
+
+    } catch (error) {
+        console.error(`Error fetching ${collectionName}:`, error);
+        toast({ title: 'Veri Yükleme Hatası', description: `Veriler yüklenirken bir sorun oluştu: ${error}`, variant: 'destructive'});
+    } finally {
+        setLoading(false);
+    }
+  }, [user, db, toast]);
+  
+  const fetchNextPage = (collectionName: 'positions' | 'personnel') => {
+      if (lastVisible[collectionName]) {
+          fetchPage(collectionName, startAfter(lastVisible[collectionName]));
+          setPageNumber(prev => prev + 1);
+      }
+  };
+
+  const fetchPrevPage = (collectionName: 'positions' | 'personnel') => {
+      if (firstVisible[collectionName]) {
+          fetchPage(collectionName, endBefore(firstVisible[collectionName]));
+           setPageNumber(prev => Math.max(1, prev - 1));
+      }
+  };
+
+  useEffect(() => {
+    fetchPage('positions');
+    fetchPage('personnel');
+  }, []);
 
   useEffect(() => {
     if (!user || !db) {
-      setTasraPositions([]);
-      setTasraPersonnel([]);
-      setIsInitialized(!db);
-      return;
+        setAllPersonnel([]);
+        return;
     }
-
-    const positionsUnsubscribe = onSnapshot(collection(db, "tasra-positions"), (snapshot) => {
-      const fetchedPositions = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          startDate: data.startDate ? (data.startDate as Timestamp).toDate() : null,
-          lastModifiedAt: data.lastModifiedAt ? (data.lastModifiedAt as Timestamp).toDate() : null,
-        } as TasraPosition;
-      });
-      const uniquePositions = Array.from(new Map(fetchedPositions.map(p => [p.id, p])).values());
-      setTasraPositions(uniquePositions);
-      setIsInitialized(true);
-    }, (error) => {
-        console.error("Error fetching tasra positions:", error);
-        setIsInitialized(true);
-    });
-
     const personnelUnsubscribe = onSnapshot(collection(db, "tasra-personnel"), (snapshot) => {
-      const fetchedPersonnel = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          dateOfBirth: data.dateOfBirth ? (data.dateOfBirth as Timestamp).toDate() : null,
-          lastModifiedAt: data.lastModifiedAt ? (data.lastModifiedAt as Timestamp).toDate() : null,
-        } as Personnel;
-      });
-      const uniquePersonnel = Array.from(new Map(fetchedPersonnel.map(p => [p.id, p])).values());
-      setTasraPersonnel(uniquePersonnel);
-      setIsInitialized(true);
-    }, (error) => {
-        console.error("Error fetching tasra personnel:", error);
-        setIsInitialized(true);
+        const allFetchedPersonnel = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Personnel));
+        setAllPersonnel(allFetchedPersonnel);
     });
-
-    return () => {
-      positionsUnsubscribe();
-      personnelUnsubscribe();
-    };
+    return () => personnelUnsubscribe();
   }, [user, db]);
 
   const addTasraPosition = useCallback(async (positionData: Omit<TasraPosition, 'id'>) => {
@@ -82,7 +151,8 @@ export function useTasraPositions() {
       lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     });
-  }, [user]);
+    fetchPage('positions');
+  }, [user, fetchPage]);
 
   const batchAddTasraPosition = useCallback(async (positionList: Omit<TasraPosition, 'id'>[]) => {
     if (!user || !db) return;
@@ -96,7 +166,8 @@ export function useTasraPositions() {
       });
     });
     await batch.commit();
-  }, [user]);
+    fetchPage('positions');
+  }, [user, fetchPage]);
 
   const updateTasraPosition = useCallback(async (updatedPosition: TasraPosition) => {
     if (!user || !db) return;
@@ -106,7 +177,8 @@ export function useTasraPositions() {
       lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     }, { merge: true });
-  }, [user]);
+     fetchPage('positions');
+  }, [user, fetchPage]);
 
   const batchUpdateTasraPosition = useCallback(async (positionList: TasraPosition[]) => {
     if (!user || !db) return;
@@ -121,26 +193,21 @@ export function useTasraPositions() {
       }, { merge: true });
     });
     await batch.commit();
-  }, [user]);
+     fetchPage('positions');
+  }, [user, fetchPage]);
 
   const deleteTasraPosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
     
     try {
       await deleteDoc(doc(db, 'tasra-positions', positionId));
-      toast({
-        title: "Pozisyon Silindi",
-        description: "Taşra pozisyonu başarıyla silindi.",
-      });
+      toast({ title: "Pozisyon Silindi", description: "Taşra pozisyonu başarıyla silindi." });
+      fetchPage('positions');
     } catch (error) {
       console.error("Error deleting Tasra position:", error);
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: "Pozisyon silinirken bir hata oluştu.",
-      });
+      toast({ variant: "destructive", title: "Hata", description: "Pozisyon silinirken bir hata oluştu." });
     }
-  }, [user, db, toast]);
+  }, [user, db, toast, fetchPage]);
 
 
   const addTasraPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id'>) => {
@@ -150,7 +217,8 @@ export function useTasraPositions() {
       lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     });
-  }, [user]);
+    fetchPage('personnel');
+  }, [user, fetchPage]);
 
   const batchAddTasraPersonnel = useCallback(async (personnelList: Omit<Personnel, 'id'>[]) => {
     if (!user || !db) return;
@@ -164,7 +232,8 @@ export function useTasraPositions() {
       });
     });
     await batch.commit();
-  }, [user]);
+    fetchPage('personnel');
+  }, [user, fetchPage]);
 
   const updateTasraPersonnel = useCallback(async (updatedPersonnel: Personnel) => {
     if (!user || !db) return;
@@ -174,7 +243,8 @@ export function useTasraPositions() {
       lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     }, { merge: true });
-  }, [user]);
+    fetchPage('personnel');
+  }, [user, fetchPage]);
 
   const deleteTasraPersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
@@ -198,23 +268,19 @@ export function useTasraPositions() {
       
       await batch.commit();
   
-      toast({
-        title: "Personel Silindi",
-        description: "Taşra personeli başarıyla silindi ve atamaları kaldırıldı.",
-      });
+      toast({ title: "Personel Silindi", description: "Taşra personeli başarıyla silindi ve atamaları kaldırıldı." });
+      fetchPage('personnel');
+      fetchPage('positions');
     } catch (error) {
       console.error("Error deleting Tasra personnel:", error);
-      toast({
-        variant: "destructive",
-        title: "Hata",
-        description: "Personel silinirken bir hata oluştu.",
-      });
+      toast({ variant: "destructive", title: "Hata", description: "Personel silinirken bir hata oluştu." });
     }
-  }, [user, db, toast, tasraPositions]);
+  }, [user, db, toast, tasraPositions, fetchPage]);
 
   return { 
     tasraPositions, 
     tasraPersonnel,
+    allPersonnel,
     addTasraPosition, 
     batchAddTasraPosition,
     updateTasraPosition, 
@@ -224,7 +290,11 @@ export function useTasraPositions() {
     batchAddTasraPersonnel,
     updateTasraPersonnel,
     deleteTasraPersonnel,
-    isInitialized 
+    loading,
+    page: pageInfo,
+    totalCount,
+    fetchNextPage,
+    fetchPrevPage,
   };
 }
 
