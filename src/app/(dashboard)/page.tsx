@@ -968,12 +968,12 @@ function DashboardPageContent() {
                   </CardContent>
                   <div className="flex items-center justify-end space-x-2 border-t p-4">
                         <span className="text-sm text-muted-foreground">
-                            {page.start} - {page.end} / {totalCount.positions} gösteriliyor
+                            {merkezPage.start} - {merkezPage.end} / {merkezTotalCount.positions} gösteriliyor
                         </span>
-                        <Button variant="outline" size="sm" onClick={() => fetchPrevMerkezPage('positions')} disabled={page.isFirst}>
+                        <Button variant="outline" size="sm" onClick={() => fetchPrevMerkezPage('positions')} disabled={merkezPage.isFirst}>
                             <ChevronLeft className="h-4 w-4"/> Önceki
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => fetchNextMerkezPage('positions')} disabled={page.isLast}>
+                        <Button variant="outline" size="sm" onClick={() => fetchNextMerkezPage('positions')} disabled={merkezPage.isLast}>
                             Sonraki <ChevronRight className="h-4 w-4"/>
                         </Button>
                     </div>
@@ -1021,12 +1021,12 @@ function DashboardPageContent() {
                   </CardContent>
                    <div className="flex items-center justify-end space-x-2 border-t p-4">
                         <span className="text-sm text-muted-foreground">
-                            {page.start} - {page.end} / {totalCount.personnel} gösteriliyor
+                            {merkezPage.start} - {merkezPage.end} / {merkezTotalCount.personnel} gösteriliyor
                         </span>
-                        <Button variant="outline" size="sm" onClick={() => fetchPrevMerkezPage('personnel')} disabled={page.isFirst}>
+                        <Button variant="outline" size="sm" onClick={() => fetchPrevMerkezPage('personnel')} disabled={merkezPage.isFirst}>
                              <ChevronLeft className="h-4 w-4"/> Önceki
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => fetchNextMerkezPage('personnel')} disabled={page.isLast}>
+                        <Button variant="outline" size="sm" onClick={() => fetchNextMerkezPage('personnel')} disabled={merkezPage.isLast}>
                             Sonraki <ChevronRight className="h-4 w-4"/>
                         </Button>
                     </div>
@@ -1291,4 +1291,5 @@ export default function Page() {
     
 
     
+
 
