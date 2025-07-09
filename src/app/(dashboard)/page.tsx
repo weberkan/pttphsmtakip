@@ -31,7 +31,6 @@ import { useDepposh } from "@/hooks/use-depposh";
 import { TalimatlarBoard } from "@/components/depposh/talimatlar-board";
 import { FileListView } from "@/components/depposh/file-list-view";
 import { AddEditTalimatDialog } from "@/components/depposh/add-edit-talimat-dialog";
-import { useDebounce } from "@/hooks/use-debounce";
 
 const importPersonnelSchema = z.object({
   firstName: z.string().min(1, "Adı boş olamaz."),
@@ -178,12 +177,6 @@ function DashboardPageContent() {
   const [isTalimatDialogOpen, setIsTalimatDialogOpen] = useState(false);
   const [editingTalimat, setEditingTalimat] = useState<KanbanCard | null>(null);
   
-  // Debounced search terms
-  const debouncedPositionSearchTerm = useDebounce(positionSearchTerm, 300);
-  const debouncedPersonnelSearchTerm = useDebounce(personnelSearchTerm, 300);
-  const debouncedTasraPositionSearchTerm = useDebounce(tasraPositionSearchTerm, 300);
-  const debouncedTasraPersonnelSearchTerm = useDebounce(tasraPersonnelSearchTerm, 300);
-
   const isGlobalMerkezPositionSearchActive = positionSearchTerm.trim() !== "" || filter !== "all";
   const isGlobalMerkezPersonnelSearchActive = personnelSearchTerm.trim() !== "";
   const isGlobalTasraPositionSearchActive = tasraPositionSearchTerm.trim() !== "";
@@ -301,7 +294,7 @@ function DashboardPageContent() {
     if (filter !== "all") {
       _filtered = _filtered.filter(p => p.status === filter);
     }
-    const searchTermLower = debouncedPositionSearchTerm.toLowerCase().trim();
+    const searchTermLower = positionSearchTerm.toLowerCase().trim();
     if (searchTermLower) {
       _filtered = _filtered.filter(p => {
         const assignedPerson = p.assignedPersonnelId ? allMerkezPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
@@ -319,14 +312,14 @@ function DashboardPageContent() {
       });
     }
     return _filtered;
-  }, [positions, allMerkezPositions, allMerkezPersonnel, filter, debouncedPositionSearchTerm, isGlobalMerkezPositionSearchActive]);
+  }, [positions, allMerkezPositions, allMerkezPersonnel, filter, positionSearchTerm, isGlobalMerkezPositionSearchActive]);
   
   const filteredPersonnel = useMemo(() => {
     if (!isGlobalMerkezPersonnelSearchActive) {
       return personnel;
     }
     let _filtered = allMerkezPersonnel;
-    const searchTermLower = debouncedPersonnelSearchTerm.toLowerCase().trim();
+    const searchTermLower = personnelSearchTerm.toLowerCase().trim();
     if (searchTermLower) {
       _filtered = _filtered.filter(p =>
         (p.firstName || '').toLowerCase().includes(searchTermLower) ||
@@ -337,14 +330,14 @@ function DashboardPageContent() {
       );
     }
     return _filtered;
-  }, [personnel, allMerkezPersonnel, debouncedPersonnelSearchTerm, isGlobalMerkezPersonnelSearchActive]);
+  }, [personnel, allMerkezPersonnel, personnelSearchTerm, isGlobalMerkezPersonnelSearchActive]);
   
   const filteredTasraPositions = useMemo(() => {
     if (!isGlobalTasraPositionSearchActive) {
         return tasraPositions;
     }
     let _filtered = allTasraPositions;
-    const searchTermLower = debouncedTasraPositionSearchTerm.toLowerCase().trim();
+    const searchTermLower = tasraPositionSearchTerm.toLowerCase().trim();
     if (searchTermLower) {
         _filtered = _filtered.filter(p => {
             const assignedPerson = p.assignedPersonnelId ? allTasraPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
@@ -362,14 +355,14 @@ function DashboardPageContent() {
         });
     }
     return _filtered;
-  }, [tasraPositions, allTasraPositions, allTasraPersonnel, debouncedTasraPositionSearchTerm, isGlobalTasraPositionSearchActive]);
+  }, [tasraPositions, allTasraPositions, allTasraPersonnel, tasraPositionSearchTerm, isGlobalTasraPositionSearchActive]);
   
   const filteredTasraPersonnel = useMemo(() => {
     if (!isGlobalTasraPersonnelSearchActive) {
         return tasraPersonnel;
     }
     let _filtered = allTasraPersonnel;
-    const searchTermLower = debouncedTasraPersonnelSearchTerm.toLowerCase().trim();
+    const searchTermLower = tasraPersonnelSearchTerm.toLowerCase().trim();
     if (searchTermLower) {
         _filtered = _filtered.filter(p => 
             (p.firstName || '').toLowerCase().includes(searchTermLower) ||
@@ -380,7 +373,7 @@ function DashboardPageContent() {
         );
     }
     return _filtered;
-  }, [tasraPersonnel, allTasraPersonnel, debouncedTasraPersonnelSearchTerm, isGlobalTasraPersonnelSearchActive]);
+  }, [tasraPersonnel, allTasraPersonnel, tasraPersonnelSearchTerm, isGlobalTasraPersonnelSearchActive]);
 
 
   const handleImportPersonnelClick = () => {
