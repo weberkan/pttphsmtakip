@@ -94,6 +94,7 @@ function DashboardPageContent() {
   const { 
     positions, 
     personnel,
+    allPositions: allMerkezPositions,
     allPersonnel: allMerkezPersonnel,
     addPosition, 
     batchAddPositions,
@@ -105,8 +106,10 @@ function DashboardPageContent() {
     updatePersonnel,
     deletePersonnel,
     loading: merkezLoading,
-    page: merkezPage,
+    isInitialized: isMerkezInitialized,
     totalCount: merkezTotalCount,
+    positionsPageInfo: merkezPositionsPage,
+    personnelPageInfo: merkezPersonnelPage,
     fetchNextPage: fetchNextMerkezPage,
     fetchPrevPage: fetchPrevMerkezPage,
   } = usePositions();
@@ -115,6 +118,7 @@ function DashboardPageContent() {
   const {
     tasraPositions,
     tasraPersonnel,
+    allTasraPositions,
     allPersonnel: allTasraPersonnel,
     addTasraPosition,
     batchAddTasraPosition,
@@ -126,8 +130,10 @@ function DashboardPageContent() {
     updateTasraPersonnel,
     deleteTasraPersonnel,
     loading: tasraLoading,
-    page: tasraPage,
+    isInitialized: isTasraInitialized,
     totalCount: tasraTotalCount,
+    positionsPageInfo: tasraPositionsPage,
+    personnelPageInfo: tasraPersonnelPage,
     fetchNextPage: fetchNextTasraPage,
     fetchPrevPage: fetchPrevTasraPage,
   } = useTasraPositions();
@@ -170,6 +176,11 @@ function DashboardPageContent() {
   // Talimatlar (Depposh) State
   const [isTalimatDialogOpen, setIsTalimatDialogOpen] = useState(false);
   const [editingTalimat, setEditingTalimat] = useState<KanbanCard | null>(null);
+  
+  const isGlobalMerkezPositionSearchActive = positionSearchTerm.trim() !== "" || filter !== "all";
+  const isGlobalMerkezPersonnelSearchActive = personnelSearchTerm.trim() !== "";
+  const isGlobalTasraPositionSearchActive = tasraPositionSearchTerm.trim() !== "";
+  const isGlobalTasraPersonnelSearchActive = tasraPersonnelSearchTerm.trim() !== "";
 
   // ---- Merkez Handlers ----
   const handleAddPositionClick = () => {
@@ -276,47 +287,50 @@ function DashboardPageContent() {
   };
 
   const filteredPositions = useMemo(() => {
-    let _filtered = positions;
-    if (filter !== "all") {
-      _filtered = _filtered.filter(p => p.status === filter);
+    if (isGlobalMerkezPositionSearchActive) {
+      let _filtered = allMerkezPositions;
+      if (filter !== "all") {
+        _filtered = _filtered.filter(p => p.status === filter);
+      }
+      if (positionSearchTerm.trim() !== "") {
+        const searchTermLower = positionSearchTerm.toLowerCase();
+        _filtered = _filtered.filter(p => {
+          const assignedPerson = p.assignedPersonnelId ? allMerkezPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
+          return (
+            (p.name || '').toLowerCase().includes(searchTermLower) ||
+            (p.department || '').toLowerCase().includes(searchTermLower) ||
+            (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
+            (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
+            (assignedPerson && (
+              (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
+              (assignedPerson.lastName || '').toLowerCase().includes(searchTermLower) ||
+              (assignedPerson.registryNumber || '').toLowerCase().includes(searchTermLower)
+            ))
+          );
+        });
+      }
+      return _filtered;
     }
-    if (positionSearchTerm.trim() !== "") {
-      const searchTermLower = positionSearchTerm.toLowerCase();
-      _filtered = _filtered.filter(p => {
-        const assignedPerson = p.assignedPersonnelId ? allMerkezPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
-        return (
-          (p.name || '').toLowerCase().includes(searchTermLower) ||
-          (p.department || '').toLowerCase().includes(searchTermLower) ||
-          (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
-          (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
-          (assignedPerson && (
-            (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
-            (assignedPerson.lastName || '').toLowerCase().includes(searchTermLower) ||
-            (assignedPerson.registryNumber || '').toLowerCase().includes(searchTermLower)
-          ))
-        );
-      });
-    }
-    return _filtered;
-  }, [positions, allMerkezPersonnel, filter, positionSearchTerm]);
+    return positions;
+  }, [positions, allMerkezPositions, allMerkezPersonnel, filter, positionSearchTerm, isGlobalMerkezPositionSearchActive]);
   
   const filteredPersonnel = useMemo(() => {
-    if (personnelSearchTerm.trim() === "") {
-      return personnel;
+    if (isGlobalMerkezPersonnelSearchActive) {
+      const searchTermLower = personnelSearchTerm.toLowerCase();
+      return allMerkezPersonnel.filter(p =>
+        (p.firstName || '').toLowerCase().includes(searchTermLower) ||
+        (p.lastName || '').toLowerCase().includes(searchTermLower) ||
+        (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
+        (p.email || '').toLowerCase().includes(searchTermLower) ||
+        (p.phone || '').toLowerCase().includes(searchTermLower)
+      );
     }
-    const searchTermLower = personnelSearchTerm.toLowerCase();
-    return personnel.filter(p =>
-      (p.firstName || '').toLowerCase().includes(searchTermLower) ||
-      (p.lastName || '').toLowerCase().includes(searchTermLower) ||
-      (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
-      (p.email || '').toLowerCase().includes(searchTermLower) ||
-      (p.phone || '').toLowerCase().includes(searchTermLower)
-    );
-  }, [personnel, personnelSearchTerm]);
+    return personnel;
+  }, [personnel, allMerkezPersonnel, personnelSearchTerm, isGlobalMerkezPersonnelSearchActive]);
   
   const filteredTasraPositions = useMemo(() => {
-    let _filtered = tasraPositions;
-    if (tasraPositionSearchTerm.trim() !== "") {
+    if (isGlobalTasraPositionSearchActive) {
+        let _filtered = allTasraPositions;
         const searchTermLower = tasraPositionSearchTerm.toLowerCase();
         _filtered = _filtered.filter(p => {
             const assignedPerson = p.assignedPersonnelId ? allTasraPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
@@ -332,15 +346,15 @@ function DashboardPageContent() {
                 ))
             );
         });
+        return _filtered;
     }
-    return _filtered;
-  }, [tasraPositions, allTasraPersonnel, tasraPositionSearchTerm]);
+    return tasraPositions;
+  }, [tasraPositions, allTasraPositions, allTasraPersonnel, tasraPositionSearchTerm, isGlobalTasraPositionSearchActive]);
   
   const filteredTasraPersonnel = useMemo(() => {
-    let filtered = tasraPersonnel;
-    if (tasraPersonnelSearchTerm.trim() !== "") {
+    if (isGlobalTasraPersonnelSearchActive) {
         const searchTermLower = tasraPersonnelSearchTerm.toLowerCase();
-        filtered = filtered.filter(p => 
+        return allTasraPersonnel.filter(p => 
             (p.firstName || '').toLowerCase().includes(searchTermLower) ||
             (p.lastName || '').toLowerCase().includes(searchTermLower) ||
             (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
@@ -348,8 +362,8 @@ function DashboardPageContent() {
             (p.phone || '').toLowerCase().includes(searchTermLower)
         );
     }
-    return filtered;
-  }, [tasraPersonnel, tasraPersonnelSearchTerm]);
+    return tasraPersonnel;
+  }, [tasraPersonnel, allTasraPersonnel, tasraPersonnelSearchTerm, isGlobalTasraPersonnelSearchActive]);
 
 
   const handleImportPersonnelClick = () => {
@@ -560,7 +574,7 @@ function DashboardPageContent() {
         const warnings: { rowIndex: number; message: string; }[] = [];
 
         const existingPositionMap = new Map<string, Position>(
-          positions.map(p => {
+          allMerkezPositions.map(p => {
             const key = `${(p.department || '').trim().toLowerCase()}|${(p.name || '').trim().toLowerCase()}|${(p.dutyLocation || '').trim().toLowerCase()}`;
             return [key, p];
           })
@@ -599,7 +613,7 @@ function DashboardPageContent() {
               if (validatedData.reportsToPersonnelRegistryNumber) {
                 const parentAssignee = personnelByRegistry.get(validatedData.reportsToPersonnelRegistryNumber);
                 if (parentAssignee) {
-                  const parentPosition = positions.find(pos => pos.assignedPersonnelId === parentAssignee.id);
+                  const parentPosition = allMerkezPositions.find(pos => pos.assignedPersonnelId === parentAssignee.id);
                   if (parentPosition) {
                     resolvedReportsToId = parentPosition.id;
                   } else {
@@ -746,7 +760,7 @@ function DashboardPageContent() {
         const warnings: { rowIndex: number; message: string; }[] = [];
         
         const existingPositionMap = new Map<string, TasraPosition>(
-          tasraPositions.map(p => {
+          allTasraPositions.map(p => {
             const key = `${(p.unit || '').trim().toLowerCase()}|${(p.dutyLocation || '').trim().toLowerCase()}`;
             return [key, p];
           })
@@ -878,32 +892,10 @@ function DashboardPageContent() {
     reader.readAsArrayBuffer(file);
   };
 
-  if (!isUsersInitialized || !isDepposhInitialized) {
+  if (!isUsersInitialized || !isDepposhInitialized || !isMerkezInitialized || !isTasraInitialized) {
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
-            <div className="lg:col-span-2 space-y-6">
-            <Card>
-                <CardHeader>
-                <Skeleton className="h-6 w-1/4" />
-                <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                <Skeleton className="h-8 w-3/4" />
-                <Skeleton className="h-40 w-full" />
-                </CardContent>
-            </Card>
-            </div>
-            <div className="lg:col-span-1 space-y-6">
-            <Card>
-                <CardHeader>
-                <Skeleton className="h-6 w-1/3" />
-                <Skeleton className="h-4 w-3/5" />
-                </CardHeader>
-                <CardContent>
-                <Skeleton className="h-64 w-full" />
-                </CardContent>
-            </Card>
-            </div>
+        <div className="flex justify-center items-center h-full">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     );
   }
@@ -913,10 +905,10 @@ function DashboardPageContent() {
         case 'dashboard':
             return (
                 <DashboardHome
-                    positions={positions}
-                    personnel={personnel}
-                    tasraPositions={tasraPositions}
-                    tasraPersonnel={tasraPersonnel}
+                    positions={allMerkezPositions}
+                    personnel={allMerkezPersonnel}
+                    tasraPositions={allTasraPositions}
+                    tasraPersonnel={allTasraPersonnel}
                     cards={cards}
                     allUsers={users}
                     onUpdateCard={updateCard}
@@ -940,7 +932,7 @@ function DashboardPageContent() {
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           type="search"
-                          placeholder="Mevcut sayfada ara..."
+                          placeholder="Tüm kayıtlarda ara..."
                           className="pl-8 h-9"
                           value={positionSearchTerm}
                           onChange={(e) => setPositionSearchTerm(e.target.value)}
@@ -954,7 +946,7 @@ function DashboardPageContent() {
                   </CardHeader>
                   <CardContent>
                     <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
-                    {merkezLoading && !isUsersInitialized ? (
+                    {merkezLoading && !isMerkezInitialized ? (
                         <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                     ) : (
                         <PositionList 
@@ -966,17 +958,19 @@ function DashboardPageContent() {
                         />
                     )}
                   </CardContent>
-                  <div className="flex items-center justify-end space-x-2 border-t p-4">
-                        <span className="text-sm text-muted-foreground">
-                            {merkezPage.start} - {merkezPage.end} / {merkezTotalCount.positions} gösteriliyor
-                        </span>
-                        <Button variant="outline" size="sm" onClick={() => fetchPrevMerkezPage('positions')} disabled={merkezPage.isFirst}>
-                            <ChevronLeft className="h-4 w-4"/> Önceki
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => fetchNextMerkezPage('positions')} disabled={merkezPage.isLast}>
-                            Sonraki <ChevronRight className="h-4 w-4"/>
-                        </Button>
-                    </div>
+                  {!isGlobalMerkezPositionSearchActive && (
+                    <div className="flex items-center justify-end space-x-2 border-t p-4">
+                          <span className="text-sm text-muted-foreground">
+                              {merkezPositionsPage.start} - {merkezPositionsPage.end} / {merkezTotalCount.positions} gösteriliyor
+                          </span>
+                          <Button variant="outline" size="sm" onClick={() => fetchPrevMerkezPage('positions')} disabled={merkezPositionsPage.isFirst}>
+                              <ChevronLeft className="h-4 w-4"/> Önceki
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => fetchNextMerkezPage('positions')} disabled={merkezPositionsPage.isLast}>
+                              Sonraki <ChevronRight className="h-4 w-4"/>
+                          </Button>
+                      </div>
+                  )}
                 </Card>
             );
         case 'merkez-personel':
@@ -995,7 +989,7 @@ function DashboardPageContent() {
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           type="search"
-                          placeholder="Mevcut sayfada ara..."
+                          placeholder="Tüm kayıtlarda ara..."
                           className="pl-8 h-9"
                           value={personnelSearchTerm}
                           onChange={(e) => setPersonnelSearchTerm(e.target.value)}
@@ -1019,17 +1013,19 @@ function DashboardPageContent() {
                         />
                     )}
                   </CardContent>
-                   <div className="flex items-center justify-end space-x-2 border-t p-4">
-                        <span className="text-sm text-muted-foreground">
-                            {merkezPage.start} - {merkezPage.end} / {merkezTotalCount.personnel} gösteriliyor
-                        </span>
-                        <Button variant="outline" size="sm" onClick={() => fetchPrevMerkezPage('personnel')} disabled={merkezPage.isFirst}>
-                             <ChevronLeft className="h-4 w-4"/> Önceki
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => fetchNextMerkezPage('personnel')} disabled={merkezPage.isLast}>
-                            Sonraki <ChevronRight className="h-4 w-4"/>
-                        </Button>
-                    </div>
+                  {!isGlobalMerkezPersonnelSearchActive && (
+                     <div className="flex items-center justify-end space-x-2 border-t p-4">
+                          <span className="text-sm text-muted-foreground">
+                              {merkezPersonnelPage.start} - {merkezPersonnelPage.end} / {merkezTotalCount.personnel} gösteriliyor
+                          </span>
+                          <Button variant="outline" size="sm" onClick={() => fetchPrevMerkezPage('personnel')} disabled={merkezPersonnelPage.isFirst}>
+                               <ChevronLeft className="h-4 w-4"/> Önceki
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => fetchNextMerkezPage('personnel')} disabled={merkezPersonnelPage.isLast}>
+                              Sonraki <ChevronRight className="h-4 w-4"/>
+                          </Button>
+                      </div>
+                  )}
                 </Card>
             );
         case 'merkez-sema':
@@ -1040,7 +1036,7 @@ function DashboardPageContent() {
                     <CardDescription>Şirketin raporlama yapısının görsel özeti.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <OrgChart positions={positions} allPersonnel={allMerkezPersonnel} />
+                    <OrgChart positions={allMerkezPositions} allPersonnel={allMerkezPersonnel} />
                   </CardContent>
                 </Card>
             );
@@ -1060,7 +1056,7 @@ function DashboardPageContent() {
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           type="search"
-                          placeholder="Mevcut sayfada ara..."
+                          placeholder="Tüm kayıtlarda ara..."
                           className="pl-8 h-9"
                           value={tasraPositionSearchTerm}
                           onChange={(e) => setTasraPositionSearchTerm(e.target.value)}
@@ -1085,17 +1081,19 @@ function DashboardPageContent() {
                         />
                      )}
                   </CardContent>
-                   <div className="flex items-center justify-end space-x-2 border-t p-4">
-                        <span className="text-sm text-muted-foreground">
-                            {tasraPage.start} - {tasraPage.end} / {tasraTotalCount.positions} gösteriliyor
-                        </span>
-                        <Button variant="outline" size="sm" onClick={() => fetchPrevTasraPage('positions')} disabled={tasraPage.isFirst}>
-                             <ChevronLeft className="h-4 w-4"/> Önceki
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => fetchNextTasraPage('positions')} disabled={tasraPage.isLast}>
-                            Sonraki <ChevronRight className="h-4 w-4"/>
-                        </Button>
-                    </div>
+                  {!isGlobalTasraPositionSearchActive && (
+                     <div className="flex items-center justify-end space-x-2 border-t p-4">
+                          <span className="text-sm text-muted-foreground">
+                              {tasraPositionsPage.start} - {tasraPositionsPage.end} / {tasraTotalCount.positions} gösteriliyor
+                          </span>
+                          <Button variant="outline" size="sm" onClick={() => fetchPrevTasraPage('positions')} disabled={tasraPositionsPage.isFirst}>
+                               <ChevronLeft className="h-4 w-4"/> Önceki
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => fetchNextTasraPage('positions')} disabled={tasraPositionsPage.isLast}>
+                              Sonraki <ChevronRight className="h-4 w-4"/>
+                          </Button>
+                      </div>
+                  )}
                 </Card>
             );
         case 'tasra-personel':
@@ -1114,7 +1112,7 @@ function DashboardPageContent() {
                         <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           type="search"
-                          placeholder="Mevcut sayfada ara..."
+                          placeholder="Tüm kayıtlarda ara..."
                           className="pl-8 h-9"
                           value={tasraPersonnelSearchTerm}
                           onChange={(e) => setTasraPersonnelSearchTerm(e.target.value)}
@@ -1138,25 +1136,27 @@ function DashboardPageContent() {
                         />
                     )}
                   </CardContent>
-                  <div className="flex items-center justify-end space-x-2 border-t p-4">
-                        <span className="text-sm text-muted-foreground">
-                            {tasraPage.start} - {tasraPage.end} / {tasraTotalCount.personnel} gösteriliyor
-                        </span>
-                        <Button variant="outline" size="sm" onClick={() => fetchPrevTasraPage('personnel')} disabled={tasraPage.isFirst}>
-                             <ChevronLeft className="h-4 w-4"/> Önceki
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => fetchNextTasraPage('personnel')} disabled={tasraPage.isLast}>
-                            Sonraki <ChevronRight className="h-4 w-4"/>
-                        </Button>
-                    </div>
+                  {!isGlobalTasraPersonnelSearchActive && (
+                    <div className="flex items-center justify-end space-x-2 border-t p-4">
+                          <span className="text-sm text-muted-foreground">
+                              {tasraPersonnelPage.start} - {tasraPersonnelPage.end} / {tasraTotalCount.personnel} gösteriliyor
+                          </span>
+                          <Button variant="outline" size="sm" onClick={() => fetchPrevTasraPage('personnel')} disabled={tasraPersonnelPage.isFirst}>
+                               <ChevronLeft className="h-4 w-4"/> Önceki
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => fetchNextTasraPage('personnel')} disabled={tasraPersonnelPage.isLast}>
+                              Sonraki <ChevronRight className="h-4 w-4"/>
+                          </Button>
+                      </div>
+                  )}
                 </Card>
             );
         case 'raporlama':
             return (
                 <ReportingPanel
-                    positions={positions}
+                    positions={allMerkezPositions}
                     personnel={allMerkezPersonnel}
-                    tasraPositions={tasraPositions}
+                    tasraPositions={allTasraPositions}
                     tasraPersonnel={allTasraPersonnel}
                 />
             );
@@ -1187,10 +1187,10 @@ function DashboardPageContent() {
         default:
             return (
                  <DashboardHome
-                    positions={positions}
-                    personnel={personnel}
-                    tasraPositions={tasraPositions}
-                    tasraPersonnel={tasraPersonnel}
+                    positions={allMerkezPositions}
+                    personnel={allMerkezPersonnel}
+                    tasraPositions={allTasraPositions}
+                    tasraPersonnel={allTasraPersonnel}
                     cards={cards}
                     allUsers={users}
                     onUpdateCard={updateCard}
@@ -1232,7 +1232,7 @@ function DashboardPageContent() {
         isOpen={isPositionDialogOpen}
         onOpenChange={setIsPositionDialogOpen}
         positionToEdit={editingPosition}
-        allPositions={positions}
+        allPositions={allMerkezPositions}
         allPersonnel={allMerkezPersonnel}
         onSave={handleSavePosition}
         updatePersonnel={updatePersonnel} 
@@ -1285,11 +1285,3 @@ export default function Page() {
         </Suspense>
     )
 }
-
-    
-
-    
-
-    
-
-

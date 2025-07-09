@@ -35,46 +35,42 @@ export function usePositions() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   
-  // State for all personnel (needed for dropdowns, etc.)
+  // State for all data (for search, filter, and dashboard)
+  const [allPositions, setAllPositions] = useState<Position[]>([]);
   const [allPersonnel, setAllPersonnel] = useState<Personnel[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Loading and pagination state
   const [loading, setLoading] = useState(true);
-  const [firstVisible, setFirstVisible] = useState<Record<string, QueryDocumentSnapshot<DocumentData> | null>>({});
-  const [lastVisible, setLastVisible] = useState<Record<string, QueryDocumentSnapshot<DocumentData> | null>>({});
-  const [pageNumber, setPageNumber] = useState(1);
-  const [isLastPage, setIsLastPage] = useState<Record<string, boolean>>({});
   const [totalCount, setTotalCount] = useState({ positions: 0, personnel: 0 });
 
-  const pageInfo = {
-    start: (pageNumber - 1) * PAGE_SIZE + 1,
-    end: Math.min(pageNumber * PAGE_SIZE, totalCount.positions),
-    isFirst: pageNumber === 1,
-    isLast: isLastPage.positions,
+  // Pagination state for Positions
+  const [positionsPageNumber, setPositionsPageNumber] = useState(1);
+  const [positionsFirstVisible, setPositionsFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [positionsLastVisible, setPositionsLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [positionsIsLastPage, setPositionsIsLastPage] = useState(false);
+  
+  // Pagination state for Personnel
+  const [personnelPageNumber, setPersonnelPageNumber] = useState(1);
+  const [personnelFirstVisible, setPersonnelFirstVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [personnelLastVisible, setPersonnelLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [personnelIsLastPage, setPersonnelIsLastPage] = useState(false);
+
+  const positionsPageInfo = {
+    start: (positionsPageNumber - 1) * PAGE_SIZE + 1,
+    end: positionsIsLastPage ? totalCount.positions : positionsPageNumber * PAGE_SIZE,
+    isFirst: positionsPageNumber === 1,
+    isLast: positionsIsLastPage,
+  };
+  
+  const personnelPageInfo = {
+    start: (personnelPageNumber - 1) * PAGE_SIZE + 1,
+    end: personnelIsLastPage ? totalCount.personnel : personnelPageNumber * PAGE_SIZE,
+    isFirst: personnelPageNumber === 1,
+    isLast: personnelIsLastPage,
   };
 
-  const fetchTotalCounts = useCallback(async () => {
-    if (!db) return;
-    try {
-        const [positionsSnapshot, personnelSnapshot] = await Promise.all([
-            getDocs(collection(db, 'merkez-positions')),
-            getDocs(collection(db, 'merkez-personnel'))
-        ]);
-        setTotalCount({
-            positions: positionsSnapshot.size,
-            personnel: personnelSnapshot.size
-        });
-    } catch (error) {
-        console.error("Error fetching total counts: ", error);
-    }
-  }, [db]);
-
-  useEffect(() => {
-    fetchTotalCounts();
-  }, [fetchTotalCounts]);
-
-
-  const fetchPage = useCallback(async (collectionName: 'positions' | 'personnel', constraint?: any) => {
+  const fetchPage = useCallback(async (collectionName: 'positions' | 'personnel', constraint?: any, pageNum = 1) => {
     if (!user || !db) return;
     setLoading(true);
 
@@ -83,14 +79,14 @@ export function usePositions() {
     const q = query(
         collRef,
         isPositions ? orderBy("department") : orderBy("registryNumber"),
-        orderBy("name"),
+        ...(isPositions ? [orderBy("name")] : []),
         ... (constraint ? [constraint] : []),
-        limit(PAGE_SIZE + 1)
+        limit(PAGE_SIZE)
     );
 
     try {
         const documentSnapshots = await getDocs(q);
-        const fetchedData = documentSnapshots.docs.slice(0, PAGE_SIZE).map(doc => {
+        const fetchedData = documentSnapshots.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
@@ -101,13 +97,21 @@ export function usePositions() {
             } as any;
         });
 
-        if (isPositions) setPositions(fetchedData);
-        else setPersonnel(fetchedData);
-        
-        setIsLastPage(prev => ({...prev, [collectionName]: documentSnapshots.docs.length <= PAGE_SIZE}));
-        setFirstVisible(prev => ({ ...prev, [collectionName]: documentSnapshots.docs[0] ?? null }));
-        setLastVisible(prev => ({ ...prev, [collectionName]: documentSnapshots.docs[documentSnapshots.docs.length > PAGE_SIZE ? PAGE_SIZE - 1 : documentSnapshots.docs.length -1] ?? null }));
+        const isLast = documentSnapshots.docs.length < PAGE_SIZE;
 
+        if (isPositions) {
+            setPositions(fetchedData);
+            setPositionsIsLastPage(isLast);
+            setPositionsFirstVisible(documentSnapshots.docs[0] ?? null);
+            setPositionsLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1] ?? null);
+            setPositionsPageNumber(pageNum);
+        } else {
+            setPersonnel(fetchedData);
+            setPersonnelIsLastPage(isLast);
+            setPersonnelFirstVisible(documentSnapshots.docs[0] ?? null);
+            setPersonnelLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1] ?? null);
+            setPersonnelPageNumber(pageNum);
+        }
     } catch (error) {
         console.error(`Error fetching ${collectionName}:`, error);
         toast({ title: 'Veri Yükleme Hatası', description: `Veriler yüklenirken bir sorun oluştu: ${error}`, variant: 'destructive'});
@@ -117,16 +121,18 @@ export function usePositions() {
   }, [user, db, toast]);
   
   const fetchNextPage = (collectionName: 'positions' | 'personnel') => {
-      if (lastVisible[collectionName]) {
-          fetchPage(collectionName, startAfter(lastVisible[collectionName]));
-          setPageNumber(prev => prev + 1);
+      if (collectionName === 'positions' && positionsLastVisible) {
+          fetchPage('positions', startAfter(positionsLastVisible), positionsPageNumber + 1);
+      } else if (collectionName === 'personnel' && personnelLastVisible) {
+          fetchPage('personnel', startAfter(personnelLastVisible), personnelPageNumber + 1);
       }
   };
 
   const fetchPrevPage = (collectionName: 'positions' | 'personnel') => {
-      if (firstVisible[collectionName]) {
-          fetchPage(collectionName, endBefore(firstVisible[collectionName]));
-           setPageNumber(prev => Math.max(1, prev - 1));
+      if (collectionName === 'positions' && positionsFirstVisible) {
+          fetchPage('positions', endBefore(positionsFirstVisible), positionsPageNumber - 1);
+      } else if (collectionName === 'personnel' && personnelFirstVisible) {
+          fetchPage('personnel', endBefore(personnelFirstVisible), personnelPageNumber - 1);
       }
   };
   
@@ -138,9 +144,20 @@ export function usePositions() {
   useEffect(() => {
     if (!user || !db) {
         setAllPersonnel([]);
+        setAllPositions([]);
+        setIsInitialized(true);
         return;
     }
-    const personnelUnsubscribe = onSnapshot(collection(db, "merkez-personnel"), (snapshot) => {
+
+    let initCount = 0;
+    const checkInitialized = () => {
+        initCount++;
+        if (initCount === 2) {
+            setIsInitialized(true);
+        }
+    };
+
+    const personnelUnsubscribe = onSnapshot(query(collection(db, "merkez-personnel"), orderBy("registryNumber")), (snapshot) => {
         const allFetchedPersonnel = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -151,8 +168,29 @@ export function usePositions() {
             } as Personnel;
         });
         setAllPersonnel(allFetchedPersonnel);
+        setTotalCount(prev => ({...prev, personnel: snapshot.size}));
+        checkInitialized();
     });
-    return () => personnelUnsubscribe();
+    
+    const positionsUnsubscribe = onSnapshot(query(collection(db, "merkez-positions"), orderBy("department"), orderBy("name")), (snapshot) => {
+        const allFetchedPositions = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                startDate: data.startDate ? (data.startDate as Timestamp).toDate() : null,
+                lastModifiedAt: data.lastModifiedAt ? (data.lastModifiedAt as Timestamp).toDate() : null,
+            } as Position;
+        });
+        setAllPositions(allFetchedPositions);
+        setTotalCount(prev => ({...prev, positions: snapshot.size}));
+        checkInitialized();
+    });
+
+    return () => {
+        personnelUnsubscribe();
+        positionsUnsubscribe();
+    };
   }, [user, db]);
 
   const addPosition = useCallback(async (positionData: Omit<Position, 'id'>) => {
@@ -162,8 +200,7 @@ export function usePositions() {
       lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     });
-    fetchPage('positions');
-  }, [user, fetchPage]);
+  }, [user]);
 
   const batchAddPositions = useCallback(async (positionList: Omit<Position, 'id'>[]) => {
     if (!user || !db) return;
@@ -177,8 +214,7 @@ export function usePositions() {
       });
     });
     await batch.commit();
-    fetchPage('positions');
-  }, [user, fetchPage]);
+  }, [user]);
 
   const updatePosition = useCallback(async (updatedPosition: Position) => {
     if (!user || !db) return;
@@ -188,8 +224,7 @@ export function usePositions() {
       lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     }, { merge: true });
-    fetchPage('positions');
-  }, [user, fetchPage]);
+  }, [user]);
 
   const batchUpdatePositions = useCallback(async (positionList: Position[]) => {
     if (!user || !db) return;
@@ -204,20 +239,18 @@ export function usePositions() {
       }, { merge: true });
     });
     await batch.commit();
-    fetchPage('positions');
-  }, [user, fetchPage]);
+  }, [user]);
 
   const deletePosition = useCallback(async (positionId: string) => {
     if (!user || !db) return;
     try {
       await deleteDoc(doc(db, 'merkez-positions', positionId));
       toast({ title: "Pozisyon Silindi", description: "Merkez pozisyonu başarıyla silindi." });
-      fetchPage('positions');
     } catch (error) {
       console.error("Error deleting Merkez position:", error);
       toast({ variant: "destructive", title: "Hata", description: "Pozisyon silinirken bir hata oluştu." });
     }
-  }, [user, db, toast, fetchPage]);
+  }, [user, db, toast]);
 
 
   const addPersonnel = useCallback(async (personnelData: Omit<Personnel, 'id' | 'status'> & { status: 'İHS' | '399' }) => {
@@ -227,8 +260,7 @@ export function usePositions() {
       lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     });
-    fetchPage('personnel');
-  }, [user, fetchPage]);
+  }, [user]);
 
   const batchAddPersonnel = useCallback(async (personnelList: Omit<Personnel, 'id'>[]) => {
     if (!user || !db) return;
@@ -242,8 +274,7 @@ export function usePositions() {
       });
     });
     await batch.commit();
-     fetchPage('personnel');
-  }, [user, fetchPage]);
+  }, [user]);
 
   const updatePersonnel = useCallback(async (updatedPersonnel: Personnel) => {
     if (!user || !db) return;
@@ -253,8 +284,7 @@ export function usePositions() {
       lastModifiedBy: user.uid,
       lastModifiedAt: Timestamp.now(),
     }, { merge: true });
-     fetchPage('personnel');
-  }, [user, fetchPage]);
+  }, [user]);
 
   const deletePersonnel = useCallback(async (personnelId: string) => {
     if (!user || !db) return;
@@ -265,7 +295,7 @@ export function usePositions() {
       const personnelRef = doc(db, 'merkez-personnel', personnelId);
       batch.delete(personnelRef);
       
-      const assignedPositions = positions.filter(p => p.assignedPersonnelId === personnelId);
+      const assignedPositions = allPositions.filter(p => p.assignedPersonnelId === personnelId);
       assignedPositions.forEach(pos => {
         const posRef = doc(db, 'merkez-positions', pos.id);
         batch.set(posRef, {
@@ -278,17 +308,16 @@ export function usePositions() {
 
       await batch.commit();
       toast({ title: "Personel Silindi", description: "Merkez personeli başarıyla silindi ve atamaları kaldırıldı." });
-      fetchPage('personnel');
-      fetchPage('positions');
     } catch (error) {
       console.error("Error deleting Merkez personnel:", error);
       toast({ variant: "destructive", title: "Hata", description: "Personel silinirken bir hata oluştu." });
     }
-  }, [user, db, toast, positions, fetchPage]);
+  }, [user, db, toast, allPositions]);
 
   return { 
     positions, 
     personnel,
+    allPositions,
     allPersonnel,
     addPosition, 
     batchAddPositions,
@@ -300,11 +329,11 @@ export function usePositions() {
     updatePersonnel,
     deletePersonnel,
     loading,
-    page: pageInfo,
+    isInitialized,
     totalCount,
+    positionsPageInfo,
+    personnelPageInfo,
     fetchNextPage,
     fetchPrevPage,
   };
 }
-
-    
