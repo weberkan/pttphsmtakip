@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useRef, Suspense } from "react";
+import { useState, useMemo, useRef, Suspense, useEffect } from "react";
 import * as XLSX from 'xlsx';
 import * as z from "zod";
 import { AddEditPositionDialog } from "@/components/add-edit-position-dialog";
@@ -18,7 +18,7 @@ import { useTasraPositions } from "@/hooks/use-tasra-positions";
 import type { Position, Personnel, TasraPosition, KanbanCard } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, Search } from "lucide-react";
+import { UploadCloud, Search, Loader2 } from "lucide-react";
 import { TasraPositionList } from "@/components/tasra-position-list";
 import { AddEditTasraPositionDialog } from "@/components/add-edit-tasra-position-dialog";
 import { ReportingPanel } from "@/components/reporting-panel";
@@ -172,6 +172,11 @@ function DashboardPageContent() {
   // Talimatlar (Depposh) State
   const [isTalimatDialogOpen, setIsTalimatDialogOpen] = useState(false);
   const [editingTalimat, setEditingTalimat] = useState<KanbanCard | null>(null);
+  
+  // Performance states for processing data
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processedData, setProcessedData] = useState<any[] | null>(null);
+  
 
   // ---- Merkez Handlers ----
   const handleAddPositionClick = () => {
@@ -276,182 +281,173 @@ function DashboardPageContent() {
       setEditingTalimat(card);
       setIsTalimatDialogOpen(true);
   };
-
-  const filteredPositions = useMemo(() => {
-    let _filtered = positions;
-    if (filter !== "all") {
-      _filtered = _filtered.filter(p => p.status === filter);
+  
+  // Non-blocking data processing effect
+  useEffect(() => {
+    if (!isMerkezInitialized || !isTasraInitialized) {
+      return;
     }
-    if (positionSearchTerm.trim() !== "") {
-      const searchTermLower = positionSearchTerm.toLowerCase();
-      _filtered = _filtered.filter(p => {
-        const assignedPerson = p.assignedPersonnelId ? personnel.find(person => person.id === p.assignedPersonnelId) : null;
-        return (
-          (p.name || '').toLowerCase().includes(searchTermLower) ||
-          (p.department || '').toLowerCase().includes(searchTermLower) ||
-          (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
-          (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
-          (assignedPerson && (
-            (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
-            (assignedPerson.lastName || '').toLowerCase().includes(searchTermLower) ||
-            (assignedPerson.registryNumber || '').toLowerCase().includes(searchTermLower)
-          ))
-        );
-      });
-    }
-    return _filtered;
-  }, [positions, filter, positionSearchTerm, personnel]);
 
-  // Performance Optimization: Pre-calculate primary positions for each person
-  const personnelWithPositions = useMemo(() => {
-    const positionMap = new Map<string, Position[]>();
-    positions.forEach(p => {
-      if (p.assignedPersonnelId && p.status !== 'Boş') {
-        if (!positionMap.has(p.assignedPersonnelId)) {
-          positionMap.set(p.assignedPersonnelId, []);
-        }
-        positionMap.get(p.assignedPersonnelId)!.push(p);
-      }
-    });
+    const processData = () => {
+        setIsProcessing(true);
+        setProcessedData(null);
 
-    const getOverallOrderGroup = (p: Position): number => {
-      if (!p || !p.name) return Infinity;
-      if (p.name === "Genel Müdür") return 1;
-      if (p.name === "Genel Müdür Yardımcısı") return 2;
-      if (p.department === "Rehberlik ve Teftiş Başkanlığı") return 3;
-      if (p.department === "Finans ve Muhasebe Başkanlığı") return 4;
-      return 5;
+        // This timeout pushes the heavy computation to the next event loop tick,
+        // allowing the UI to render the "Processing..." state first.
+        setTimeout(() => {
+            let result;
+            switch(activeView) {
+                case 'merkez-pozisyon': {
+                    let _filtered = positions;
+                    if (filter !== "all") {
+                        _filtered = _filtered.filter(p => p.status === filter);
+                    }
+                    if (positionSearchTerm.trim() !== "") {
+                        const searchTermLower = positionSearchTerm.toLowerCase();
+                        _filtered = _filtered.filter(p => {
+                            const assignedPerson = p.assignedPersonnelId ? personnel.find(person => person.id === p.assignedPersonnelId) : null;
+                            return (
+                            (p.name || '').toLowerCase().includes(searchTermLower) ||
+                            (p.department || '').toLowerCase().includes(searchTermLower) ||
+                            (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
+                            (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
+                            (assignedPerson && (
+                                (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
+                                (assignedPerson.lastName || '').toLowerCase().includes(searchTermLower) ||
+                                (assignedPerson.registryNumber || '').toLowerCase().includes(searchTermLower)
+                            ))
+                            );
+                        });
+                    }
+                    result = _filtered;
+                    break;
+                }
+                case 'merkez-personel': {
+                    const positionMap = new Map<string, Position[]>();
+                    positions.forEach(p => {
+                      if (p.assignedPersonnelId && p.status !== 'Boş') {
+                        if (!positionMap.has(p.assignedPersonnelId)) {
+                          positionMap.set(p.assignedPersonnelId, []);
+                        }
+                        positionMap.get(p.assignedPersonnelId)!.push(p);
+                      }
+                    });
+
+                    const getOverallOrderGroup = (p: Position): number => {
+                        if (!p || !p.name) return Infinity;
+                        if (p.name === "Genel Müdür") return 1;
+                        if (p.name === "Genel Müdür Yardımcısı") return 2;
+                        if (p.department === "Rehberlik ve Teftiş Başkanlığı") return 3;
+                        if (p.department === "Finans ve Muhasebe Başkanlığı") return 4;
+                        return 5;
+                    };
+
+                    const getPrimaryPosition = (personPositions: Position[] | undefined): Position | null => {
+                      if (!personPositions || personPositions.length === 0) return null;
+                      const sortedPositions = [...personPositions].sort((a, b) => {
+                        const groupA = getOverallOrderGroup(a); const groupB = getOverallOrderGroup(b); if (groupA !== groupB) return groupA - groupB;
+                        const titleOrderA = positionTitleOrder[a.name] ?? Infinity; const titleOrderB = positionTitleOrder[b.name] ?? Infinity; if (titleOrderA !== titleOrderB) return titleOrderA - titleOrderB;
+                        return 0;
+                      });
+                      return sortedPositions[0];
+                    };
+
+                    let personnelWithPositions = personnel.map(person => {
+                      const personPositions = positionMap.get(person.id);
+                      return { ...person, primaryPosition: getPrimaryPosition(personPositions) };
+                    });
+
+                    let filtered = personnelWithPositions;
+                    if (personnelSearchTerm.trim() !== "") {
+                        const searchTermLower = personnelSearchTerm.toLowerCase();
+                        filtered = personnelWithPositions.filter(p =>
+                            (p.firstName || '').toLowerCase().includes(searchTermLower) ||
+                            (p.lastName || '').toLowerCase().includes(searchTermLower) ||
+                            (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
+                            (p.email || '').toLowerCase().includes(searchTermLower) ||
+                            (p.phone || '').toLowerCase().includes(searchTermLower)
+                        );
+                    }
+
+                    result = [...filtered].sort((personA, personB) => {
+                      const posA = personA.primaryPosition; const posB = personB.primaryPosition;
+                      const personNameA = (`${personA.firstName || ''} ${personA.lastName || ''}`).trim().toLowerCase();
+                      const personNameB = (`${personB.firstName || ''} ${personB.lastName || ''}`).trim().toLowerCase();
+                      if (!posA && !posB) return personNameA.localeCompare(personNameB);
+                      if (!posA) return 1; if (!posB) return -1;
+                      const overallGroupA = getOverallOrderGroup(posA); const overallGroupB = getOverallOrderGroup(posB);
+                      if (overallGroupA !== overallGroupB) return overallGroupA - overallGroupB;
+                      if (overallGroupA === 5) {
+                        const deptNameA = (posA.department || '').toLowerCase(); const deptNameB = (posB.department || '').toLowerCase();
+                        if (deptNameA < deptNameB) return -1; if (deptNameA > deptNameB) return 1;
+                      }
+                      const titleOrderValA = positionTitleOrder[posA.name] ?? Infinity; const titleOrderValB = positionTitleOrder[posB.name] ?? Infinity;
+                      if (titleOrderValA !== titleOrderValB) return titleOrderValA - titleOrderValB;
+                      const nameA = (posA.name || '').toLowerCase(); const nameB = (posB.name || '').toLowerCase();
+                      if (nameA !== nameB) return nameA.localeCompare(nameB);
+                      const locationA = posA.dutyLocation?.trim().toLowerCase() ?? ''; const locationB = posB.dutyLocation?.trim().toLowerCase() ?? '';
+                      if (locationA !== locationB) return locationA.localeCompare(locationB);
+                      return personNameA.localeCompare(personNameB);
+                    });
+                    break;
+                }
+                case 'tasra-pozisyon': {
+                    let _filtered = tasraPositions;
+                    if (tasraPositionSearchTerm.trim() !== "") {
+                        const searchTermLower = tasraPositionSearchTerm.toLowerCase();
+                        _filtered = _filtered.filter(p => {
+                            const assignedPerson = p.assignedPersonnelId ? tasraPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
+                            return (
+                                (p.unit || '').toLowerCase().includes(searchTermLower) ||
+                                (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
+                                (p.kadroUnvani || '').toLowerCase().includes(searchTermLower) ||
+                                (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
+                                (assignedPerson && (
+                                    (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
+                                    (assignedPerson.lastName || '').toLowerCase().includes(searchTermLower) ||
+                                    (assignedPerson.registryNumber || '').toLowerCase().includes(searchTermLower)
+                                ))
+                            );
+                        });
+                    }
+                    result = _filtered.sort((a,b) => (a.unit || '').localeCompare(b.unit || ''));
+                    break;
+                }
+                case 'tasra-personel': {
+                    let filtered = tasraPersonnel;
+                    if (tasraPersonnelSearchTerm.trim() !== "") {
+                        const searchTermLower = tasraPersonnelSearchTerm.toLowerCase();
+                        filtered = filtered.filter(p => 
+                            (p.firstName || '').toLowerCase().includes(searchTermLower) ||
+                            (p.lastName || '').toLowerCase().includes(searchTermLower) ||
+                            (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
+                            (p.email || '').toLowerCase().includes(searchTermLower) ||
+                            (p.phone || '').toLowerCase().includes(searchTermLower)
+                        );
+                    }
+                    result = [...filtered].sort((a, b) => 
+                        (`${a.firstName || ''} ${a.lastName || ''}`).trim().localeCompare((`${b.firstName || ''} ${b.lastName || ''}`).trim())
+                    );
+                    break;
+                }
+                default:
+                    result = [];
+                    setIsProcessing(false);
+                    return;
+            }
+            setProcessedData(result);
+            setIsProcessing(false);
+        }, 0);
     };
-
-    const getPrimaryPosition = (personPositions: Position[] | undefined): Position | null => {
-      if (!personPositions || personPositions.length === 0) return null;
-
-      const sortedPositions = [...personPositions].sort((a, b) => {
-        const groupA = getOverallOrderGroup(a);
-        const groupB = getOverallOrderGroup(b);
-        if (groupA !== groupB) return groupA - groupB;
-
-        const titleOrderA = positionTitleOrder[a.name] ?? Infinity;
-        const titleOrderB = positionTitleOrder[b.name] ?? Infinity;
-        if (titleOrderA !== titleOrderB) return titleOrderA - titleOrderB;
-
-        return 0;
-      });
-
-      return sortedPositions[0];
-    };
-
-    return personnel.map(person => {
-      const personPositions = positionMap.get(person.id);
-      const primaryPosition = getPrimaryPosition(personPositions);
-      return { ...person, primaryPosition };
-    });
-  }, [personnel, positions]);
-
-
-  const sortedAndFilteredPersonnel = useMemo(() => {
-    let filtered = personnelWithPositions;
-
-    if (personnelSearchTerm.trim() !== "") {
-      const searchTermLower = personnelSearchTerm.toLowerCase();
-      filtered = personnelWithPositions.filter(p =>
-        (p.firstName || '').toLowerCase().includes(searchTermLower) ||
-        (p.lastName || '').toLowerCase().includes(searchTermLower) ||
-        (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
-        (p.email || '').toLowerCase().includes(searchTermLower) ||
-        (p.phone || '').toLowerCase().includes(searchTermLower)
-      );
-    }
-
-    const getOverallOrderGroup = (p: Position): number => {
-      if (!p || !p.name) return Infinity;
-      if (p.name === "Genel Müdür") return 1;
-      if (p.name === "Genel Müdür Yardımcısı") return 2;
-      if (p.department === "Rehberlik ve Teftiş Başkanlığı") return 3;
-      if (p.department === "Finans ve Muhasebe Başkanlığı") return 4;
-      return 5;
-    };
-
-    return [...filtered].sort((personA, personB) => {
-      const posA = personA.primaryPosition;
-      const posB = personB.primaryPosition;
-
-      const personNameA = (`${personA.firstName || ''} ${personA.lastName || ''}`).trim().toLowerCase();
-      const personNameB = (`${personB.firstName || ''} ${personB.lastName || ''}`).trim().toLowerCase();
-
-      if (!posA && !posB) {
-        return personNameA.localeCompare(personNameB);
-      }
-      if (!posA) return 1;
-      if (!posB) return -1;
-
-      const overallGroupA = getOverallOrderGroup(posA);
-      const overallGroupB = getOverallOrderGroup(posB);
-      if (overallGroupA !== overallGroupB) return overallGroupA - overallGroupB;
-
-      if (overallGroupA === 5) {
-        const deptNameA = (posA.department || '').toLowerCase();
-        const deptNameB = (posB.department || '').toLowerCase();
-        if (deptNameA < deptNameB) return -1;
-        if (deptNameA > deptNameB) return 1;
-      }
-
-      const titleOrderValA = positionTitleOrder[posA.name] ?? Infinity;
-      const titleOrderValB = positionTitleOrder[posB.name] ?? Infinity;
-      if (titleOrderValA !== titleOrderValB) return titleOrderValA - titleOrderValB;
-
-      const nameA = (posA.name || '').toLowerCase();
-      const nameB = (posB.name || '').toLowerCase();
-      if (nameA !== nameB) return nameA.localeCompare(nameB);
-
-      const locationA = posA.dutyLocation?.trim().toLowerCase() ?? '';
-      const locationB = posB.dutyLocation?.trim().toLowerCase() ?? '';
-      if (locationA !== locationB) return locationA.localeCompare(locationB);
-
-      return personNameA.localeCompare(personNameB);
-    });
-
-  }, [personnelWithPositions, personnelSearchTerm]);
-
-  const filteredTasraPositions = useMemo(() => {
-    let _filtered = tasraPositions;
-    if (tasraPositionSearchTerm.trim() !== "") {
-      const searchTermLower = tasraPositionSearchTerm.toLowerCase();
-      _filtered = _filtered.filter(p => {
-        const assignedPerson = p.assignedPersonnelId ? tasraPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
-        return (
-          (p.unit || '').toLowerCase().includes(searchTermLower) ||
-          (p.dutyLocation || '').toLowerCase().includes(searchTermLower) ||
-          (p.kadroUnvani || '').toLowerCase().includes(searchTermLower) ||
-          (p.originalTitle || '').toLowerCase().includes(searchTermLower) ||
-          (assignedPerson && (
-            (assignedPerson.firstName || '').toLowerCase().includes(searchTermLower) ||
-            (assignedPerson.lastName || '').toLowerCase().includes(searchTermLower) ||
-            (assignedPerson.registryNumber || '').toLowerCase().includes(searchTermLower)
-          ))
-        );
-      });
-    }
-    return _filtered.sort((a,b) => (a.unit || '').localeCompare(b.unit || ''));
-  }, [tasraPositions, tasraPositionSearchTerm, tasraPersonnel]);
-
-  const filteredTasraPersonnel = useMemo(() => {
-    let filtered = tasraPersonnel;
-    if (tasraPersonnelSearchTerm.trim() !== "") {
-        const searchTermLower = tasraPersonnelSearchTerm.toLowerCase();
-        filtered = filtered.filter(p => 
-            (p.firstName || '').toLowerCase().includes(searchTermLower) ||
-            (p.lastName || '').toLowerCase().includes(searchTermLower) ||
-            (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
-            (p.email || '').toLowerCase().includes(searchTermLower) ||
-            (p.phone || '').toLowerCase().includes(searchTermLower)
-        );
-    }
-    return [...filtered].sort((a, b) => 
-        (`${a.firstName || ''} ${a.lastName || ''}`).trim().localeCompare((`${b.firstName || ''} ${b.lastName || ''}`).trim())
-    );
-  }, [tasraPersonnel, tasraPersonnelSearchTerm]);
-
+    
+    processData();
+    // This effect should re-run whenever the raw data or search terms change.
+}, [
+    activeView, 
+    positions, personnel, filter, positionSearchTerm, 
+    tasraPositions, tasraPersonnel, tasraPositionSearchTerm, tasraPersonnelSearchTerm,
+    isMerkezInitialized, isTasraInitialized
+]);
 
   const handleImportPersonnelClick = () => {
     personnelFileInputRef.current?.click();
@@ -980,6 +976,19 @@ function DashboardPageContent() {
   };
 
 
+  const LoadingState = ({title}: {title: string}) => (
+    <Card className="shadow-lg">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>Lütfen bekleyin...</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center gap-4 py-16">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Veriler işleniyor...</p>
+      </CardContent>
+    </Card>
+  );
+
   if (!isMerkezInitialized || !isTasraInitialized || !isUsersInitialized || !isDepposhInitialized) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
@@ -1027,11 +1036,12 @@ function DashboardPageContent() {
                 />
             );
         case 'merkez-pozisyon':
+            if (isProcessing || !processedData) return <LoadingState title="Merkez Pozisyonları" />;
             return (
                 <Card className="shadow-lg">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle id="positions-heading" className="text-sm font-semibold">Merkez Pozisyonları (Toplam: {filteredPositions.length})</CardTitle>
+                      <CardTitle id="positions-heading" className="text-sm font-semibold">Merkez Pozisyonları (Toplam: {processedData.length})</CardTitle>
                       <CardDescription>Şirket içindeki tüm merkez pozisyonları yönetin ve görüntüleyin.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1057,7 +1067,7 @@ function DashboardPageContent() {
                   <CardContent>
                     <PositionFilter currentFilter={filter} onFilterChange={setFilter} />
                     <PositionList 
-                      positions={filteredPositions} 
+                      positions={processedData as Position[]} 
                       allPersonnel={personnel}
                       allUsers={users}
                       onEdit={handleEditPosition}
@@ -1067,11 +1077,12 @@ function DashboardPageContent() {
                 </Card>
             );
         case 'merkez-personel':
+            if (isProcessing || !processedData) return <LoadingState title="Merkez Personel Listesi" />;
             return (
                 <Card className="shadow-lg">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-sm font-semibold" id="personnel-heading">Merkez Personel Listesi (Toplam: {sortedAndFilteredPersonnel.length})</CardTitle>
+                      <CardTitle className="text-sm font-semibold" id="personnel-heading">Merkez Personel Listesi (Toplam: {processedData.length})</CardTitle>
                       <CardDescription>Merkez personelini yönetin.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1096,7 +1107,7 @@ function DashboardPageContent() {
                   </CardHeader>
                   <CardContent>
                     <PersonnelList
-                      personnel={sortedAndFilteredPersonnel}
+                      personnel={processedData as Personnel[]}
                       allUsers={users}
                       onEdit={handleEditPersonnel}
                       onDelete={handleDeletePersonnel}
@@ -1117,11 +1128,12 @@ function DashboardPageContent() {
                 </Card>
             );
         case 'tasra-pozisyon':
+            if (isProcessing || !processedData) return <LoadingState title="Taşra Pozisyonları" />;
             return (
                  <Card className="shadow-lg">
                    <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle id="tasra-positions-heading" className="text-sm font-semibold">Taşra Pozisyonları (Toplam: {filteredTasraPositions.length})</CardTitle>
+                      <CardTitle id="tasra-positions-heading" className="text-sm font-semibold">Taşra Pozisyonları (Toplam: {processedData.length})</CardTitle>
                       <CardDescription>Şirket içindeki tüm taşra pozisyonları yönetin ve görüntüleyin.</CardDescription>
                     </div>
                      <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1146,7 +1158,7 @@ function DashboardPageContent() {
                   </CardHeader>
                   <CardContent>
                     <TasraPositionList
-                      positions={filteredTasraPositions}
+                      positions={processedData as TasraPosition[]}
                       allPersonnel={tasraPersonnel}
                       allUsers={users}
                       onEdit={handleEditTasraPosition}
@@ -1156,11 +1168,12 @@ function DashboardPageContent() {
                 </Card>
             );
         case 'tasra-personel':
+            if (isProcessing || !processedData) return <LoadingState title="Taşra Personel Listesi" />;
             return (
                 <Card className="shadow-lg">
                    <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-sm font-semibold" id="tasra-personnel-heading">Taşra Personel Listesi (Toplam: {filteredTasraPersonnel.length})</CardTitle>
+                      <CardTitle className="text-sm font-semibold" id="tasra-personnel-heading">Taşra Personel Listesi (Toplam: {processedData.length})</CardTitle>
                       <CardDescription>Taşra personelini yönetin.</CardDescription>
                     </div>
                      <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1185,7 +1198,7 @@ function DashboardPageContent() {
                   </CardHeader>
                   <CardContent>
                     <PersonnelList
-                      personnel={filteredTasraPersonnel}
+                      personnel={processedData as Personnel[]}
                       allUsers={users}
                       onEdit={handleEditTasraPersonnel}
                       onDelete={handleDeleteTasraPersonnel}
