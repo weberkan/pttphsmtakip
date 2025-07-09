@@ -3,8 +3,8 @@
 
 import type { Position, Personnel, TasraPosition, KanbanCard, AppUser } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from 'recharts';
 import { Users, Briefcase, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useState, useEffect, useMemo } from 'react';
@@ -118,12 +118,22 @@ export function DashboardHome({
     { name: 'Boş', value: merkezStats.bos, fill: 'hsl(var(--chart-4))' },
   ];
 
-  const tasraPieChartData = [
+  const tasraChartData = [
     { name: 'Asıl', value: tasraStats.asil, fill: 'hsl(var(--chart-1))' },
     { name: 'Vekalet', value: tasraStats.vekalet, fill: 'hsl(var(--chart-2))' },
     { name: 'Yürütme', value: tasraStats.yurutme, fill: 'hsl(var(--chart-3))' },
     { name: 'Boş', value: tasraStats.bos, fill: 'hsl(var(--chart-4))' },
   ];
+
+  const merkezDataWithPercentage = merkezChartData.map(item => ({
+      ...item,
+      percentage: merkezStats.total > 0 ? ((item.value / merkezStats.total) * 100) : 0
+  }));
+
+  const tasraDataWithPercentage = tasraChartData.map(item => ({
+      ...item,
+      percentage: tasraStats.total > 0 ? ((item.value / tasraStats.total) * 100) : 0
+  }));
   
   const chartConfig = {
     value: { label: 'Sayı' },
@@ -131,6 +141,28 @@ export function DashboardHome({
     Vekalet: { label: 'Vekalet', color: 'hsl(var(--chart-2))' },
     Yürütme: { label: 'Yürütme', color: 'hsl(var(--chart-3))' },
     Boş: { label: 'Boş', color: 'hsl(var(--chart-4))' },
+  };
+
+  const renderCustomizedLabel = (props: any) => {
+    const { x, y, width, height, value } = props;
+    const { percentage } = props.payload;
+
+    if (value === 0) return null;
+
+    // Render label outside if the bar is too short
+    if (width < 80) {
+        return (
+             <text x={x + width + 5} y={y + height / 2} fill="hsl(var(--foreground))" textAnchor="start" dominantBaseline="middle" className="text-xs font-medium">
+                {`${value} (${percentage.toFixed(0)}%)`}
+            </text>
+        )
+    }
+
+    return (
+        <text x={x + width - 8} y={y + height / 2} fill="hsl(var(--primary-foreground))" textAnchor="end" dominantBaseline="middle" className="text-sm font-medium">
+            {`${value} (${percentage.toFixed(0)}%)`}
+        </text>
+    );
   };
 
   return (
@@ -213,8 +245,8 @@ export function DashboardHome({
              <CardDescription>Merkezdeki pozisyonların durumlarına göre dağılımı.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-              <BarChart accessibilityLayer data={merkezChartData} layout="vertical" margin={{ left: 10, right: 20 }}>
+            <ChartContainer config={chartConfig} className="h-[250px] w-full">
+              <BarChart accessibilityLayer data={merkezDataWithPercentage} layout="vertical" margin={{ left: 10, right: 60, top: 10, bottom: 10 }}>
                  <CartesianGrid horizontal={false} />
                 <YAxis
                   dataKey="name"
@@ -224,13 +256,25 @@ export function DashboardHome({
                   axisLine={false}
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
+                  width={60}
                 />
-                <XAxis dataKey="value" type="number" />
+                <XAxis dataKey="value" type="number" hide />
                 <ChartTooltip
                   cursor={false}
-                  content={<ChartTooltipContent hideLabel />}
+                  content={<ChartTooltipContent 
+                    formatter={(value, name, props) => (
+                        <div className="flex flex-col gap-0.5">
+                            <span className='font-bold'>{`${props.payload.name}: ${value}`}</span>
+                            <span className='text-muted-foreground'>{`Toplamın %${props.payload.percentage.toFixed(1)}'i`}</span>
+                        </div>
+                    )}
+                    hideLabel
+                    hideIndicator
+                  />}
                 />
-                <Bar dataKey="value" radius={5} />
+                <Bar dataKey="value" radius={5}>
+                    <LabelList dataKey="value" content={renderCustomizedLabel} />
+                </Bar>
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -240,27 +284,38 @@ export function DashboardHome({
                 <CardTitle>Taşra Pozisyon Durumları</CardTitle>
                 <CardDescription>Taşradaki pozisyonların durumlarına göre dağılımı.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                    <PieChart>
-                        <ChartTooltip content={<ChartTooltipContent nameKey="value" hideLabel />} />
-                        <Pie data={tasraPieChartData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={90} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
-                            const RADIAN = Math.PI / 180;
-                            const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                            return (
-                                <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
-                                    {`(${(percent * 100).toFixed(0)}%)`}
-                                </text>
-                            );
-                        }}>
-                             {tasraPieChartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                        </Pie>
-                        <ChartLegend content={<ChartLegendContent />} />
-                    </PieChart>
+            <CardContent className="pl-2">
+                <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                    <BarChart accessibilityLayer data={tasraDataWithPercentage} layout="vertical" margin={{ left: 10, right: 60, top: 10, bottom: 10 }}>
+                        <CartesianGrid horizontal={false} />
+                        <YAxis
+                          dataKey="name"
+                          type="category"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                          width={60}
+                        />
+                        <XAxis dataKey="value" type="number" hide />
+                        <ChartTooltip
+                           cursor={false}
+                           content={<ChartTooltipContent 
+                             formatter={(value, name, props) => (
+                                 <div className="flex flex-col gap-0.5">
+                                     <span className='font-bold'>{`${props.payload.name}: ${value}`}</span>
+                                     <span className='text-muted-foreground'>{`Toplamın %${props.payload.percentage.toFixed(1)}'i`}</span>
+                                 </div>
+                             )}
+                             hideLabel
+                             hideIndicator
+                           />}
+                        />
+                        <Bar dataKey="value" radius={5}>
+                           <LabelList dataKey="value" content={renderCustomizedLabel} />
+                        </Bar>
+                    </BarChart>
                 </ChartContainer>
             </CardContent>
         </Card>
