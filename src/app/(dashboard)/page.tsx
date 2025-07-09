@@ -85,18 +85,6 @@ const importTasraPositionSchema = z.object({
 });
 
 
-const positionTitleOrder: { [key: string]: number } = {
-  "Genel Müdür": 1,
-  "Genel Müdür Yardımcısı": 2,
-  "Daire Başkanı": 3,
-  "Finans ve Muhasebe Başkanı": 3,
-  "Rehberlik ve Teftiş Başkanı": 3,
-  "Başkan Yardımcısı": 4,
-  "Daire Başkan Yardımcısı": 4,
-  "Teknik Müdür": 5,
-  "Şube Müdürü": 6,
-};
-
 function DashboardPageContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -302,67 +290,19 @@ function DashboardPageContent() {
     return _filtered;
   }, [positions, personnel, filter, positionSearchTerm]);
   
-  const sortedPersonnel = useMemo(() => {
+  const filteredPersonnel = useMemo(() => {
+    if (personnelSearchTerm.trim() === "") {
+      return personnel;
+    }
     const searchTermLower = personnelSearchTerm.toLowerCase();
-    
-    // First, filter the personnel list based on the search term.
-    const filtered = personnel.filter(p =>
+    return personnel.filter(p =>
       (p.firstName || '').toLowerCase().includes(searchTermLower) ||
       (p.lastName || '').toLowerCase().includes(searchTermLower) ||
       (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
       (p.email || '').toLowerCase().includes(searchTermLower) ||
       (p.phone || '').toLowerCase().includes(searchTermLower)
     );
-
-    // Create a map for quick position lookup.
-    const positionMap = new Map<string, Position[]>();
-    positions.forEach(p => {
-      if (p.assignedPersonnelId && p.status !== 'Boş') {
-        if (!positionMap.has(p.assignedPersonnelId)) {
-          positionMap.set(p.assignedPersonnelId, []);
-        }
-        positionMap.get(p.assignedPersonnelId)!.push(p);
-      }
-    });
-
-    // Helper to get the primary position for sorting purposes.
-    const getPrimaryPosition = (personId: string): Position | null => {
-      const personPositions = positionMap.get(personId);
-      if (!personPositions || personPositions.length === 0) return null;
-      
-      // Simplified sorting for performance: title order is the main driver.
-      return personPositions.sort((a, b) => {
-        const titleOrderA = positionTitleOrder[a.name] ?? Infinity;
-        const titleOrderB = positionTitleOrder[b.name] ?? Infinity;
-        return titleOrderA - titleOrderB;
-      })[0];
-    };
-
-    // Now, sort the *filtered* list.
-    return filtered.sort((personA, personB) => {
-      const posA = getPrimaryPosition(personA.id);
-      const posB = getPrimaryPosition(personB.id);
-
-      // People with no position go to the bottom.
-      if (!posA && !posB) return personA.firstName.localeCompare(personB.firstName);
-      if (!posA) return 1;
-      if (!posB) return -1;
-      
-      // Sort by department name.
-      const deptA = posA.department.toLowerCase();
-      const deptB = posB.department.toLowerCase();
-      if(deptA !== deptB) return deptA.localeCompare(deptB);
-
-      // Sort by title hierarchy.
-      const titleOrderA = positionTitleOrder[posA.name] ?? Infinity;
-      const titleOrderB = positionTitleOrder[posB.name] ?? Infinity;
-      if (titleOrderA !== titleOrderB) return titleOrderA - titleOrderB;
-
-      // Finally, sort by person's name as a fallback.
-      return personA.firstName.localeCompare(personB.firstName);
-    });
-
-  }, [personnel, positions, personnelSearchTerm]);
+  }, [personnel, personnelSearchTerm]);
   
   const filteredTasraPositions = useMemo(() => {
     let _filtered = tasraPositions;
@@ -1021,7 +961,7 @@ function DashboardPageContent() {
                 <Card className="shadow-lg">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <CardTitle className="text-sm font-semibold" id="personnel-heading">Merkez Personel Listesi (Toplam: {sortedPersonnel.length})</CardTitle>
+                      <CardTitle className="text-sm font-semibold" id="personnel-heading">Merkez Personel Listesi (Toplam: {filteredPersonnel.length})</CardTitle>
                       <CardDescription>Merkez personelini yönetin.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1046,7 +986,7 @@ function DashboardPageContent() {
                   </CardHeader>
                   <CardContent>
                     <PersonnelList
-                      personnel={sortedPersonnel}
+                      personnel={filteredPersonnel}
                       allUsers={users}
                       onEdit={handleEditPersonnel}
                       onDelete={handleDeletePersonnel}
@@ -1283,4 +1223,3 @@ export default function Page() {
     
 
     
-

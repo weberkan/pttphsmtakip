@@ -15,6 +15,8 @@ import {
   getDocs,
   Timestamp,
   setDoc,
+  query,
+  orderBy,
 } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,7 +35,8 @@ export function usePositions() {
       return;
     }
 
-    const positionsUnsubscribe = onSnapshot(collection(db, "merkez-positions"), (snapshot) => {
+    const positionsQuery = query(collection(db, "merkez-positions"), orderBy("department"), orderBy("name"));
+    const positionsUnsubscribe = onSnapshot(positionsQuery, (snapshot) => {
       const fetchedPositions = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -51,7 +54,8 @@ export function usePositions() {
       setIsInitialized(true);
     });
 
-    const personnelUnsubscribe = onSnapshot(collection(db, "merkez-personnel"), (snapshot) => {
+    const personnelQuery = query(collection(db, "merkez-personnel"), orderBy("registryNumber", "asc"));
+    const personnelUnsubscribe = onSnapshot(personnelQuery, (snapshot) => {
       const fetchedPersonnel = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
