@@ -141,7 +141,15 @@ export function usePositions() {
         return;
     }
     const personnelUnsubscribe = onSnapshot(collection(db, "merkez-personnel"), (snapshot) => {
-        const allFetchedPersonnel = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Personnel));
+        const allFetchedPersonnel = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                dateOfBirth: data.dateOfBirth ? (data.dateOfBirth as Timestamp).toDate() : null,
+                lastModifiedAt: data.lastModifiedAt ? (data.lastModifiedAt as Timestamp).toDate() : null,
+            } as Personnel;
+        });
         setAllPersonnel(allFetchedPersonnel);
     });
     return () => personnelUnsubscribe();
