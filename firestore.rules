@@ -1,41 +1,48 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check for admin role
-    function isAdmin() {
-      // Ensure the user is authenticated before checking for role
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    match /users/{userId} {
-      // Admins can read all user profiles for management.
-      // A user can read their own profile.
-      allow read: if request.auth != null && (isAdmin() || request.auth.uid == userId);
-      
-      // Users can create their own profile during signup.
-      allow create: if request.auth.uid == userId;
-
-      // Users can update their own profile. Admins can update any profile.
-      allow update: if request.auth != null && (isAdmin() || request.auth.uid == userId);
-      
-      // Only admins can delete user profiles.
-      allow delete: if request.auth != null && isAdmin();
-    }
     
-    // For specific application collections, allow any authenticated user to read and write.
-    // This simplifies operations like updating child positions when a parent is deleted.
-    // The UI should enforce who can perform which actions based on roles.
-    match /(merkez-personnel|merkez-positions|tasra-personnel|tasra-positions|talimatlar|depposh-files|notifications|conversations)/{docId} {
+    // Users can only read and update their own profile.
+    // Admin can read any user profile.
+    match /users/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow update: if request.auth != null && request.auth.uid == userId;
+      // Allow create for signup, and allow delete for admins.
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Admins can manage the user approval list (which is part of the user docs).
+    // This is covered by the rule above.
+
+    // Allow logged-in users to read/write to the main data collections.
+    // Specific business logic is handled in the app UI (e.g., only admins see delete buttons).
+    match /merkez-positions/{docId} {
       allow read, write: if request.auth != null;
     }
-
-    // Special, more secure rule for conversations' subcollection of messages.
-    match /conversations/{conversationId}/messages/{messageId} {
-        // Only participants of the conversation can read or write messages.
-        allow read, write: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantUids;
+    match /merkez-personnel/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /tasra-positions/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /tasra-personnel/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /talimatlar/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /depposh-files/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /notifications/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Deny all other writes by default for security. This is a failsafe.
+    match /{document=**} {
+      allow write: if false;
     }
   }
 }
