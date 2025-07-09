@@ -302,87 +302,116 @@ function DashboardPageContent() {
     return _filtered;
   }, [positions, filter, positionSearchTerm, personnel]);
 
+  // Performance Optimization: Pre-calculate primary positions for each person
+  const personnelWithPositions = useMemo(() => {
+    const positionMap = new Map<string, Position[]>();
+    positions.forEach(p => {
+      if (p.assignedPersonnelId && p.status !== 'Boş') {
+        if (!positionMap.has(p.assignedPersonnelId)) {
+          positionMap.set(p.assignedPersonnelId, []);
+        }
+        positionMap.get(p.assignedPersonnelId)!.push(p);
+      }
+    });
+
+    const getOverallOrderGroup = (p: Position): number => {
+      if (!p || !p.name) return Infinity;
+      if (p.name === "Genel Müdür") return 1;
+      if (p.name === "Genel Müdür Yardımcısı") return 2;
+      if (p.department === "Rehberlik ve Teftiş Başkanlığı") return 3;
+      if (p.department === "Finans ve Muhasebe Başkanlığı") return 4;
+      return 5;
+    };
+
+    const getPrimaryPosition = (personPositions: Position[] | undefined): Position | null => {
+      if (!personPositions || personPositions.length === 0) return null;
+
+      const sortedPositions = [...personPositions].sort((a, b) => {
+        const groupA = getOverallOrderGroup(a);
+        const groupB = getOverallOrderGroup(b);
+        if (groupA !== groupB) return groupA - groupB;
+
+        const titleOrderA = positionTitleOrder[a.name] ?? Infinity;
+        const titleOrderB = positionTitleOrder[b.name] ?? Infinity;
+        if (titleOrderA !== titleOrderB) return titleOrderA - titleOrderB;
+
+        return 0;
+      });
+
+      return sortedPositions[0];
+    };
+
+    return personnel.map(person => {
+      const personPositions = positionMap.get(person.id);
+      const primaryPosition = getPrimaryPosition(personPositions);
+      return { ...person, primaryPosition };
+    });
+  }, [personnel, positions]);
+
+
   const sortedAndFilteredPersonnel = useMemo(() => {
-    let filtered = personnel;
+    let filtered = personnelWithPositions;
+
     if (personnelSearchTerm.trim() !== "") {
-        const searchTermLower = personnelSearchTerm.toLowerCase();
-        filtered = personnel.filter(p => 
-            (p.firstName || '').toLowerCase().includes(searchTermLower) ||
-            (p.lastName || '').toLowerCase().includes(searchTermLower) ||
-            (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
-            (p.email || '').toLowerCase().includes(searchTermLower) ||
-            (p.phone || '').toLowerCase().includes(searchTermLower)
-        );
+      const searchTermLower = personnelSearchTerm.toLowerCase();
+      filtered = personnelWithPositions.filter(p =>
+        (p.firstName || '').toLowerCase().includes(searchTermLower) ||
+        (p.lastName || '').toLowerCase().includes(searchTermLower) ||
+        (p.registryNumber || '').toLowerCase().includes(searchTermLower) ||
+        (p.email || '').toLowerCase().includes(searchTermLower) ||
+        (p.phone || '').toLowerCase().includes(searchTermLower)
+      );
     }
 
     const getOverallOrderGroup = (p: Position): number => {
-        if (!p || !p.name) return Infinity;
-        if (p.name === "Genel Müdür") return 1;
-        if (p.name === "Genel Müdür Yardımcısı") return 2;
-        if (p.department === "Rehberlik ve Teftiş Başkanlığı") return 3;
-        if (p.department === "Finans ve Muhasebe Başkanlığı") return 4;
-        return 5;
-    };
-
-    const getPrimaryPosition = (personId: string): Position | null => {
-        const personPositions = positions.filter(p => p.assignedPersonnelId === personId && p.status !== 'Boş');
-        if (personPositions.length === 0) return null;
-        
-        personPositions.sort((a, b) => {
-            const groupA = getOverallOrderGroup(a);
-            const groupB = getOverallOrderGroup(b);
-            if (groupA !== groupB) return groupA - groupB;
-            
-            const titleOrderA = positionTitleOrder[a.name] ?? Infinity;
-            const titleOrderB = positionTitleOrder[b.name] ?? Infinity;
-            if (titleOrderA !== titleOrderB) return titleOrderA - titleOrderB;
-            
-            return 0;
-        });
-        
-        return personPositions[0];
+      if (!p || !p.name) return Infinity;
+      if (p.name === "Genel Müdür") return 1;
+      if (p.name === "Genel Müdür Yardımcısı") return 2;
+      if (p.department === "Rehberlik ve Teftiş Başkanlığı") return 3;
+      if (p.department === "Finans ve Muhasebe Başkanlığı") return 4;
+      return 5;
     };
 
     return [...filtered].sort((personA, personB) => {
-        const posA = getPrimaryPosition(personA.id);
-        const posB = getPrimaryPosition(personB.id);
+      const posA = personA.primaryPosition;
+      const posB = personB.primaryPosition;
 
-        const personNameA = (`${personA.firstName || ''} ${personA.lastName || ''}`).trim().toLowerCase();
-        const personNameB = (`${personB.firstName || ''} ${personB.lastName || ''}`).trim().toLowerCase();
+      const personNameA = (`${personA.firstName || ''} ${personA.lastName || ''}`).trim().toLowerCase();
+      const personNameB = (`${personB.firstName || ''} ${personB.lastName || ''}`).trim().toLowerCase();
 
-        if (!posA && !posB) {
-             return personNameA.localeCompare(personNameB);
-        }
-        if (!posA) return 1;
-        if (!posB) return -1;
-
-        const overallGroupA = getOverallOrderGroup(posA);
-        const overallGroupB = getOverallOrderGroup(posB);
-        if (overallGroupA !== overallGroupB) return overallGroupA - overallGroupB;
-
-        if (overallGroupA === 5) {
-            const deptNameA = (posA.department || '').toLowerCase();
-            const deptNameB = (posB.department || '').toLowerCase();
-            if (deptNameA < deptNameB) return -1;
-            if (deptNameA > deptNameB) return 1;
-        }
-
-        const titleOrderValA = positionTitleOrder[posA.name] ?? Infinity;
-        const titleOrderValB = positionTitleOrder[posB.name] ?? Infinity;
-        if (titleOrderValA !== titleOrderValB) return titleOrderValA - titleOrderValB;
-        
-        const nameA = (posA.name || '').toLowerCase();
-        const nameB = (posB.name || '').toLowerCase();
-        if (nameA !== nameB) return nameA.localeCompare(nameB);
-        
-        const locationA = posA.dutyLocation?.trim().toLowerCase() ?? '';
-        const locationB = posB.dutyLocation?.trim().toLowerCase() ?? '';
-        if (locationA !== locationB) return locationA.localeCompare(locationB);
-
+      if (!posA && !posB) {
         return personNameA.localeCompare(personNameB);
+      }
+      if (!posA) return 1;
+      if (!posB) return -1;
+
+      const overallGroupA = getOverallOrderGroup(posA);
+      const overallGroupB = getOverallOrderGroup(posB);
+      if (overallGroupA !== overallGroupB) return overallGroupA - overallGroupB;
+
+      if (overallGroupA === 5) {
+        const deptNameA = (posA.department || '').toLowerCase();
+        const deptNameB = (posB.department || '').toLowerCase();
+        if (deptNameA < deptNameB) return -1;
+        if (deptNameA > deptNameB) return 1;
+      }
+
+      const titleOrderValA = positionTitleOrder[posA.name] ?? Infinity;
+      const titleOrderValB = positionTitleOrder[posB.name] ?? Infinity;
+      if (titleOrderValA !== titleOrderValB) return titleOrderValA - titleOrderValB;
+
+      const nameA = (posA.name || '').toLowerCase();
+      const nameB = (posB.name || '').toLowerCase();
+      if (nameA !== nameB) return nameA.localeCompare(nameB);
+
+      const locationA = posA.dutyLocation?.trim().toLowerCase() ?? '';
+      const locationB = posB.dutyLocation?.trim().toLowerCase() ?? '';
+      if (locationA !== locationB) return locationA.localeCompare(locationB);
+
+      return personNameA.localeCompare(personNameB);
     });
 
-  }, [personnel, positions, personnelSearchTerm]);
+  }, [personnelWithPositions, personnelSearchTerm]);
 
   const filteredTasraPositions = useMemo(() => {
     let _filtered = tasraPositions;
@@ -1298,6 +1327,8 @@ export default function Page() {
         </Suspense>
     )
 }
+
+    
 
     
 
