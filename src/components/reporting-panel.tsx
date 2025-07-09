@@ -39,7 +39,6 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   const [birimFilters, setBirimFilters] = useState<string[]>([]);
   const [gorevYeriFilters, setGorevYeriFilters] = useState<string[]>([]);
   const [unvanFilters, setUnvanFilters] = useState<string[]>([]);
-  const [merkezAtananPersonelFilters, setMerkezAtananPersonelFilters] = useState<string[]>([]);
   const [merkezPersonelStatusFilters, setMerkezPersonelStatusFilters] = useState<string[]>([]);
   const [merkezRaporlayanYoneticiFilters, setMerkezRaporlayanYoneticiFilters] = useState<string[]>([]);
   const [merkezDateRange, setMerkezDateRange] = useState<DateRange | undefined>();
@@ -50,22 +49,24 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   const [kadroUnvaniFilters, setKadroUnvaniFilters] = useState<string[]>([]);
   const [asilUnvanFilters, setAsilUnvanFilters] = useState<string[]>([]);
   const [makamFilters, setMakamFilters] = useState<string[]>([]);
-  const [tasraAtananPersonelFilters, setTasraAtananPersonelFilters] = useState<string[]>([]);
   const [tasraPersonelStatusFilters, setTasraPersonelStatusFilters] = useState<string[]>([]);
   const [vekaletUcretiFilter, setVekaletUcretiFilter] = useState<'all' | 'yes' | 'no'>('all');
   const [yetkiDevriFilter, setYetkiDevriFilter] = useState<'all' | 'yes' | 'no'>('all');
   const [tasraDateRange, setTasraDateRange] = useState<DateRange | undefined>();
 
-  // Filter Options Data
+  // Filter Options Data - Memoize Maps for performance
+  const allMerkezPersonnelMap = useMemo(() => new Map(personnel.map(p => [p.id, p])), [personnel]);
+  const allTasraPersonnelMap = useMemo(() => new Map(tasraPersonnel.map(p => [p.id, p])), [tasraPersonnel]);
+  const allMerkezPositionsMap = useMemo(() => new Map(positions.map(p => [p.id, p])), [positions]);
+  
   const uniqueMerkezBirimler = useMemo(() => Array.from(new Set(positions.map(p => p.department))).sort((a,b) => a.localeCompare(b, 'tr')), [positions]);
   const uniqueMerkezGorevYerleri = useMemo(() => Array.from(new Set(positions.map(p => p.dutyLocation).filter(Boolean) as string[])).sort((a,b) => a.localeCompare(b, 'tr')), [positions]);
   const uniqueMerkezUnvanlar = useMemo(() => Array.from(new Set(positions.map(p => p.name))).sort((a,b) => a.localeCompare(b, 'tr')), [positions]);
-  const allMerkezPersonnelOptions = useMemo(() => personnel.map(p => ({label: `${p.firstName} ${p.lastName} (${p.registryNumber})`, value: p.id})).sort((a,b) => a.label.localeCompare(b.label, 'tr')), [personnel]);
   const allMerkezYoneticiOptions = useMemo(() => {
     const yoneticiMap = new Map<string, { label: string, value: string }>();
     positions.forEach(p => {
         if (p.assignedPersonnelId) {
-            const person = personnel.find(per => per.id === p.assignedPersonnelId);
+            const person = allMerkezPersonnelMap.get(p.assignedPersonnelId);
             if (person) {
                 yoneticiMap.set(p.id, {
                     label: `${person.firstName} ${person.lastName} (${p.name})`,
@@ -75,13 +76,21 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
         }
     });
     return Array.from(yoneticiMap.values()).sort((a,b) => a.label.localeCompare(b.label, 'tr'));
-  }, [positions, personnel]);
+  }, [positions, allMerkezPersonnelMap]);
 
   const uniqueTasraUniteler = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.unit))).sort((a,b) => a.localeCompare(b, 'tr')), [tasraPositions]);
   const uniqueTasraGorevYerleri = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.dutyLocation))).sort((a,b) => a.localeCompare(b, 'tr')), [tasraPositions]);
   const uniqueTasraKadroUnvanlari = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.kadroUnvani).filter(Boolean) as string[])).sort((a,b) => a.localeCompare(b, 'tr')), [tasraPositions]);
-  const uniqueTasraAsilUnvanlar = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.originalTitle).filter(Boolean) as string[])).sort((a,b) => a.localeCompare(b, 'tr')), [tasraPositions]);
-  const allTasraPersonnelOptions = useMemo(() => tasraPersonnel.map(p => ({label: `${p.firstName} ${p.lastName} (${p.registryNumber})`, value: p.id})).sort((a,b) => a.label.localeCompare(b.label, 'tr')), [tasraPersonnel]);
+  const uniqueTasraAsilUnvanlar = useMemo(() => {
+    const titles = new Set<string>();
+    tasraPositions.forEach(p => {
+      if (p.originalTitle) titles.add(p.originalTitle);
+    });
+    tasraPersonnel.forEach(p => {
+        if (p.unvan) titles.add(p.unvan);
+    });
+    return Array.from(titles).sort((a,b) => a.localeCompare(b, 'tr'));
+  }, [tasraPositions, tasraPersonnel]);
 
   const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
     setter(prev => 
@@ -91,11 +100,15 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   
   const filteredData = useMemo(() => {
     if (dataSource === 'merkez_pozisyon') {
-        let enrichedData = positions.map(p => ({
-            ...p,
-            assignedPerson: p.assignedPersonnelId ? personnel.find(per => per.id === p.assignedPersonnelId) : null,
-            reportsToPerson: p.reportsTo ? personnel.find(per => per.id === (positions.find(pos => pos.id === p.reportsTo)?.assignedPersonnelId)) : null
-        }));
+        let enrichedData = positions.map(p => {
+            const reportsToPosition = p.reportsTo ? allMerkezPositionsMap.get(p.reportsTo) : null;
+            return {
+                ...p,
+                assignedPerson: p.assignedPersonnelId ? allMerkezPersonnelMap.get(p.assignedPersonnelId) : null,
+                reportsToPosition: reportsToPosition,
+                reportsToPerson: reportsToPosition?.assignedPersonnelId ? allMerkezPersonnelMap.get(reportsToPosition.assignedPersonnelId) : null,
+            };
+        });
 
         if (statusFilters.length > 0) {
             enrichedData = enrichedData.filter(p => statusFilters.includes(p.status));
@@ -108,9 +121,6 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
         }
         if (unvanFilters.length > 0) {
             enrichedData = enrichedData.filter(p => unvanFilters.includes(p.name));
-        }
-        if (merkezAtananPersonelFilters.length > 0) {
-            enrichedData = enrichedData.filter(p => p.assignedPersonnelId && merkezAtananPersonelFilters.includes(p.assignedPersonnelId));
         }
         if (merkezPersonelStatusFilters.length > 0) {
             enrichedData = enrichedData.filter(p => p.assignedPerson && merkezPersonelStatusFilters.includes(p.assignedPerson.status));
@@ -134,7 +144,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     if (dataSource === 'tasra_pozisyon') {
         let enrichedData = tasraPositions.map(p => ({
             ...p,
-            assignedPerson: p.assignedPersonnelId ? tasraPersonnel.find(per => per.id === p.assignedPersonnelId) : null,
+            assignedPerson: p.assignedPersonnelId ? allTasraPersonnelMap.get(p.assignedPersonnelId) : null,
         }));
 
         if (statusFilters.length > 0) {
@@ -150,13 +160,16 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
             enrichedData = enrichedData.filter(p => p.kadroUnvani && kadroUnvaniFilters.includes(p.kadroUnvani));
         }
         if (asilUnvanFilters.length > 0) {
-            enrichedData = enrichedData.filter(p => p.originalTitle && asilUnvanFilters.includes(p.originalTitle));
+            enrichedData = enrichedData.filter(p => {
+                const conceptualAsilUnvan = (p.status === 'Vekalet' || p.status === 'Yürütme')
+                    ? p.originalTitle
+                    : (p.status === 'Asıl' ? p.assignedPerson?.unvan : null);
+                
+                return conceptualAsilUnvan && asilUnvanFilters.includes(conceptualAsilUnvan);
+            });
         }
         if (makamFilters.length > 0) {
             enrichedData = enrichedData.filter(p => p.actingAuthority && makamFilters.includes(p.actingAuthority));
-        }
-        if (tasraAtananPersonelFilters.length > 0) {
-            enrichedData = enrichedData.filter(p => p.assignedPersonnelId && tasraAtananPersonelFilters.includes(p.assignedPersonnelId));
         }
         if (tasraPersonelStatusFilters.length > 0) {
             enrichedData = enrichedData.filter(p => p.assignedPerson && tasraPersonelStatusFilters.includes(p.assignedPerson.status));
@@ -184,10 +197,8 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     return [];
   }, [
     dataSource, statusFilters, 
-    // Merkez
-    positions, personnel, birimFilters, gorevYeriFilters, unvanFilters, merkezDateRange, merkezAtananPersonelFilters, merkezPersonelStatusFilters, merkezRaporlayanYoneticiFilters,
-    // Tasra
-    tasraPositions, tasraPersonnel, uniteFilters, tasraGorevYeriFilters, kadroUnvaniFilters, asilUnvanFilters, makamFilters, vekaletUcretiFilter, yetkiDevriFilter, tasraDateRange, tasraAtananPersonelFilters, tasraPersonelStatusFilters
+    positions, personnel, birimFilters, gorevYeriFilters, unvanFilters, merkezDateRange, merkezPersonelStatusFilters, merkezRaporlayanYoneticiFilters, allMerkezPersonnelMap, allMerkezPositionsMap,
+    tasraPositions, tasraPersonnel, uniteFilters, tasraGorevYeriFilters, kadroUnvaniFilters, asilUnvanFilters, makamFilters, vekaletUcretiFilter, yetkiDevriFilter, tasraDateRange, tasraPersonelStatusFilters, allTasraPersonnelMap
   ]);
 
 
@@ -197,7 +208,6 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     setBirimFilters([]);
     setGorevYeriFilters([]);
     setUnvanFilters([]);
-    setMerkezAtananPersonelFilters([]);
     setMerkezPersonelStatusFilters([]);
     setMerkezRaporlayanYoneticiFilters([]);
     setMerkezDateRange(undefined);
@@ -207,7 +217,6 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     setKadroUnvaniFilters([]);
     setAsilUnvanFilters([]);
     setMakamFilters([]);
-    setTasraAtananPersonelFilters([]);
     setTasraPersonelStatusFilters([]);
     setVekaletUcretiFilter('all');
     setYetkiDevriFilter('all');
@@ -369,12 +378,12 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   );
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-lg h-full flex flex-col">
       <CardHeader>
         <CardTitle>Raporlama ve Dışa Aktarma</CardTitle>
         <CardDescription>Verilerinizi filtreleyerek özel raporlar oluşturun ve Excel formatında indirin.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 flex-1 flex flex-col min-h-0">
         <div className="p-4 border rounded-lg space-y-4">
           <div>
             <Label htmlFor="data-source">1. Adım: Veri Kaynağı Seçin</Label>
@@ -401,12 +410,11 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
                 </Button>
             </div>
             {dataSource === 'merkez_pozisyon' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-2">
                  <FilterCheckboxGroup title="Pozisyon Durumu" items={ALL_STATUSES.map(s => ({label: s, value: s}))} selectedItems={statusFilters} onFilterChange={handleFilterChange(setStatusFilters)} />
                  <FilterCheckboxGroup title="Birim" items={uniqueMerkezBirimler.map(s => ({label: s, value: s}))} selectedItems={birimFilters} onFilterChange={handleFilterChange(setBirimFilters)} />
                  <FilterCheckboxGroup title="Görev Yeri" items={uniqueMerkezGorevYerleri.map(s => ({label: s, value: s}))} selectedItems={gorevYeriFilters} onFilterChange={handleFilterChange(setGorevYeriFilters)} />
                  <FilterCheckboxGroup title="Ünvan" items={uniqueMerkezUnvanlar.map(s => ({label: s, value: s}))} selectedItems={unvanFilters} onFilterChange={handleFilterChange(setUnvanFilters)} />
-                 <FilterCheckboxGroup title="Atanan Personel" items={allMerkezPersonnelOptions} selectedItems={merkezAtananPersonelFilters} onFilterChange={handleFilterChange(setMerkezAtananPersonelFilters)} />
                  <FilterCheckboxGroup title="Personel Statüsü" items={ALL_PERSONNEL_STATUSES.map(s => ({label: s, value: s}))} selectedItems={merkezPersonelStatusFilters} onFilterChange={handleFilterChange(setMerkezPersonelStatusFilters)} />
                  <FilterCheckboxGroup title="Bağlı Olduğu Yönetici" items={allMerkezYoneticiOptions} selectedItems={merkezRaporlayanYoneticiFilters} onFilterChange={handleFilterChange(setMerkezRaporlayanYoneticiFilters)} />
                  <div className="space-y-2">
@@ -433,14 +441,13 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
               </div>
             )}
             {dataSource === 'tasra_pozisyon' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-2">
                     <FilterCheckboxGroup title="Pozisyon Durumu" items={ALL_STATUSES.map(s => ({label: s, value: s}))} selectedItems={statusFilters} onFilterChange={handleFilterChange(setStatusFilters)} />
                     <FilterCheckboxGroup title="Ünite" items={uniqueTasraUniteler.map(s => ({label: s, value: s}))} selectedItems={uniteFilters} onFilterChange={handleFilterChange(setUniteFilters)} />
                     <FilterCheckboxGroup title="Görev Yeri" items={uniqueTasraGorevYerleri.map(s => ({label: s, value: s}))} selectedItems={tasraGorevYeriFilters} onFilterChange={handleFilterChange(setTasraGorevYeriFilters)} />
                     <FilterCheckboxGroup title="Kadro Ünvanı" items={uniqueTasraKadroUnvanlari.map(s => ({label: s, value: s}))} selectedItems={kadroUnvaniFilters} onFilterChange={handleFilterChange(setKadroUnvaniFilters)} />
                     <FilterCheckboxGroup title="Asıl Ünvan" items={uniqueTasraAsilUnvanlar.map(s => ({label: s, value: s}))} selectedItems={asilUnvanFilters} onFilterChange={handleFilterChange(setAsilUnvanFilters)} />
                     <FilterCheckboxGroup title="Görevi Veren Makam" items={ALL_MAKAMLAR.map(s => ({label: s, value: s}))} selectedItems={makamFilters} onFilterChange={handleFilterChange(setMakamFilters)} />
-                    <FilterCheckboxGroup title="Atanan Personel" items={allTasraPersonnelOptions} selectedItems={tasraAtananPersonelFilters} onFilterChange={handleFilterChange(setTasraAtananPersonelFilters)} />
                     <FilterCheckboxGroup title="Personel Statüsü" items={ALL_PERSONNEL_STATUSES.map(s => ({label: s, value: s}))} selectedItems={tasraPersonelStatusFilters} onFilterChange={handleFilterChange(setTasraPersonelStatusFilters)} />
                     <div className="flex flex-col space-y-4">
                         <div className="space-y-2">
@@ -488,7 +495,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
           </div>
         </div>
         
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center pt-4">
             <p className="text-sm text-muted-foreground">
                 <span className="font-bold">{filteredData.length}</span> sonuç bulundu.
             </p>
@@ -498,7 +505,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
             </Button>
         </div>
 
-        <ScrollArea className="h-[calc(100vh-40rem)] min-h-[200px]">
+        <ScrollArea className="flex-1 min-h-0">
              <div className="rounded-md border">
                 {renderTable()}
             </div>
@@ -507,3 +514,5 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     </Card>
   );
 }
+
+    
