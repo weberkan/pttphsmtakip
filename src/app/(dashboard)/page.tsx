@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useRef, Suspense } from "react";
+import { useState, useMemo, useRef, Suspense, useDeferredValue } from "react";
 import * as XLSX from 'xlsx';
 import * as z from "zod";
 import { AddEditPositionDialog } from "@/components/add-edit-position-dialog";
@@ -164,6 +164,9 @@ function DashboardPageContent() {
   const [editingPersonnel, setEditingPersonnel] = useState<Personnel | null>(null);
   const [positionSearchTerm, setPositionSearchTerm] = useState("");
   const [personnelSearchTerm, setPersonnelSearchTerm] = useState("");
+  const deferredPositionSearchTerm = useDeferredValue(positionSearchTerm);
+  const deferredPersonnelSearchTerm = useDeferredValue(personnelSearchTerm);
+
 
   // Taşra States
   const [isTasraPositionDialogOpen, setIsTasraPositionDialogOpen] = useState(false);
@@ -172,15 +175,18 @@ function DashboardPageContent() {
   const [editingTasraPersonnel, setEditingTasraPersonnel] = useState<Personnel | null>(null);
   const [tasraPositionSearchTerm, setTasraPositionSearchTerm] = useState("");
   const [tasraPersonnelSearchTerm, setTasraPersonnelSearchTerm] = useState("");
+  const deferredTasraPositionSearchTerm = useDeferredValue(tasraPositionSearchTerm);
+  const deferredTasraPersonnelSearchTerm = useDeferredValue(tasraPersonnelSearchTerm);
+
   
   // Talimatlar (Depposh) State
   const [isTalimatDialogOpen, setIsTalimatDialogOpen] = useState(false);
   const [editingTalimat, setEditingTalimat] = useState<KanbanCard | null>(null);
   
-  const isGlobalMerkezPositionSearchActive = positionSearchTerm.trim() !== "" || filter !== "all";
-  const isGlobalMerkezPersonnelSearchActive = personnelSearchTerm.trim() !== "";
-  const isGlobalTasraPositionSearchActive = tasraPositionSearchTerm.trim() !== "";
-  const isGlobalTasraPersonnelSearchActive = tasraPersonnelSearchTerm.trim() !== "";
+  const isGlobalMerkezPositionSearchActive = deferredPositionSearchTerm.trim() !== "" || filter !== "all";
+  const isGlobalMerkezPersonnelSearchActive = deferredPersonnelSearchTerm.trim() !== "";
+  const isGlobalTasraPositionSearchActive = deferredTasraPositionSearchTerm.trim() !== "";
+  const isGlobalTasraPersonnelSearchActive = deferredTasraPersonnelSearchTerm.trim() !== "";
 
   // ---- Merkez Handlers ----
   const handleAddPositionClick = () => {
@@ -294,7 +300,7 @@ function DashboardPageContent() {
     if (filter !== "all") {
       _filtered = _filtered.filter(p => p.status === filter);
     }
-    const searchTermLower = positionSearchTerm.toLowerCase().trim();
+    const searchTermLower = deferredPositionSearchTerm.toLowerCase().trim();
     if (searchTermLower) {
       _filtered = _filtered.filter(p => {
         const assignedPerson = p.assignedPersonnelId ? allMerkezPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
@@ -312,14 +318,14 @@ function DashboardPageContent() {
       });
     }
     return _filtered;
-  }, [positions, allMerkezPositions, allMerkezPersonnel, filter, positionSearchTerm, isGlobalMerkezPositionSearchActive]);
+  }, [positions, allMerkezPositions, allMerkezPersonnel, filter, deferredPositionSearchTerm, isGlobalMerkezPositionSearchActive]);
   
   const filteredPersonnel = useMemo(() => {
     if (!isGlobalMerkezPersonnelSearchActive) {
       return personnel;
     }
     let _filtered = allMerkezPersonnel;
-    const searchTermLower = personnelSearchTerm.toLowerCase().trim();
+    const searchTermLower = deferredPersonnelSearchTerm.toLowerCase().trim();
     if (searchTermLower) {
       _filtered = _filtered.filter(p =>
         (p.firstName || '').toLowerCase().includes(searchTermLower) ||
@@ -330,14 +336,14 @@ function DashboardPageContent() {
       );
     }
     return _filtered;
-  }, [personnel, allMerkezPersonnel, personnelSearchTerm, isGlobalMerkezPersonnelSearchActive]);
+  }, [personnel, allMerkezPersonnel, deferredPersonnelSearchTerm, isGlobalMerkezPersonnelSearchActive]);
   
   const filteredTasraPositions = useMemo(() => {
     if (!isGlobalTasraPositionSearchActive) {
         return tasraPositions;
     }
     let _filtered = allTasraPositions;
-    const searchTermLower = tasraPositionSearchTerm.toLowerCase().trim();
+    const searchTermLower = deferredTasraPositionSearchTerm.toLowerCase().trim();
     if (searchTermLower) {
         _filtered = _filtered.filter(p => {
             const assignedPerson = p.assignedPersonnelId ? allTasraPersonnel.find(person => person.id === p.assignedPersonnelId) : null;
@@ -355,14 +361,14 @@ function DashboardPageContent() {
         });
     }
     return _filtered;
-  }, [tasraPositions, allTasraPositions, allTasraPersonnel, tasraPositionSearchTerm, isGlobalTasraPositionSearchActive]);
+  }, [tasraPositions, allTasraPositions, allTasraPersonnel, deferredTasraPositionSearchTerm, isGlobalTasraPositionSearchActive]);
   
   const filteredTasraPersonnel = useMemo(() => {
     if (!isGlobalTasraPersonnelSearchActive) {
         return tasraPersonnel;
     }
     let _filtered = allTasraPersonnel;
-    const searchTermLower = tasraPersonnelSearchTerm.toLowerCase().trim();
+    const searchTermLower = deferredTasraPersonnelSearchTerm.toLowerCase().trim();
     if (searchTermLower) {
         _filtered = _filtered.filter(p => 
             (p.firstName || '').toLowerCase().includes(searchTermLower) ||
@@ -373,7 +379,7 @@ function DashboardPageContent() {
         );
     }
     return _filtered;
-  }, [tasraPersonnel, allTasraPersonnel, tasraPersonnelSearchTerm, isGlobalTasraPersonnelSearchActive]);
+  }, [tasraPersonnel, allTasraPersonnel, deferredTasraPersonnelSearchTerm, isGlobalTasraPersonnelSearchActive]);
 
 
   const handleImportPersonnelClick = () => {
