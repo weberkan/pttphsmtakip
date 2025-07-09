@@ -144,10 +144,9 @@ export function DashboardHome({
   };
 
   const renderCustomizedLabel = (props: any) => {
-    const { x, y, width, height, value } = props;
-    const { percentage } = props.payload;
+    const { x, y, width, height, value, percentage } = props;
 
-    if (value === 0) return null;
+    if (value === 0 || typeof percentage === 'undefined') return null;
 
     // Render label outside if the bar is too short
     if (width < 80) {
