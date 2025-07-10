@@ -30,11 +30,24 @@ const motivationalQuotes = [
   "Bugünün işini yarına bırakma, çünkü yarının da kendi işleri olacak.",
   "Harika işler yapmanın tek yolu, yaptığınız işi sevmektir.",
   "En büyük zafer, hiç düşmemek değil, her düştüğünde yeniden ayağa kalkabilmektir.",
-  "Geleceği tahmin etmenin en iyi yolu, onu yaratmaktır.",
+  "Geleceği şekillendirmenin en iyi yolu, onu inşa etmektir.",
   "Küçük başlangıçlar, büyük sonuçlar doğurur.",
   "Sadece başaranlar değil, deneyenler de değerlidir.",
   "Motivasyon, sizi başlatan şeydir. Alışkanlık ise devam etmenizi sağlayan.",
-  "Her başarı hikayesinin arkasında, kararlılıkla atılmış adımlar vardır."
+  "Her başarı hikayesinin arkasında, kararlılıkla atılmış adımlar vardır.",
+  "Disiplin, hedefler ve başarı arasındaki köprüdür.",
+  "Bir hedef belirlemek, görünmeyeni görünür yapmanın ilk adımıdır.",
+  "Zorluklar, sıradan insanları olağanüstü bir kadere hazırlayan fırsatlardır.",
+  "Kalite asla bir tesadüf değildir; daima akıllı bir çabanın sonucudur.",
+  "Mükemmellik bir yetenek değil, bir tutumdur.",
+  "Hiç kimse, denemeden ne kadar ileri gidebileceğini bilemez.",
+  "Sürekli gelişim, bugünün işini dünden daha iyi yapmaktır.",
+  "Takım çalışması, ortak bir vizyonu gerçekleştirme yeteneğidir.",
+  "Liderlik, başkalarına ilham verme ve onları daha iyiye teşvik etme sanatıdır.",
+  "Odaklanma, 'hayır' deme yeteneğidir.",
+  "En verimli zaman, şimdi'dir.",
+  "Bir plan, bir hedefi gerçeğe dönüştüren köprüdür.",
+  "Verimlilik, asla bir kaza değildir. Her zaman mükemmelliğe olan bağlılığın, akıllı planlamanın ve odaklanmış çabanın bir sonucudur."
 ];
 
 export function DashboardHome({ 
@@ -272,7 +285,7 @@ export function DashboardHome({
                   />}
                 />
                 <Bar dataKey="value" radius={5}>
-                    <LabelList dataKey="value" content={renderCustomizedLabel} />
+                    <LabelList dataKey="percentage" content={renderCustomizedLabel} />
                 </Bar>
               </BarChart>
             </ChartContainer>
@@ -312,7 +325,7 @@ export function DashboardHome({
                            />}
                         />
                         <Bar dataKey="value" radius={5}>
-                           <LabelList dataKey="value" content={renderCustomizedLabel} />
+                           <LabelList dataKey="percentage" content={renderCustomizedLabel} />
                         </Bar>
                     </BarChart>
                 </ChartContainer>
