@@ -193,7 +193,7 @@ export default function AuthPage() {
   
   // If loading is finished and there's no user, show the login page.
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 gap-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-sm">
         <Card>
             <CardHeader className="text-center">
@@ -226,6 +226,9 @@ export default function AuthPage() {
             </CardContent>
         </Card>
       </Tabs>
+       <p className="text-xs text-muted-foreground">
+        ❤️ ile geliştirildi.
+      </p>
     </main>
   );
 }
