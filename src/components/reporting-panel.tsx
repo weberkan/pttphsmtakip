@@ -18,6 +18,7 @@ import { tr } from 'date-fns/locale';
 import { ScrollArea } from './ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 
 interface ReportingPanelProps {
   positions: Position[];
@@ -136,7 +137,6 @@ export function ReportingPanel({
   const [yetkiDevriFilter, setYetkiDevriFilter] = useState<'all' | 'yes' | 'no'>('all');
   const [tasraDateRange, setTasraDateRange] = useState<DateRange | undefined>();
 
-  // Local state for data to ensure updates are reflected
   const [positions, setPositions] = useState(initialPositions);
   const [personnel, setPersonnel] = useState(initialPersonnel);
   const [tasraPositions, setTasraPositions] = useState(initialTasraPositions);
@@ -150,28 +150,28 @@ export function ReportingPanel({
 
   const filterOptions = useMemo(() => {
     return {
-      merkezBirimler: Array.from(new Set(positions.map(p => p.department))).map(v => ({ value: v, label: v })).sort((a,b) => a.label.localeCompare(b.label, 'tr')),
-      merkezGorevYerleri: Array.from(new Set(positions.map(p => p.dutyLocation).filter(Boolean) as string[])).map(v => ({ value: v, label: v })).sort((a,b) => a.label.localeCompare(b.label, 'tr')),
-      merkezUnvanlar: Array.from(new Set(positions.map(p => p.name))).map(v => ({ value: v, label: v })).sort((a,b) => a.label.localeCompare(b.label, 'tr')),
+      merkezBirimler: Array.from(new Set(positions.map(p => p.department))).map(v => ({ value: v, label: v })),
+      merkezGorevYerleri: Array.from(new Set(positions.map(p => p.dutyLocation).filter(Boolean) as string[])).map(v => ({ value: v, label: v })),
+      merkezUnvanlar: Array.from(new Set(positions.map(p => p.name))).map(v => ({ value: v, label: v })),
       merkezYoneticiler: Array.from(new Map(positions.filter(p => p.assignedPersonnelId).map(p => {
         const person = personnel.find(per => per.id === p.assignedPersonnelId);
         return [p.id, { value: p.id, label: person ? `${person.firstName} ${person.lastName} (${p.name})` : p.name }];
-      })).values()).sort((a,b) => a.label.localeCompare(b.label, 'tr')),
+      })).values()),
       
-      tasraUniteler: Array.from(new Set(tasraPositions.map(p => p.unit))).map(v => ({ value: v, label: v })).sort((a,b) => a.label.localeCompare(b.label, 'tr')),
-      tasraGorevYerleri: Array.from(new Set(tasraPositions.map(p => p.dutyLocation))).map(v => ({ value: v, label: v })).sort((a,b) => a.label.localeCompare(b.label, 'tr')),
-      tasraKadroUnvanlari: Array.from(new Set(tasraPositions.map(p => p.kadroUnvani).filter(Boolean) as string[])).map(v => ({ value: v, label: v })).sort((a,b) => a.label.localeCompare(b.label, 'tr')),
+      tasraUniteler: Array.from(new Set(tasraPositions.map(p => p.unit))).map(v => ({ value: v, label: v })),
+      tasraGorevYerleri: Array.from(new Set(tasraPositions.map(p => p.dutyLocation))).map(v => ({ value: v, label: v })),
+      tasraKadroUnvanlari: Array.from(new Set(tasraPositions.map(p => p.kadroUnvani).filter(Boolean) as string[])).map(v => ({ value: v, label: v })),
       tasraAsilUnvanlar: Array.from(new Set([
         ...tasraPositions.map(p => {
           if ((p.status === 'Vekalet' || p.status === 'Yürütme') && p.originalTitle) return p.originalTitle;
-          if (p.status === 'Asıl') {
+          if (p.status === 'Asıl' && p.assignedPersonnelId) {
               const person = tasraPersonnel.find(per => per.id === p.assignedPersonnelId);
               if (person?.unvan) return person.unvan;
           }
           return null;
         }).filter(Boolean) as string[],
         ...tasraPersonnel.map(p => p.unvan).filter(Boolean) as string[]
-      ])).map(v => ({ value: v, label: v })).sort((a,b) => a.label.localeCompare(b.label, 'tr')),
+      ])).map(v => ({ value: v, label: v })),
     };
   }, [positions, personnel, tasraPositions, tasraPersonnel]);
 
@@ -528,4 +528,3 @@ export function ReportingPanel({
   );
 }
 
-    
