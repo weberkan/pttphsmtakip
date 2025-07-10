@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ const ALL_STATUSES: ('Asıl' | 'Vekalet' | 'Yürütme' | 'Boş')[] = ['Asıl', '
 const ALL_PERSONNEL_STATUSES: ('İHS' | '399')[] = ['İHS', '399'];
 const ALL_MAKAMLAR: ('Başmüdürlük' | 'Genel Müdürlük')[] = ['Başmüdürlük', 'Genel Müdürlük'];
 
-export function ReportingPanel({ positions, personnel, tasraPositions, tasraPersonnel }: ReportingPanelProps) {
+export function ReportingPanel({ positions: initialPositions, personnel: initialPersonnel, tasraPositions: initialTasraPositions, tasraPersonnel: initialTasraPersonnel }: ReportingPanelProps) {
   const [dataSource, setDataSource] = useState<DataSource>('merkez_pozisyon');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   
@@ -54,7 +54,16 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   const [yetkiDevriFilter, setYetkiDevriFilter] = useState<'all' | 'yes' | 'no'>('all');
   const [tasraDateRange, setTasraDateRange] = useState<DateRange | undefined>();
 
-  // Use memoization to re-calculate filter options ONLY when the underlying data changes.
+  const [positions, setPositions] = useState(initialPositions);
+  const [personnel, setPersonnel] = useState(initialPersonnel);
+  const [tasraPositions, setTasraPositions] = useState(initialTasraPositions);
+  const [tasraPersonnel, setTasraPersonnel] = useState(initialTasraPersonnel);
+
+  useEffect(() => { setPositions(initialPositions) }, [initialPositions]);
+  useEffect(() => { setPersonnel(initialPersonnel) }, [initialPersonnel]);
+  useEffect(() => { setTasraPositions(initialTasraPositions) }, [initialTasraPositions]);
+  useEffect(() => { setTasraPersonnel(initialTasraPersonnel) }, [initialTasraPersonnel]);
+
   const uniqueMerkezBirimler = useMemo(() => Array.from(new Set(positions.map(p => p.department))).sort((a,b) => a.localeCompare(b, 'tr')), [positions]);
   const uniqueMerkezGorevYerleri = useMemo(() => Array.from(new Set(positions.map(p => p.dutyLocation).filter(Boolean) as string[])).sort((a,b) => a.localeCompare(b, 'tr')), [positions]);
   const uniqueMerkezUnvanlar = useMemo(() => Array.from(new Set(positions.map(p => p.name))).sort((a,b) => a.localeCompare(b, 'tr')), [positions]);
@@ -83,14 +92,16 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   const uniqueTasraAsilUnvanlar = useMemo(() => {
     const titles = new Set<string>();
     tasraPositions.forEach(p => {
+      // For proxy/acting, get the position's original title
       if ((p.status === 'Vekalet' || p.status === 'Yürütme') && p.originalTitle) {
         titles.add(p.originalTitle);
-      }
+      } 
     });
+    // Also include all personnel cadre titles
     tasraPersonnel.forEach(p => {
         if (p.unvan) titles.add(p.unvan);
     });
-    return Array.from(titles).sort((a,b) => a.localeCompare(b, 'tr'));
+    return Array.from(titles).sort((a, b) => a.localeCompare(b, 'tr'));
   }, [tasraPositions, tasraPersonnel]);
 
   const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
@@ -166,9 +177,12 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
         }
         if (asilUnvanFilters.length > 0) {
              enrichedData = enrichedData.filter(p => {
-                const conceptualAsilUnvan = (p.status === 'Vekalet' || p.status === 'Yürütme')
-                    ? p.originalTitle
-                    : (p.status === 'Asıl' ? p.assignedPerson?.unvan : null);
+                let conceptualAsilUnvan: string | null | undefined = null;
+                if (p.status === 'Vekalet' || p.status === 'Yürütme') {
+                    conceptualAsilUnvan = p.originalTitle;
+                } else if (p.status === 'Asıl') {
+                    conceptualAsilUnvan = p.assignedPerson?.unvan;
+                }
                 
                 return conceptualAsilUnvan && asilUnvanFilters.includes(conceptualAsilUnvan);
             });
@@ -414,7 +428,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
                 </Button>
             </div>
             {dataSource === 'merkez_pozisyon' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 pt-2">
                  <FilterCheckboxGroup title="Pozisyon Durumu" items={ALL_STATUSES.map(s => ({label: s, value: s}))} selectedItems={statusFilters} onFilterChange={handleFilterChange(setStatusFilters)} />
                  <FilterCheckboxGroup title="Birim" items={uniqueMerkezBirimler.map(s => ({label: s, value: s}))} selectedItems={birimFilters} onFilterChange={handleFilterChange(setBirimFilters)} />
                  <FilterCheckboxGroup title="Görev Yeri" items={uniqueMerkezGorevYerleri.map(s => ({label: s, value: s}))} selectedItems={gorevYeriFilters} onFilterChange={handleFilterChange(setGorevYeriFilters)} />
@@ -445,7 +459,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
               </div>
             )}
             {dataSource === 'tasra_pozisyon' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 pt-2">
                     <FilterCheckboxGroup title="Pozisyon Durumu" items={ALL_STATUSES.map(s => ({label: s, value: s}))} selectedItems={statusFilters} onFilterChange={handleFilterChange(setStatusFilters)} />
                     <FilterCheckboxGroup title="Ünite" items={uniqueTasraUniteler.map(s => ({label: s, value: s}))} selectedItems={uniteFilters} onFilterChange={handleFilterChange(setUniteFilters)} />
                     <FilterCheckboxGroup title="Görev Yeri" items={uniqueTasraGorevYerleri.map(s => ({label: s, value: s}))} selectedItems={tasraGorevYeriFilters} onFilterChange={handleFilterChange(setTasraGorevYeriFilters)} />
@@ -509,11 +523,11 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
             </Button>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0">
-             <div className="rounded-md border">
-                {renderTable()}
-            </div>
-        </ScrollArea>
+        <div className="rounded-md border flex-1 min-h-0">
+          <ScrollArea className="h-full">
+            {renderTable()}
+          </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );
