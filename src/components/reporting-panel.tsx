@@ -54,19 +54,17 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   const [yetkiDevriFilter, setYetkiDevriFilter] = useState<'all' | 'yes' | 'no'>('all');
   const [tasraDateRange, setTasraDateRange] = useState<DateRange | undefined>();
 
-  // Filter Options Data - Memoize Maps for performance
-  const allMerkezPersonnelMap = useMemo(() => new Map(personnel.map(p => [p.id, p])), [personnel]);
-  const allTasraPersonnelMap = useMemo(() => new Map(tasraPersonnel.map(p => [p.id, p])), [tasraPersonnel]);
-  const allMerkezPositionsMap = useMemo(() => new Map(positions.map(p => [p.id, p])), [positions]);
-  
+  // Use memoization to re-calculate filter options ONLY when the underlying data changes.
   const uniqueMerkezBirimler = useMemo(() => Array.from(new Set(positions.map(p => p.department))).sort((a,b) => a.localeCompare(b, 'tr')), [positions]);
   const uniqueMerkezGorevYerleri = useMemo(() => Array.from(new Set(positions.map(p => p.dutyLocation).filter(Boolean) as string[])).sort((a,b) => a.localeCompare(b, 'tr')), [positions]);
   const uniqueMerkezUnvanlar = useMemo(() => Array.from(new Set(positions.map(p => p.name))).sort((a,b) => a.localeCompare(b, 'tr')), [positions]);
+  
   const allMerkezYoneticiOptions = useMemo(() => {
     const yoneticiMap = new Map<string, { label: string, value: string }>();
+    const allPersonnelMap = new Map(personnel.map(p => [p.id, p]));
     positions.forEach(p => {
         if (p.assignedPersonnelId) {
-            const person = allMerkezPersonnelMap.get(p.assignedPersonnelId);
+            const person = allPersonnelMap.get(p.assignedPersonnelId);
             if (person) {
                 yoneticiMap.set(p.id, {
                     label: `${person.firstName} ${person.lastName} (${p.name})`,
@@ -76,15 +74,18 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
         }
     });
     return Array.from(yoneticiMap.values()).sort((a,b) => a.label.localeCompare(b.label, 'tr'));
-  }, [positions, allMerkezPersonnelMap]);
+  }, [positions, personnel]);
 
   const uniqueTasraUniteler = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.unit))).sort((a,b) => a.localeCompare(b, 'tr')), [tasraPositions]);
   const uniqueTasraGorevYerleri = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.dutyLocation))).sort((a,b) => a.localeCompare(b, 'tr')), [tasraPositions]);
   const uniqueTasraKadroUnvanlari = useMemo(() => Array.from(new Set(tasraPositions.map(p => p.kadroUnvani).filter(Boolean) as string[])).sort((a,b) => a.localeCompare(b, 'tr')), [tasraPositions]);
+  
   const uniqueTasraAsilUnvanlar = useMemo(() => {
     const titles = new Set<string>();
     tasraPositions.forEach(p => {
-      if (p.originalTitle) titles.add(p.originalTitle);
+      if ((p.status === 'Vekalet' || p.status === 'Yürütme') && p.originalTitle) {
+        titles.add(p.originalTitle);
+      }
     });
     tasraPersonnel.forEach(p => {
         if (p.unvan) titles.add(p.unvan);
@@ -99,6 +100,10 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   };
   
   const filteredData = useMemo(() => {
+    const allMerkezPersonnelMap = new Map(personnel.map(p => [p.id, p]));
+    const allMerkezPositionsMap = new Map(positions.map(p => [p.id, p]));
+    const allTasraPersonnelMap = new Map(tasraPersonnel.map(p => [p.id, p]));
+
     if (dataSource === 'merkez_pozisyon') {
         let enrichedData = positions.map(p => {
             const reportsToPosition = p.reportsTo ? allMerkezPositionsMap.get(p.reportsTo) : null;
@@ -160,7 +165,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
             enrichedData = enrichedData.filter(p => p.kadroUnvani && kadroUnvaniFilters.includes(p.kadroUnvani));
         }
         if (asilUnvanFilters.length > 0) {
-            enrichedData = enrichedData.filter(p => {
+             enrichedData = enrichedData.filter(p => {
                 const conceptualAsilUnvan = (p.status === 'Vekalet' || p.status === 'Yürütme')
                     ? p.originalTitle
                     : (p.status === 'Asıl' ? p.assignedPerson?.unvan : null);
@@ -197,8 +202,8 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     return [];
   }, [
     dataSource, statusFilters, 
-    positions, personnel, birimFilters, gorevYeriFilters, unvanFilters, merkezDateRange, merkezPersonelStatusFilters, merkezRaporlayanYoneticiFilters, allMerkezPersonnelMap, allMerkezPositionsMap,
-    tasraPositions, tasraPersonnel, uniteFilters, tasraGorevYeriFilters, kadroUnvaniFilters, asilUnvanFilters, makamFilters, vekaletUcretiFilter, yetkiDevriFilter, tasraDateRange, tasraPersonelStatusFilters, allTasraPersonnelMap
+    positions, personnel, birimFilters, gorevYeriFilters, unvanFilters, merkezDateRange, merkezPersonelStatusFilters, merkezRaporlayanYoneticiFilters,
+    tasraPositions, tasraPersonnel, uniteFilters, tasraGorevYeriFilters, kadroUnvaniFilters, asilUnvanFilters, makamFilters, vekaletUcretiFilter, yetkiDevriFilter, tasraDateRange, tasraPersonelStatusFilters
   ]);
 
 
@@ -226,8 +231,7 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
   const handleExportToExcel = () => {
     const dataToExport = filteredData.map(item => {
       if (dataSource === 'merkez_pozisyon') {
-        const p = item as (Position & { assignedPerson: Personnel | null, reportsToPerson: Personnel | null });
-        const reportsToPosition = p.reportsTo ? positions.find(pos => pos.id === p.reportsTo) : null;
+        const p = item as (Position & { assignedPerson: Personnel | null, reportsToPerson: Personnel | null, reportsToPosition: Position | null });
         
         return {
           'Birim': p.department,
@@ -236,8 +240,8 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
           'Durum': p.status,
           'Başlama Tarihi': p.startDate ? format(new Date(p.startDate), 'dd.MM.yyyy') : '',
           'Asıl Ünvan (Vekalet/Yürütme)': p.originalTitle || '',
-          'Bağlı Olduğu Pozisyon': reportsToPosition ? `${reportsToPosition.department} - ${reportsToPosition.name}` : 'Yok',
-          'Bağlı Olduğu Yönetici': p.reportsToPerson ? `${p.reportsToPerson.firstName} ${p.reportsToPerson.lastName}` : (reportsToPosition ? 'Boş' : 'Yok'),
+          'Bağlı Olduğu Pozisyon': p.reportsToPosition ? `${p.reportsToPosition.department} - ${p.reportsToPosition.name}` : 'Yok',
+          'Bağlı Olduğu Yönetici': p.reportsToPerson ? `${p.reportsToPerson.firstName} ${p.reportsToPerson.lastName}` : (p.reportsToPosition ? 'Boş' : 'Yok'),
           'Atanan Personel': p.assignedPerson ? `${p.assignedPerson.firstName} ${p.assignedPerson.lastName}` : 'Atanmamış',
           'Personel Sicil': p.assignedPerson?.registryNumber || '',
           'Personel Statü': p.assignedPerson?.status || '',
@@ -514,5 +518,3 @@ export function ReportingPanel({ positions, personnel, tasraPositions, tasraPers
     </Card>
   );
 }
-
-    
