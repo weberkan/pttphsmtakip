@@ -245,7 +245,13 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-4">
-                    <Network className="h-12 w-12 text-primary animate-pulse" />
+                    <Image
+                        src="https://www.ptt.gov.tr/_next/static/media/184logo.0437c82e.png"
+                        alt="PTT Logo"
+                        width={150}
+                        height={60}
+                        className="animate-pulse"
+                    />
                     <p className="text-muted-foreground">Oturum doğrulanıyor...</p>
                 </div>
             </div>
