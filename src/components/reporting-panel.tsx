@@ -148,9 +148,22 @@ export function ReportingPanel({
 
 
   const filterOptions = useMemo(() => {
+    
+    const getConceptualAsilUnvan = (p: TasraPosition, allTasraPersonnel: Personnel[]) => {
+      if ((p.status === 'Vekalet' || p.status === 'Yürütme') && p.originalTitle) {
+          return p.originalTitle;
+      }
+      if (p.status === 'Asıl' && p.assignedPersonnelId) {
+          const person = allTasraPersonnel.find(per => per.id === p.assignedPersonnelId);
+          if (person?.unvan) {
+              return person.unvan;
+          }
+      }
+      return null;
+    };
+
     return {
       merkezBirimler: Array.from(new Set(positions.map(p => p.department))).map(v => ({ value: v, label: v })),
-      merkezGorevYerleri: Array.from(new Set(positions.map(p => p.dutyLocation).filter(Boolean) as string[])).map(v => ({ value: v, label: v })),
       merkezUnvanlar: Array.from(new Set(positions.map(p => p.name))).map(v => ({ value: v, label: v })),
       merkezYoneticiler: Array.from(new Map(positions.filter(p => p.assignedPersonnelId).map(p => {
         const person = personnel.find(per => per.id === p.assignedPersonnelId);
@@ -160,17 +173,7 @@ export function ReportingPanel({
       tasraUniteler: Array.from(new Set(tasraPositions.map(p => p.unit))).map(v => ({ value: v, label: v })),
       tasraGorevYerleri: Array.from(new Set(tasraPositions.map(p => p.dutyLocation))).map(v => ({ value: v, label: v })),
       tasraKadroUnvanlari: Array.from(new Set(tasraPositions.map(p => p.kadroUnvani).filter(Boolean) as string[])).map(v => ({ value: v, label: v })),
-      tasraAsilUnvanlar: Array.from(new Set([
-        ...tasraPositions.map(p => {
-          if ((p.status === 'Vekalet' || p.status === 'Yürütme') && p.originalTitle) return p.originalTitle;
-          if (p.status === 'Asıl' && p.assignedPersonnelId) {
-              const person = tasraPersonnel.find(per => per.id === p.assignedPersonnelId);
-              if (person?.unvan) return person.unvan;
-          }
-          return null;
-        }).filter(Boolean) as string[],
-        ...tasraPersonnel.map(p => p.unvan).filter(Boolean) as string[]
-      ])).map(v => ({ value: v, label: v })),
+      tasraAsilUnvanlar: Array.from(new Set(tasraPositions.map(p => getConceptualAsilUnvan(p, tasraPersonnel)).filter(Boolean) as string[])).map(v => ({ value: v, label: v })),
     };
   }, [positions, personnel, tasraPositions, tasraPersonnel]);
 
@@ -200,18 +203,20 @@ export function ReportingPanel({
     } 
     
     if (dataSource === 'tasra_pozisyon') {
-      return enrichedTasraData.filter(p => {
-        let asilUnvanMatch = true;
-        if (asilUnvanFilters.length > 0) {
-            let conceptualAsilUnvan: string | null | undefined = null;
-            if (p.status === 'Vekalet' || p.status === 'Yürütme') {
-                conceptualAsilUnvan = p.originalTitle;
-            } else if (p.status === 'Asıl' && p.assignedPerson) {
-                conceptualAsilUnvan = p.assignedPerson.unvan;
-            }
-            asilUnvanMatch = conceptualAsilUnvan ? asilUnvanFilters.includes(conceptualAsilUnvan) : false;
-        }
+      const getConceptualAsilUnvan = (p: TasraPosition & { assignedPerson: Personnel | null }) => {
+          if ((p.status === 'Vekalet' || p.status === 'Yürütme') && p.originalTitle) {
+              return p.originalTitle;
+          }
+          if (p.status === 'Asıl' && p.assignedPerson?.unvan) {
+              return p.assignedPerson.unvan;
+          }
+          return null;
+      };
 
+      return enrichedTasraData.filter(p => {
+        const conceptualAsilUnvan = getConceptualAsilUnvan(p);
+        const asilUnvanMatch = asilUnvanFilters.length === 0 || (conceptualAsilUnvan && asilUnvanFilters.includes(conceptualAsilUnvan));
+        
         return (
             (statusFilters.length === 0 || statusFilters.includes(p.status)) &&
             (uniteFilters.length === 0 || uniteFilters.includes(p.unit)) &&
@@ -523,5 +528,3 @@ export function ReportingPanel({
     </Card>
   );
 }
-
-    
