@@ -120,7 +120,6 @@ export function ReportingPanel({
   
   // Merkez Filters
   const [birimFilters, setBirimFilters] = useState<string[]>([]);
-  const [gorevYeriFilters, setGorevYeriFilters] = useState<string[]>([]);
   const [unvanFilters, setUnvanFilters] = useState<string[]>([]);
   const [merkezPersonelStatusFilters, setMerkezPersonelStatusFilters] = useState<string[]>([]);
   const [merkezRaporlayanYoneticiFilters, setMerkezRaporlayanYoneticiFilters] = useState<string[]>([]);
@@ -192,7 +191,6 @@ export function ReportingPanel({
         return enrichedMerkezData.filter(p => 
             (statusFilters.length === 0 || statusFilters.includes(p.status)) &&
             (birimFilters.length === 0 || birimFilters.includes(p.department)) &&
-            (gorevYeriFilters.length === 0 || (p.dutyLocation && gorevYeriFilters.includes(p.dutyLocation))) &&
             (unvanFilters.length === 0 || unvanFilters.includes(p.name)) &&
             (merkezPersonelStatusFilters.length === 0 || (p.assignedPerson && merkezPersonelStatusFilters.includes(p.assignedPerson.status))) &&
             (merkezRaporlayanYoneticiFilters.length === 0 || (p.reportsTo && merkezRaporlayanYoneticiFilters.includes(p.reportsTo))) &&
@@ -232,14 +230,13 @@ export function ReportingPanel({
     return [];
   }, [
     dataSource, statusFilters, 
-    positions, personnel, birimFilters, gorevYeriFilters, unvanFilters, merkezDateRange, merkezPersonelStatusFilters, merkezRaporlayanYoneticiFilters,
+    positions, personnel, birimFilters, unvanFilters, merkezDateRange, merkezPersonelStatusFilters, merkezRaporlayanYoneticiFilters,
     tasraPositions, tasraPersonnel, uniteFilters, tasraGorevYeriFilters, kadroUnvaniFilters, asilUnvanFilters, makamFilters, vekaletUcretiFilter, yetkiDevriFilter, tasraDateRange, tasraPersonelStatusFilters
   ]);
 
   const handleResetFilters = () => {
     setStatusFilters([]);
     setBirimFilters([]);
-    setGorevYeriFilters([]);
     setUnvanFilters([]);
     setMerkezPersonelStatusFilters([]);
     setMerkezRaporlayanYoneticiFilters([]);
@@ -424,7 +421,6 @@ export function ReportingPanel({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 pt-2">
                  <MultiSelectFilter title="Pozisyon Durumu" options={ALL_STATUSES.map(s => ({label: s, value: s}))} selected={statusFilters} onSelectedChange={setStatusFilters} />
                  <MultiSelectFilter title="Birim" options={filterOptions.merkezBirimler} selected={birimFilters} onSelectedChange={setBirimFilters} />
-                 <MultiSelectFilter title="Görev Yeri" options={filterOptions.merkezGorevYerleri} selected={gorevYeriFilters} onSelectedChange={setGorevYeriFilters} />
                  <MultiSelectFilter title="Ünvan" options={filterOptions.merkezUnvanlar} selected={unvanFilters} onSelectedChange={setUnvanFilters} />
                  <MultiSelectFilter title="Personel Statüsü" options={ALL_PERSONNEL_STATUSES.map(s => ({label: s, value: s}))} selected={merkezPersonelStatusFilters} onSelectedChange={setMerkezPersonelStatusFilters} />
                  <MultiSelectFilter title="Bağlı Olduğu Yönetici" options={filterOptions.merkezYoneticiler} selected={merkezRaporlayanYoneticiFilters} onSelectedChange={setMerkezRaporlayanYoneticiFilters} />
@@ -528,3 +524,4 @@ export function ReportingPanel({
   );
 }
 
+    
